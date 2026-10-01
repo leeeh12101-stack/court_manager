@@ -57,6 +57,8 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .tg{display:grid;grid-template-columns:repeat(2,4em);font-size:14px}.tg span,.rest span[data-a]{cursor:pointer}.sel{background:var(--pt)!important;border-radius:6px}.still{animation:none!important}
 .rest{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:7px 12px;font-size:13px;color:#B4B9B5;background:#FBFCFA}.rest span[data-a]{padding:1px 7px;border-radius:6px;background:#F3F5F2;color:#9EA39F}
 #popmsg{white-space:pre-line}
+.gr.s{padding:7px 10px;flex-wrap:nowrap}.gr.s .ct{width:32px;margin-right:6px;flex:none;white-space:nowrap}.gr.s .vs{width:16px;margin:0 6px 0 4px;flex:none}
+.gr.s .tg{grid-template-columns:repeat(2,3.5em);font-size:13px;flex:none}.gr.s .sc{margin-left:auto;white-space:nowrap;flex:none;padding-left:8px}
 .gr.tap{cursor:pointer}.gr.tap:active{background:var(--tint)}.gr .sc{margin-left:auto}
 .gt{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pr{display:flex;align-items:flex-start;gap:4px}.pc{flex:1;min-width:0}.pc select,.pc input{width:100%}.pp{width:34px;text-align:center;padding:3px 0!important;margin-top:9px;cursor:pointer;flex:none}
 .cmp input{padding:9px 10px;margin:4px 0 8px;font-size:14px}.cmp .big{width:84px;font-size:22px;text-align:center;padding:8px;font-weight:600}.tg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;text-align:left}
@@ -80,7 +82,7 @@ import {firebaseConfig} from "./firebase-config.js";
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
-const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",games:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
+const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
 let auth,db;
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
@@ -107,7 +109,8 @@ async function openClubs(){
 async function load(){const c=S.cur,id=c.id,q=(n,...w)=>getDocs(query(collection(db,n),...w.map(([f,v])=>where(f,"==",v)))).then(r=>r.docs.map(d=>d.data()));
  if(S.tab==="today"){const m=nextMeeting(c);S.parts=m?await q("sessionParticipants",["clubId",id],["date",ymd(m.date)]):[];S.sess=null;
   if(m)try{const d=await getDoc(doc(db,"sessions",`${id}_${ymd(m.date)}`));S.sess=d.exists()?d.data():null}catch(e){}}
- if(S.tab==="games"){const m=nextMeeting(c);S.mem=await q("clubMembers",["clubId",id],["status","active"]);S.sess=null;
+ if(S.tab==="stats")S.ap=await q("sessionParticipants",["clubId",id]);
+ if(S.tab==="games"||S.tab==="stats"){const m=nextMeeting(c);S.mem=await q("clubMembers",["clubId",id],["status","active"]);S.sess=null;
   if(m)try{const d=await getDoc(doc(db,"sessions",`${id}_${ymd(m.date)}`));S.sess=d.exists()?d.data():null}catch(e){}
   S.games=(await q("games",["clubId",id])).sort((a,b)=>b.date.localeCompare(a.date)||(b.round||0)-(a.round||0)||(a.court||0)-(b.court||0))}
  if(S.tab==="members"){S.mem=await q("clubMembers",["clubId",id],["status","active"]);S.apps=c.role==="admin"?await q("clubApplications",["clubId",id],["status","pending"]):[]}
@@ -163,11 +166,28 @@ ${gm.map(x=>`<div class="gl"><span class="t">${x.r.n}회차 ${x.r.time} · ${x.g
 const nmOf=k=>(S.parts.find(p=>key(p)===k)||{}).name||k;
 const nmj=l=>l.map(x=>esc(x.n)).join("·"),md=d=>d.slice(4,6)+"."+d.slice(6);
 const gTeams=g=>{const w=g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0,f=(l,i)=>w===i?`<b>${nmj(l)}</b>`:nmj(l);return `${f(g.t1,1)} <span class="sub">vs</span> ${f(g.t2,2)}`};
-const gm=g=>`<div class="li ${isSt()?"tap":""}" ${isSt()?`data-a="gedit" data-id="${g.id}"`:""}><span class="sub" style="width:38px">${md(g.date)}</span><span class="nm" style="white-space:normal;font-weight:400">${gTeams(g)}</span><span class="pill">${g.scoreA} : ${g.scoreB}</span></div>`;
+const nm3=(l,w,i)=>l.map(p=>`<span${w===i?' style="font-weight:700"':""}>${esc(p.n)}</span>`).join("");
+const rowS=(lab,t1,t2,w,sc,at,pst)=>`<div class="gr s ${at?"tap":""}" ${at||""}><span class="ct">${lab}</span><div class="tg">${nm3(t1,w,1)}</div><span class="vs">vs</span><div class="tg">${nm3(t2,w,2)}</div><span class="pill sc"${pst||""}>${sc}</span></div>`;
+const gm=g=>rowS(md(g.date),g.t1,g.t2,g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0,`${g.scoreA} : ${g.scoreB}`,isSt()?`data-a="gedit" data-id="${g.id}"`:"");
 const T={
+stats:()=>{const f=S.form,per=f.per||"all",sk=f.stat||"win",now=new Date(),y=String(now.getFullYear()),mo=now.getMonth()+1,
+ inP=d=>per==="all"||(per==="year"&&d.startsWith(y))||(per==="month"&&d.startsWith(y+String(mo).padStart(2,"0")))||(per==="quarter"&&d.startsWith(y)&&Math.ceil(+d.slice(4,6)/3)===Math.ceil(mo/3)),
+ nm=k=>(S.mem.find(m=>m.uid===k)||{}).displayName,P={},PR={},A={};
+ [...S.games].filter(g=>inP(g.date)).reverse().forEach(g=>{const r=g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0;[[g.t1,1],[g.t2,2]].forEach(([tm,sd])=>{const res=r===0?"d":r===sd?"w":"l",mem=tm.filter(p=>!p.k.startsWith("g:"));
+  mem.forEach(p=>{const o=P[p.k]=P[p.k]||{n:nm(p.k)||p.n,g:0,w:0,d:0,l:0,cur:0,max:0};o.g++;o[res]++;if(res==="w"){o.cur++;o.max=Math.max(o.max,o.cur)}else o.cur=0});
+  if(mem.length===2){const k=mem.map(p=>p.k).sort().join("|"),o=PR[k]=PR[k]||{n:mem.map(p=>nm(p.k)||p.n).join(" · "),g:0,w:0,d:0,l:0};o.g++;o[res]++}})});
+ S.ap.filter(p=>p.status==="in"&&p.uid&&inP(p.date)).forEach(p=>A[p.uid]=(A[p.uid]||0)+1);
+ const wl=o=>`${o.w}승 ${o.d}무 ${o.l}패`,rate=o=>o.w+o.l?Math.round(o.w/(o.w+o.l)*1000)/10:0,V=Object.values(P),
+ K={att:["출석",Object.entries(A).map(([k,c])=>({n:nm(k)||"탈퇴 회원",v:c+"회",x:c}))],gm:["경기수",V.map(o=>({n:o.n,v:o.g+"경기",s:wl(o),x:o.g}))],
+  win:["승률 (3경기 이상)",V.filter(o=>o.g>=3).map(o=>({n:o.n,v:rate(o)+"%",s:wl(o),x:rate(o)}))],mw:["최다승",V.map(o=>({n:o.n,v:o.w+"승",s:wl(o),x:o.w}))],
+  st:["최장 연승",V.map(o=>({n:o.n,v:o.max+"연승",s:"현재 "+o.cur,x:o.max}))],pr:["페어 (3경기 이상)",Object.values(PR).filter(o=>o.g>=3).map(o=>({n:o.n,v:o.g+"경기",s:wl(o)+" · "+rate(o)+"%",x:o.g}))]},
+ rows=K[sk][1].sort((a,b)=>b.x-a.x);
+ return `<div class="cmp"><select data-st="1">${Object.entries(K).map(([k,v])=>`<option value="${k}" ${k===sk?"selected":""}>${v[0]}</option>`).join("")}</select>
+<div class="seg" data-k="per">${[["all","전체"],["month","이번 달"],["quarter","분기"],["year","올해"]].map(([v,t])=>`<div data-v="${v}" class="${per===v?"on":""}">${t}</div>`).join("")}</div>
+${rows.length?`<div class="list">${rows.map((r,i)=>`<div class="li"><span class="sub" style="width:20px">${i+1}</span><span class="nm">${esc(r.n)}</span><span class="sub" style="font-size:12px">${r.s||""}</span><b style="min-width:48px;text-align:right">${r.v}</b></div>`).join("")}</div>`:'<div class="card sub center">해당 기간의 기록이 없어요</div>'}</div>`},
 games:()=>{const c=S.cur,by=Object.fromEntries(S.games.map(g=>[g.id,g])),ed=isSt();
- const row=x=>{const g=by[x.id],t1=g?g.t1:x.g.t1,t2=g?g.t2:x.g.t2,w=g?(g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0):0,cl=(l,i)=>l.map(p=>`<span${w===i?' style="font-weight:700"':""}>${esc(p.n)}</span>`).join("");
-  return `<div class="gr ${ed?"tap":""}" ${ed?`data-a="${g?"gedit":"gslot"}" data-id="${g?g.id:x.id}"`:""}><span class="ct">${x.g.court}코트</span><div class="tg">${cl(t1,1)}</div><span class="vs">vs</span><div class="tg">${cl(t2,2)}</div><span class="pill sc"${g?"":' style="background:var(--bg);color:var(--sub)"'}>${g?`${g.scoreA} : ${g.scoreB}`:ed?"입력":"-"}</span></div>`};
+ const row=x=>{const g=by[x.id],t1=g?g.t1:x.g.t1,t2=g?g.t2:x.g.t2,w=g?(g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0):0;
+  return rowS(x.g.court+"코트",t1,t2,w,g?`${g.scoreA} : ${g.scoreB}`:ed?"입력":"-",ed?`data-a="${g?"gedit":"gslot"}" data-id="${g?g.id:x.id}"`:"",g?"":' style="background:var(--bg);color:var(--sub)"')};
  return `${S.sess?`<h2>오늘 대진</h2>${S.sess.rounds.map(r=>`<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map(g=>row({id:`${c.id}_${S.sess.date}_r${r.n}_c${g.court}`,g})).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("")}`:""}
 ${isSt()?'<button class="ghost" data-a="gnew">경기 추가</button>':""}
 <h2>기록 ${S.games.length}</h2>${S.games.length?`<div class="list">${S.games.slice(0,60).map(gm).join("")}</div>`:'<div class="card sub center">아직 경기 기록이 없어요</div>'}`},
@@ -188,10 +208,9 @@ settings:()=>{const c=S.cur;return `<div class="card"><b>정기 모임</b><div c
 <div class="card"><div class="sub">초대코드</div><b id="invc" style="font-size:20px;letter-spacing:.12em">…</b></div>`}};
 const snap=()=>{const g=S.ge;g.date=$("#gd").value;g.a=$("#sa").value;g.b=$("#sb").value;[0,1,2,3].forEach(i=>{const e=$("#gn"+i);if(e)g.gn[i]=e.value})};
 const V={
-gedit:()=>{const g=S.ge,PL=[["포","백"],["백","포"],["–","–"]],opt=v=>`<option value="">선택</option>`+S.mem.map(m=>`<option value="${m.uid}" ${v===m.uid?"selected":""}>${esc(m.displayName)}</option>`).join("")+`<option value="__g" ${v==="__g"?"selected":""}>게스트</option>`,
- pr=i=>`<div class="pr"><div class="pc"><select data-p="${i}">${opt(g.p[i])}</select>${g.p[i]==="__g"?`<input id="gn${i}" placeholder="이름" maxlength="20" value="${esc(g.gn[i]||"")}">`:""}</div><span class="pill pp" data-a="cyc" data-t="${i>>1}">${PL[g.ps[i>>1]][i&1]}</span></div>`;
+gedit:()=>{const g=S.ge,PL=[["포","백"],["백","포"],["–","–"]],pr=i=>`<div class="pr"><div class="pc"><input id="gn${i}" list="ml" placeholder="이름" maxlength="20" autocomplete="off" value="${esc(g.gn[i]||"")}"></div><span class="pill pp" data-a="cyc" data-t="${i>>1}">${PL[g.ps[i>>1]][i&1]}</span></div>`;
  return `<div class="cmp"><button class="link" data-a="toClub">← 뒤로</button><h1>${g.exist?"경기 수정":"경기 입력"}</h1>날짜<input id="gd" type="date" value="${g.date}">
-<div class="gt"><div><div class="sub">팀 1</div>${pr(0)}${pr(1)}</div><div><div class="sub">팀 2</div>${pr(2)}${pr(3)}</div></div>
+<datalist id="ml">${S.mem.map(m=>`<option value="${esc(m.displayName)}">`).join("")}</datalist><div class="gt"><div><div class="sub">팀 1</div>${pr(0)}${pr(1)}</div><div><div class="sub">팀 2</div>${pr(2)}${pr(3)}</div></div>
 <div class="sub" style="margin-top:8px">점수</div><div class="row" style="gap:10px;justify-content:center"><input class="big" id="sa" type="number" inputmode="numeric" min="0" max="99" value="${g.a}"><b>:</b><input class="big" id="sb" type="number" inputmode="numeric" min="0" max="99" value="${g.b}"></div>
 <div class="bar"><button data-a="saveGame">저장</button>${g.exist?'<button class="ghost" data-a="delGame">삭제</button>':""}</div></div>`},
 login:()=>`<div class="mid center"><img class="logo" src="icon-192.png" alt=""><h1>Court Manager</h1><p class="hi">테니스 클럽 운영과 내 경기 기록</p></div><div class="bar"><button data-a="login">Google로 시작</button></div>`,
@@ -216,7 +235,7 @@ join:()=>`<button class="link" data-a="back">← 뒤로</button><h1>클럽 가�
 <h2>공개 클럽</h2><input id="sq" placeholder="클럽 이름 검색"><button class="ghost" data-a="search">검색</button>
 ${S.found.map(c=>`<div class="card"><div class="row"><div><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"")}</div></div><button style="width:auto;margin:0" data-a="join" data-id="${c.id}">${c.joinMethod==="open"?"가입":c.joinMethod==="approval"?"신청":"초대만"}</button></div></div>`).join("")}`,
 clubHome:()=>{const c=S.cur,adm=c.role==="admin";return `<div class="row"><h1>${esc(c.name)}</h1><button class="link" data-a="back">내 클럽</button></div>${T[S.tab]()}<div style="height:90px"></div>
-<nav class="nav">${[["today","오늘"],["games","경기"],["members","회원"],...(adm?[["settings","설정"]]:[])].map(([k,t])=>`<div data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}">${t}</div>`).join("")}</nav>`},
+<nav class="nav">${[["today","오늘"],["games","경기"],["stats","통계"],["members","회원"],...(adm?[["settings","설정"]]:[])].map(([k,t])=>`<div data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}">${t}</div>`).join("")}</nav>`},
 attend:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>참석</h1>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
 ${S.cur.noPlayEnabled!==false?`<div class="seg" data-k="play"><div data-v="play" class="${S.form.play==="play"?"on":""}">경기 참여</div><div data-v="no" class="${S.form.play==="no"?"on":""}">놀참</div></div>`:""}
 ${S.form.play==="no"&&S.cur.noPlayEnabled!==false?"":`포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>`}
@@ -260,15 +279,15 @@ tab(el){S.tab=el.dataset.k;if(S.tab==="settings")S.form={...S.form,np:S.cur.noPl
 toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||"either",play:m?.noPlay?"no":"play",st:m?.start||c.regularStartTime||"13:00",et:m?.end||c.regularEndTime||"16:00"};go("attend")},
 mdt(el){S.mdt=el.dataset.id;S.still=1;render();S.still=0},
 mclose(el,ev){S.mdt=null;S.still=1;render();S.still=0},
-gfill(x,o){const sel=l=>l.map(p=>!p.k.startsWith("g:")&&S.mem.some(m=>m.uid===p.k)?{v:p.k,n:""}:{v:"__g",n:p.n}),ps=l=>l[0].p==="fore"&&l[1].p==="back"?0:l[0].p==="back"&&l[1].p==="fore"?1:2;
-  const all=[...sel(x.t1),...sel(x.t2)];S.ge={...o,p:all.map(z=>z.v),gn:all.map(z=>z.n),ps:[ps(x.t1),ps(x.t2)],a:x.scoreA??"",b:x.scoreB??""};go("gedit")},
+gfill(x,o){const ps=l=>l[0].p==="fore"&&l[1].p==="back"?0:l[0].p==="back"&&l[1].p==="fore"?1:2,all=[...x.t1,...x.t2];
+  S.ge={...o,gn:all.map(p=>(S.mem.find(m=>m.uid===p.k)||{}).displayName||p.n),ps:[ps(x.t1),ps(x.t2)],a:x.scoreA??"",b:x.scoreB??""};go("gedit")},
 cyc(el){snap();const t=+el.dataset.t;S.ge.ps[t]=(S.ge.ps[t]+1)%3;S.still=1;render();S.still=0},
 gslot(el){const c=S.cur,x=S.sess.rounds.flatMap(r=>r.games.map(g=>({id:`${c.id}_${S.sess.date}_r${r.n}_c${g.court}`,r:r.n,g}))).find(z=>z.id===el.dataset.id);
   A.gfill({t1:x.g.t1,t2:x.g.t2},{id:x.id,date:`${S.sess.date.slice(0,4)}-${S.sess.date.slice(4,6)}-${S.sess.date.slice(6)}`,round:x.r,court:x.g.court,exist:false})},
 gedit(el){const g=S.games.find(x=>x.id===el.dataset.id);A.gfill(g,{id:g.id,date:`${g.date.slice(0,4)}-${g.date.slice(4,6)}-${g.date.slice(6)}`,round:g.round||0,court:g.court||0,exist:true,src:g.source})},
 gnew(){const n=new Date();S.ge={id:null,date:`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`,round:0,court:0,exist:false,p:["","","",""],gn:["","","",""],ps:[2,2],a:"",b:""};go("gedit")},
 async saveGame(){snap();const g=S.ge,pl=[],PS=[["fore","back"],["back","fore"],["either","either"]],pp=i=>PS[g.ps[i>>1]][i&1];
-  for(let i=0;i<4;i++){const v=g.p[i];if(!v)return pop("선수 4명을 모두 골라 주세요.");if(v==="__g"){const n=(g.gn[i]||"").trim();if(!n)return pop("게스트 이름을 입력해 주세요.");pl.push({k:"g:"+n,n,p:pp(i)})}else pl.push({k:v,n:S.mem.find(m=>m.uid===v).displayName,p:pp(i)})}
+  for(let i=0;i<4;i++){const n=(g.gn[i]||"").trim();if(!n)return pop("선수 4명을 모두 입력해 주세요.");const m=S.mem.find(x=>x.displayName===n);pl.push(m?{k:m.uid,n:m.displayName,p:pp(i)}:{k:"g:"+n,n,p:pp(i)})}
   if(new Set(pl.map(x=>x.k)).size<4)return pop("같은 사람이 두 번 들어갔어요.");
   const a=parseInt(g.a),b=parseInt(g.b);if(isNaN(a)||isNaN(b)||a<0||b<0)return pop("점수를 입력해 주세요.");
   const id=g.id||doc(collection(db,"games")).id,date=g.date.replace(/-/g,"");
@@ -324,7 +343,7 @@ async byCode(){const ic=$("#ic").value.trim().toUpperCase();if(!ic)return;
   try{const d=await getDoc(doc(db,"inviteCodes",ic));if(!d.exists())return pop("초대코드를 찾을 수 없습니다.");
     await addMember(d.data().clubId,{viaCode:ic});openClubs()}catch(e){pop("가입하지 못했습니다. 이미 가입한 클럽일 수 있습니다.")}}
 };
-document.addEventListener("change",e=>{const x=e.target.closest("select[data-p]");if(x){snap();S.ge.p[+x.dataset.p]=x.value;S.still=1;render();S.still=0}});
+document.addEventListener("change",e=>{const x=e.target.closest("select[data-st]");if(x){S.form.stat=x.value;S.still=1;render();S.still=0}});
 document.addEventListener("click",e=>{
   const rc=e.target.closest("[data-r]");if(rc){rc.classList.toggle("on");return}
   const dy=e.target.closest("[data-d]");if(dy){const n=+dy.dataset.d,a=S.form.days;S.form.days=a.includes(n)?a.filter(x=>x!==n):[...a,n];dy.classList.toggle("on");return}
