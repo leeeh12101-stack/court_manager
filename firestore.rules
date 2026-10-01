@@ -50,15 +50,21 @@ service cloud.firestore {
         ||
         (can(request.resource.data.clubId, 'members', 'admin') && request.resource.data.role == 'member' && request.resource.data.status == 'active')
       );
-      allow update: if authed() && (isAdmin(resource.data.clubId)
-        || (resource.data.uid == me() && request.resource.data.role == resource.data.role
-            && request.resource.data.clubId == resource.data.clubId));
+      allow update: if authed() && (
+        isAdmin(resource.data.clubId)
+        || (can(resource.data.clubId, 'members', 'admin') && resource.data.status == 'withdrawn' && request.resource.data.role == 'member' && request.resource.data.status == 'active')
+        || (resource.data.uid == me() && request.resource.data.uid == me() && request.resource.data.clubId == resource.data.clubId && (
+             (resource.data.status == 'active' && request.resource.data.role == resource.data.role)
+             || (resource.data.status == 'withdrawn' && request.resource.data.status == 'active' && request.resource.data.role == 'member'
+                 && (get(/databases/$(db)/documents/clubs/$(resource.data.clubId)).data.joinMethod == 'open'
+                     || ('viaCode' in request.resource.data && get(/databases/$(db)/documents/inviteCodes/$(request.resource.data.viaCode)).data.clubId == resource.data.clubId))))));
     }
 
     match /clubApplications/{a} {
       allow create: if authed() && request.resource.data.uid == me() && a == request.resource.data.clubId + '_' + me();
       allow read: if authed() && (resource.data.uid == me() || can(resource.data.clubId, 'members', 'admin'));
-      allow update: if can(resource.data.clubId, 'members', 'admin');
+      allow update: if can(resource.data.clubId, 'members', 'admin')
+        || (authed() && resource.data.uid == me() && resource.data.status != 'pending' && request.resource.data.uid == me() && request.resource.data.status == 'pending');
     }
 
     match /sessionParticipants/{p} {
