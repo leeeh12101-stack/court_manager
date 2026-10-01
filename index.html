@@ -50,6 +50,7 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .li{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);min-height:42px}.li:last-child{border:0}
 .li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .li .tm{color:var(--sub);font-size:13px;white-space:nowrap}.li .pill{font-size:11px;padding:2px 8px;white-space:nowrap}
+.li .tm{width:92px;text-align:center;font-variant-numeric:tabular-nums}.li .ps{display:inline-block;width:58px;text-align:center;padding:2px 0}.nm .pill{margin-left:6px}
 .av.s{width:28px;height:28px;border-radius:9px;font-size:13px}
 </style>
 </head>
@@ -106,7 +107,7 @@ today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center"
  return `<div class="card hero" style="padding:20px"><div class="sub">${m.today?"오늘의 모임":"다음 모임"}</div><div style="font-size:24px;font-weight:700">${m.date.getMonth()+1}월 ${m.date.getDate()}일 (${DOW[m.date.getDay()]})</div><div class="sub">${c.regularStartTime||"13:00"}–${c.regularEndTime||"16:00"} · ${c.regularCourtCount||3}코트</div></div>
 <div class="card row"><div><b>내 참석</b><div class="sub">${mine?(mine.status==="in"?`${mine.start}–${mine.end} · ${POS[mine.position]}${mine.noPlay?" · 놀참":""}`:"불참"):"아직 응답하지 않았어요"}</div></div><button class="sm" data-a="toAttend">${mine?"수정":"참석 등록"}</button></div>
 <h2>참석 ${yes.length}명 · 불참 ${no.length}명</h2>
-${yes.length?`<div class="list">${yes.map(p=>`<div class="li"><span class="nm">${esc(p.name)}</span>${p.guest?'<span class="pill">게스트</span>':""}<span class="tm">${p.start}–${p.end}</span><span class="pill">${p.noPlay?"놀참":POS[p.position]}</span></div>`).join("")}</div>`:""}
+${yes.length?`<div class="list">${yes.map(p=>`<div class="li"><span class="nm">${esc(p.name)}${p.guest?'<span class="pill">게스트</span>':""}</span><span class="tm">${p.start}–${p.end}</span><span class="pill ps">${p.noPlay?"놀참":POS[p.position]}</span></div>`).join("")}</div>`:""}
 ${isSt()?'<button class="ghost" data-a="toGuest">게스트 추가</button>':""}`},
 members:()=>{const adm=S.cur.role==="admin";return `${adm&&S.apps.length?`<h2>가입 신청 ${S.apps.length}</h2>${S.apps.map(a=>`<div class="card row"><b>${esc(a.displayName)}</b><div style="display:flex;gap:6px">${btn("approve",a.uid,"승인")}${btn("reject",a.uid,"거절",1)}</div></div>`).join("")}`:""}
 <h2>회원 ${S.mem.length}명</h2><div class="list">${S.mem.map(m=>{const t=adm&&m.uid!==S.user.uid&&m.role!=="admin";return `<div class="li ${t?"tap":""}" ${t?`data-a="role" data-id="${m.uid}"`:""}><div class="av s">${esc([...m.displayName][0])}</div><span class="nm">${esc(m.displayName)}</span>${m.role!=="member"?`<span class="pill">${m.role==="admin"?"관리자":"운영진"}</span>`:""}</div>`}).join("")}</div>${adm?'<div class="sub center">회원을 누르면 운영진으로 지정하거나 해제해요</div>':""}`},
