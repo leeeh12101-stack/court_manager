@@ -7,3 +7,4 @@ export const firebaseConfig = {
   appId: "1:530145478667:web:cb0587c039a986ba6d5f0e",
   measurementId: "G-M6V86KZ9F6"
 };
+   export const appCheckKey = "복사한_키_ID";
