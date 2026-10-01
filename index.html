@@ -65,7 +65,7 @@ import {firebaseConfig} from "./firebase-config.js";
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
-const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",parts:[],mem:[],apps:[]};
+const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",dr:null,sess:null,parts:[],mem:[],apps:[]};
 let auth,db;
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
@@ -89,7 +89,8 @@ async function openClubs(){
   S.clubs=list; render();
 }
 async function load(){const c=S.cur,id=c.id,q=(n,...w)=>getDocs(query(collection(db,n),...w.map(([f,v])=>where(f,"==",v)))).then(r=>r.docs.map(d=>d.data()));
- if(S.tab==="today"){const m=nextMeeting(c);S.parts=m?await q("sessionParticipants",["clubId",id],["date",ymd(m.date)]):[]}
+ if(S.tab==="today"){const m=nextMeeting(c);S.parts=m?await q("sessionParticipants",["clubId",id],["date",ymd(m.date)]):[];S.sess=null;
+  if(m)try{const d=await getDoc(doc(db,"sessions",`${id}_${ymd(m.date)}`));S.sess=d.exists()?d.data():null}catch(e){}}
  if(S.tab==="members"){S.mem=await q("clubMembers",["clubId",id],["status","active"]);S.apps=c.role==="admin"?await q("clubApplications",["clubId",id],["status","pending"]):[]}
  render()}
 const created=()=>S.clubs.filter(c=>c.createdBy===S.user.uid).length;
@@ -101,11 +102,40 @@ const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.get
 const isSt=()=>["admin","staff"].includes(S.cur.role);
 function nextMeeting(c){const days=c.regularDays||[],n=new Date();if(!days.length)return null;for(let i=0;i<8;i++){const x=new Date(n.getFullYear(),n.getMonth(),n.getDate()+i);if(days.includes(x.getDay()))return{date:x,today:i===0}}}
 const btn=(a,id,t,g)=>`<button class="sm ${g?"ghost":""}" data-a="${a}" data-id="${id}">${t}</button>`;
+const key=p=>p.uid||"g:"+p.name,tmin=x=>x.split(":").reduce((a,b)=>a*60+ +b),fmt=m=>String(m/60|0).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const rinfo=c=>{const iv=c.roundInterval||40,st=tmin(c.regularStartTime||"13:00"),en=tmin(c.regularEndTime||"16:00");return{iv,st,R:Math.max(1,Math.floor((en-st)/iv))}};
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+function buildDraw(parts,c,dr){
+ const {iv,st,R}=rinfo(c),cts=c.regularCourtCount||3,pl=parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:p.name,p:p.position,s:tmin(p.start),e:tmin(p.end),g:0}));
+ const pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a,cnt=(m,a,b)=>m[K(a,b)]||0,inc=(m,a,b)=>m[K(a,b)]=cnt(m,a,b)+1,rounds=[];
+ for(let r=0;r<R;r++){
+  const t=st+r*iv,av=pl.filter(p=>p.s<=t&&p.e>=t+iv&&!(dr.excl[p.k]||[]).includes(r+1)),by=Object.fromEntries(av.map(p=>[p.k,p])),used=new Set();
+  let units=[];dr.pairs.forEach(([a,b])=>{if(by[a]&&by[b]){units.push([by[a],by[b]]);used.add(a);used.add(b)}});
+  av.forEach(p=>{if(!used.has(p.k))units.push([p])});
+  const avg=u=>u.reduce((x,p)=>x+p.g,0)/u.length;units=shuf(units).sort((x,y)=>avg(x)-avg(y));
+  let sel=[],tot=0;for(const u of units)if(tot+u.length<=cts*4){sel.push(u);tot+=u.length}
+  while(tot%4){const i=sel.map(u=>u.length).lastIndexOf(1),j=i>=0?i:sel.length-1;tot-=sel[j].length;sel.splice(j,1)}
+  if(!sel.length){rounds.push({n:r+1,time:fmt(t),games:[]});continue}
+  const mk=()=>{const T=[],sg=[];shuf(sel).forEach(u=>u.length===2?T.push({m:[...u],f:1}):sg.push(u[0]));for(let i=0;i<sg.length;i+=2)T.push({m:[sg[i],sg[i+1]],f:0});return shuf(T)};
+  const sc=T=>{let x=0;T.forEach(q=>{if(!q.f)x+=cnt(pc,q.m[0].k,q.m[1].k)*10;if(dr.mode==="pos"&&q.m[0].p===q.m[1].p&&q.m[0].p!=="either")x+=8});
+   for(let i=0;i<T.length;i+=2)for(const a of T[i].m)for(const b of T[i+1].m)x+=cnt(oc,a.k,b.k)*4;return x};
+  let best=mk(),bs=sc(best);
+  for(let i=0;i<400;i++){let T;if(i<80)T=mk();else{T=best.map(q=>({...q,m:[...q.m]}));const a=T[Math.random()*T.length|0],b=T[Math.random()*T.length|0];if(a===b||a.f||b.f)continue;const x=Math.random()<.5?0:1,y=Math.random()<.5?0:1;[a.m[x],b.m[y]]=[b.m[y],a.m[x]]}const v=sc(T);if(v<bs){best=T;bs=v}}
+  const games=[];for(let i=0;i<best.length;i+=2){const A=best[i].m,B=best[i+1].m,f=q=>q.map(p=>({k:p.k,n:p.n,p:p.p}));games.push({court:i/2+1,t1:f(A),t2:f(B)});
+   inc(pc,A[0].k,A[1].k);inc(pc,B[0].k,B[1].k);A.forEach(a=>B.forEach(b=>inc(oc,a.k,b.k)));[...A,...B].forEach(p=>p.g++)}
+  rounds.push({n:r+1,time:fmt(t),games});
+ }
+ return{rounds,players:pl.map(p=>({n:p.n,g:p.g}))};
+}
+const gRow=g=>`<div class="li"><span class="sub" style="width:42px">${g.court}코트</span><span class="nm" style="white-space:normal;font-weight:500">${g.t1.map(x=>esc(x.n)).join("·")} <span class="sub">vs</span> ${g.t2.map(x=>esc(x.n)).join("·")}</span></div>`;
+const rList=rs=>rs.map(r=>`<div class="list"><div class="li" style="background:var(--tint);color:var(--main);font-weight:600">${r.n}회차 · ${r.time}</div>${r.games.map(gRow).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("");
+const nmOf=k=>(S.parts.find(p=>key(p)===k)||{}).name||k;
 const T={
 today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center" style="padding:28px"><b>정기 모임이 없어요</b><div class="sub">${c.role==="admin"?"설정에서 모임 요일을 정해 주세요.":"관리자가 모임 요일을 정하면 보여요."}</div></div>`;
  const mine=S.parts.find(p=>p.uid===S.user.uid),yes=S.parts.filter(p=>p.status==="in"),no=S.parts.filter(p=>p.status==="out");
  return `<div class="card hero" style="padding:20px"><div class="sub">${m.today?"오늘의 모임":"다음 모임"}</div><div style="font-size:24px;font-weight:700">${m.date.getMonth()+1}월 ${m.date.getDate()}일 (${DOW[m.date.getDay()]})</div><div class="sub">${c.regularStartTime||"13:00"}–${c.regularEndTime||"16:00"} · ${c.regularCourtCount||3}코트</div></div>
 <div class="card row"><div><b>내 참석</b><div class="sub">${mine?(mine.status==="in"?`${mine.start}–${mine.end} · ${POS[mine.position]}${mine.noPlay?" · 놀참":""}`:"불참"):"아직 응답하지 않았어요"}</div></div><button class="sm" data-a="toAttend">${mine?"수정":"참석 등록"}</button></div>
+<h2>대진</h2>${S.sess?rList(S.sess.rounds):'<div class="card sub center">아직 확정된 대진이 없어요</div>'}${isSt()?`<button class="ghost" data-a="toDraw">${S.sess?"대진 다시 만들기":"대진 만들기"}</button>`:""}
 <h2>참석 ${yes.length}명 · 불참 ${no.length}명</h2>
 ${yes.length?`<div class="list">${yes.map(p=>`<div class="li"><span class="nm">${esc(p.name)}${p.guest?'<span class="pill">게스트</span>':""}</span><span class="tm">${p.start}–${p.end}</span><span class="pill ps">${p.noPlay?"놀참":POS[p.position]}</span></div>`).join("")}</div>`:""}
 ${isSt()?'<button class="ghost" data-a="toGuest">게스트 추가</button>':""}`},
@@ -147,6 +177,17 @@ ${S.form.play==="no"&&S.cur.noPlayEnabled!==false?"":`포지션<div class="seg" 
 guest:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>게스트 추가</h1>이름<input id="gn" maxlength="20">시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
 포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
 <div class="bar"><button data-a="addGuest">추가</button></div>`,
+draw:()=>{const R=rinfo(S.cur).R,d=S.dr,o=S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>`<option value="${esc(key(p))}">${esc(p.name)}</option>`).join(""),dm=S.form.dmode||"pos";
+ return `<button class="link" data-a="toClub">← 뒤로</button><h1>대진 만들기</h1>
+<div class="seg" data-k="dmode"><div data-v="random" class="${dm==="random"?"on":""}">랜덤</div><div data-v="pos" class="${dm==="pos"?"on":""}">포지션 반영</div></div>
+<h2>회차 제외</h2><select id="xp">${o}</select><div class="seg" style="flex-wrap:wrap">${Array.from({length:R},(_,i)=>`<div data-r="${i+1}">${i+1}회차</div>`).join("")}</div><button class="ghost" data-a="addExcl">제외 추가</button>
+${Object.keys(d.excl).length?`<div class="list" style="margin-top:12px">${Object.entries(d.excl).map(([k,v])=>`<div class="li"><span class="nm">${esc(nmOf(k))}</span><span class="sub">${v.join(", ")}회차 제외</span><span class="tap sub" data-a="delExcl" data-id="${esc(k)}">✕</span></div>`).join("")}</div>`:""}
+<h2>고정 페어</h2><div class="row"><select id="pa">${o}</select><select id="pb">${o}</select></div><button class="ghost" data-a="addPair">페어 추가</button>
+${d.pairs.length?`<div class="list" style="margin-top:12px">${d.pairs.map(([a,b],i)=>`<div class="li"><span class="nm">${esc(nmOf(a))} · ${esc(nmOf(b))}</span><span class="tap sub" data-a="delPair" data-id="${i}">✕</span></div>`).join("")}</div>`:""}
+<div class="bar"><button data-a="gen">대진 생성</button></div>`},
+preview:()=>{const p=S.dr.plan;return `<button class="link" data-a="toDraw">← 설정</button><h1>대진 미리보기</h1><div class="sub">참여 회원(경기수)</div>
+<div class="list" style="padding:10px 14px;line-height:1.9;margin-top:6px">${p.players.map(x=>`${esc(x.n)}(${x.g})`).join("&nbsp; ")}</div>${rList(p.rounds)}
+<div class="bar"><button data-a="confirm">대진 확정</button><button class="ghost" data-a="gen">다시 생성</button></div>`},
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드</button></div><p class="sub">개인 경기·메모는 다음 단계에서 추가됩니다.</p>`
 };
 function render(){ $("#app").innerHTML=V[S.screen]?`<div class="scr">${V[S.screen]()}</div>`:""; if(S.screen==="clubHome"&&S.tab==="settings")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
@@ -170,6 +211,13 @@ club(el){S.cur=S.clubs.find(c=>c.id===el.dataset.id);S.tab="today";S.parts=[];go
 toClub(){go("clubHome");load()},
 tab(el){S.tab=el.dataset.k;if(S.tab==="settings")S.form={...S.form,np:S.cur.noPlayEnabled===false?"0":"1",days:[...(S.cur.regularDays||[])]};render();load()},
 toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||"either",play:m?.noPlay?"no":"play",st:m?.start||c.regularStartTime||"13:00",et:m?.end||c.regularEndTime||"16:00"};go("attend")},
+toDraw(){if(!S.dr)S.dr={mode:"pos",excl:{},pairs:[],plan:null};go("draw")},
+addExcl(){const k=$("#xp").value,r=[...document.querySelectorAll("[data-r].on")].map(x=>+x.dataset.r);if(!k||!r.length)return pop("선수와 제외할 회차를 골라 주세요.");S.dr.excl[k]=r;render()},
+delExcl(el){delete S.dr.excl[el.dataset.id];render()},
+addPair(){const a=$("#pa").value,b=$("#pb").value;if(!a||!b||a===b)return pop("서로 다른 두 사람을 골라 주세요.");if(S.dr.pairs.some(p=>p.includes(a)||p.includes(b)))return pop("이미 다른 페어에 속한 사람입니다.");S.dr.pairs.push([a,b]);render()},
+delPair(el){S.dr.pairs.splice(+el.dataset.id,1);render()},
+gen(){S.dr.mode=S.form.dmode||"pos";if(S.parts.filter(p=>p.status==="in"&&!p.noPlay).length<4)return pop("경기 참여 인원이 4명 이상 필요합니다.");S.dr.plan=buildDraw(S.parts,S.cur,S.dr);go("preview")},
+async confirm(){const c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawMode:S.dr.mode,rounds:S.dr.plan.rounds,status:"confirmed",createdBy:S.user.uid,updatedAt:serverTimestamp()});S.dr=null;A.toClub()}catch(e){pop("확정하지 못했습니다. Firestore 규칙이 게시되었는지 확인해 주세요.")}},
 toGuest(){S.form={...S.form,pos:"either",st:S.cur.regularStartTime||"13:00",et:S.cur.regularEndTime||"16:00"};go("guest")},
 async saveAttend(el){const c=S.cur,m=nextMeeting(c),d=ymd(m.date),inn=el.dataset.s==="in";
   try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${S.user.uid}`),{clubId:c.id,date:d,uid:S.user.uid,name:S.profile.name,status:el.dataset.s,start:inn?$("#st").value:"",end:inn?$("#et").value:"",position:inn&&S.form.play==="no"?"either":S.form.pos,noPlay:inn&&S.form.play==="no"&&c.noPlayEnabled!==false,guest:false,responseSource:"member",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("저장하지 못했습니다. 다시 시도해 주세요.")}},
@@ -203,6 +251,7 @@ async byCode(){const ic=$("#ic").value.trim().toUpperCase();if(!ic)return;
     await addMember(d.data().clubId,{viaCode:ic});openClubs()}catch(e){pop("가입하지 못했습니다. 이미 가입한 클럽일 수 있습니다.")}}
 };
 document.addEventListener("click",e=>{
+  const rc=e.target.closest("[data-r]");if(rc){rc.classList.toggle("on");return}
   const dy=e.target.closest("[data-d]");if(dy){const n=+dy.dataset.d,a=S.form.days;S.form.days=a.includes(n)?a.filter(x=>x!==n):[...a,n];dy.classList.toggle("on");return}
   const seg=e.target.closest(".seg div[data-v]");if(seg){const vals=[...document.querySelectorAll("#app [id]")].filter(x=>"value" in x).map(x=>[x.id,x.value]);S.form[seg.parentNode.dataset.k]=seg.dataset.v;render();vals.forEach(([i,v])=>{const x=document.getElementById(i);if(x)x.value=v});return}
   const el=e.target.closest("[data-a]");if(el&&A[el.dataset.a])A[el.dataset.a](el)});
