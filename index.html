@@ -43,6 +43,9 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .mid{margin:auto 0}.center{text-align:center}
 #pop{position:fixed;inset:0;background:#0006;display:none;align-items:center;justify-content:center;padding:24px;z-index:9}
 #pop div{background:#fff;border-radius:20px;padding:20px;max-width:340px;width:100%}
+.nav{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;display:flex;background:#fff;box-shadow:0 -6px 22px rgba(23,74,67,.08);padding-bottom:env(safe-area-inset-bottom);border-radius:20px 20px 0 0;z-index:5}
+.nav div{flex:1;text-align:center;padding:15px 0;color:var(--sub);cursor:pointer}.nav .on{color:var(--main);font-weight:700}
+.sm{width:auto!important;margin:0!important;padding:9px 15px!important}
 </style>
 </head>
 <body>
@@ -51,12 +54,12 @@ input:focus,textarea:focus{border-color:var(--pt)}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,collection,query,where,getDocs,writeBatch,serverTimestamp,limit} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,collection,query,where,getDocs,writeBatch,serverTimestamp,limit,updateDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js";
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
-const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open"},cur:null};
+const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",parts:[],mem:[],apps:[]};
 let auth,db;
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
@@ -79,10 +82,34 @@ async function openClubs(){
   for(const m of ms.docs){const c=await getDoc(doc(db,"clubs",m.data().clubId)); if(c.exists())list.push({id:c.id,role:m.data().role,...c.data()})}
   S.clubs=list; render();
 }
+async function load(){const c=S.cur,id=c.id,q=(n,...w)=>getDocs(query(collection(db,n),...w.map(([f,v])=>where(f,"==",v)))).then(r=>r.docs.map(d=>d.data()));
+ if(S.tab==="today"){const m=nextMeeting(c);S.parts=m?await q("sessionParticipants",["clubId",id],["date",ymd(m.date)]):[]}
+ if(S.tab==="members"){S.mem=await q("clubMembers",["clubId",id],["status","active"]);S.apps=c.role==="admin"?await q("clubApplications",["clubId",id],["status","pending"]):[]}
+ render()}
 const created=()=>S.clubs.filter(c=>c.createdBy===S.user.uid).length;
 const joined=()=>S.clubs.length-created();
 const code=()=>Array.from({length:7},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.random()*32|0]).join("");
 
+const POS={fore:"포",back:"백",either:"포or백"},DOW="일월화수목금토";
+const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+const isSt=()=>["admin","staff"].includes(S.cur.role);
+function nextMeeting(c){const days=c.regularDays||[],n=new Date();if(!days.length)return null;for(let i=0;i<8;i++){const x=new Date(n.getFullYear(),n.getMonth(),n.getDate()+i);if(days.includes(x.getDay()))return{date:x,today:i===0}}}
+const btn=(a,id,t,g)=>`<button class="sm ${g?"ghost":""}" data-a="${a}" data-id="${id}">${t}</button>`;
+const T={
+today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center" style="padding:28px"><b>정기 모임이 없어요</b><div class="sub">${c.role==="admin"?"설정에서 모임 요일을 정해 주세요.":"관리자가 모임 요일을 정하면 보여요."}</div></div>`;
+ const mine=S.parts.find(p=>p.uid===S.user.uid),yes=S.parts.filter(p=>p.status==="in"),no=S.parts.filter(p=>p.status==="out");
+ return `<div class="card hero" style="padding:20px"><div class="sub">${m.today?"오늘의 모임":"다음 모임"}</div><div style="font-size:24px;font-weight:700">${m.date.getMonth()+1}월 ${m.date.getDate()}일 (${DOW[m.date.getDay()]})</div><div class="sub">${c.regularStartTime||"13:00"}–${c.regularEndTime||"16:00"} · ${c.regularCourtCount||3}코트</div></div>
+<div class="card row"><div><b>내 참석</b><div class="sub">${mine?(mine.status==="in"?`${mine.start}–${mine.end} · ${POS[mine.position]}${mine.noPlay?" · 놀참":""}`:"불참"):"아직 응답하지 않았어요"}</div></div><button class="sm" data-a="toAttend">${mine?"수정":"참석 등록"}</button></div>
+<h2>참석 ${yes.length}명 · 불참 ${no.length}명</h2>
+${yes.map(p=>`<div class="card row"><div><b>${esc(p.name)}</b>${p.guest?' <span class="pill">게스트</span>':""}<div class="sub">${p.start}–${p.end}</div></div><span class="pill">${POS[p.position]}${p.noPlay?" · 놀참":""}</span></div>`).join("")}
+${isSt()?'<button class="ghost" data-a="toGuest">게스트 추가</button>':""}`},
+members:()=>{const adm=S.cur.role==="admin";return `${adm&&S.apps.length?`<h2>가입 신청 ${S.apps.length}</h2>${S.apps.map(a=>`<div class="card row"><b>${esc(a.displayName)}</b><div style="display:flex;gap:6px">${btn("approve",a.uid,"승인")}${btn("reject",a.uid,"거절",1)}</div></div>`).join("")}`:""}
+<h2>회원 ${S.mem.length}명</h2>${S.mem.map(m=>{const t=adm&&m.uid!==S.user.uid&&m.role!=="admin";return `<div class="card row ${t?"tap":""}" ${t?`data-a="role" data-id="${m.uid}"`:""}><div class="row"><div class="av">${esc([...m.displayName][0])}</div><b>${esc(m.displayName)}</b></div>${m.role!=="member"?`<span class="pill">${m.role==="admin"?"관리자":"운영진"}</span>`:""}</div>`}).join("")}${adm?'<div class="sub center">회원을 누르면 운영진으로 지정하거나 해제해요</div>':""}`},
+settings:()=>{const c=S.cur;return `<div class="card"><b>정기 모임</b><div class="seg" style="margin-top:10px">${[...DOW].map((d,i)=>`<div data-d="${i}" class="${S.form.days.includes(i)?"on":""}">${d}</div>`).join("")}</div>
+시작<input id="st" type="time" value="${c.regularStartTime||"13:00"}">종료<input id="et" type="time" value="${c.regularEndTime||"16:00"}">
+코트 수<input id="cc" type="number" min="1" max="12" value="${c.regularCourtCount||3}">회차 간격(분)<input id="ri" type="number" min="20" max="90" value="${c.roundInterval||40}">
+놀참<div class="seg" data-k="np"><div data-v="1" class="${S.form.np==="1"?"on":""}">사용</div><div data-v="0" class="${S.form.np==="0"?"on":""}">사용 안 함</div></div><button data-a="saveSettings">저장</button></div>
+<div class="card"><div class="sub">초대코드</div><b id="invc" style="font-size:20px;letter-spacing:.12em">…</b></div>`}};
 const V={
 login:()=>`<div class="mid center"><img class="logo" src="icon-192.png" alt=""><h1>Court Manager</h1><p class="hi">테니스 클럽 운영과 내 경기 기록</p></div><div class="bar"><button data-a="login">Google로 시작</button></div>`,
 name:()=>`<h1>이름 설정</h1><div class="card"><div class="sub">Google 이름</div><b>${esc(S.profile.name||"(없음)")}</b></div>
@@ -105,13 +132,18 @@ join:()=>`<button class="link" data-a="back">← 뒤로</button><h1>클럽 가�
 초대코드<input id="ic" maxlength="8" style="text-transform:uppercase"><button data-a="byCode">코드로 가입</button>
 <h2>공개 클럽</h2><input id="sq" placeholder="클럽 이름 검색"><button class="ghost" data-a="search">검색</button>
 ${S.found.map(c=>`<div class="card"><div class="row"><div><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"")}</div></div><button style="width:auto;margin:0" data-a="join" data-id="${c.id}">${c.joinMethod==="open"?"가입":c.joinMethod==="approval"?"신청":"초대만"}</button></div></div>`).join("")}`,
-clubHome:()=>`<button class="link" data-a="back">← 내 클럽</button><h1>${esc(S.cur.name)}</h1>
-<div class="card hero"><div class="sub">모임 장소</div><b>${esc(S.cur.meetingLocation||"미정")}</b></div>
-${S.cur.role==="admin"?`<div class="card"><div class="sub">초대코드</div><b id="invc" style="font-size:20px;letter-spacing:.12em">…</b></div>`:""}
-<p class="sub">오늘의 모임·참석·대진은 다음 단계에서 추가됩니다.</p>`,
+clubHome:()=>{const c=S.cur,adm=c.role==="admin";return `<div class="row"><h1>${esc(c.name)}</h1><button class="link" data-a="back">내 클럽</button></div>${T[S.tab]()}<div style="height:90px"></div>
+<nav class="nav">${[["today","오늘"],["members","회원"],...(adm?[["settings","설정"]]:[])].map(([k,t])=>`<div data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}">${t}</div>`).join("")}</nav>`},
+attend:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>참석</h1>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
+포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
+${S.cur.noPlayEnabled!==false?`<div class="seg" data-k="play"><div data-v="play" class="${S.form.play==="play"?"on":""}">경기 참여</div><div data-v="no" class="${S.form.play==="no"?"on":""}">놀참</div></div>`:""}
+<div class="bar"><button data-a="saveAttend" data-s="in">참석 저장</button><button class="ghost" data-a="saveAttend" data-s="out">불참</button></div>`,
+guest:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>게스트 추가</h1>이름<input id="gn" maxlength="20">시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
+포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
+<div class="bar"><button data-a="addGuest">추가</button></div>`,
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드</button></div><p class="sub">개인 경기·메모는 다음 단계에서 추가됩니다.</p>`
 };
-function render(){ $("#app").innerHTML=V[S.screen]?`<div class="scr">${V[S.screen]()}</div>`:""; if(S.screen==="clubHome"&&S.cur.role==="admin")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
+function render(){ $("#app").innerHTML=V[S.screen]?`<div class="scr">${V[S.screen]()}</div>`:""; if(S.screen==="clubHome"&&S.tab==="settings")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
 
 async function addMember(clubId,extra={}){
   await setDoc(doc(db,"clubMembers",clubId+"_"+S.user.uid),{clubId,uid:S.user.uid,displayName:S.profile.name,photoURL:S.user.photoURL||"",role:"member",status:"active",defaultPosition:"either",tierId:null,joinedAt:serverTimestamp(),...extra});
@@ -128,7 +160,23 @@ modePersonal(){localStorage.setItem("cm_mode","personal");go("personal")},
 back:()=>openClubs(),
 toCreate(){if(created()>=MAX_CREATE)return pop(`클럽은 최대 ${MAX_CREATE}개까지 만들 수 있습니다.`);go("create")},
 toJoin(){if(joined()>=MAX_JOIN)return pop(`클럽은 최대 ${MAX_JOIN}개까지 가입할 수 있습니다.`);go("join",{found:[]})},
-club(el){S.cur=S.clubs.find(c=>c.id===el.dataset.id);go("clubHome")},
+club(el){S.cur=S.clubs.find(c=>c.id===el.dataset.id);S.tab="today";S.parts=[];go("clubHome");load()},
+toClub(){go("clubHome");load()},
+tab(el){S.tab=el.dataset.k;if(S.tab==="settings")S.form={...S.form,np:S.cur.noPlayEnabled===false?"0":"1",days:[...(S.cur.regularDays||[])]};render();load()},
+toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||"either",play:m?.noPlay?"no":"play",st:m?.start||c.regularStartTime||"13:00",et:m?.end||c.regularEndTime||"16:00"};go("attend")},
+toGuest(){S.form={...S.form,pos:"either",st:S.cur.regularStartTime||"13:00",et:S.cur.regularEndTime||"16:00"};go("guest")},
+async saveAttend(el){const c=S.cur,m=nextMeeting(c),d=ymd(m.date),inn=el.dataset.s==="in";
+  try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${S.user.uid}`),{clubId:c.id,date:d,uid:S.user.uid,name:S.profile.name,status:el.dataset.s,start:inn?$("#st").value:"",end:inn?$("#et").value:"",position:S.form.pos,noPlay:inn&&S.form.play==="no",guest:false,responseSource:"member",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("저장하지 못했습니다. 다시 시도해 주세요.")}},
+async addGuest(){const n=$("#gn").value.trim();if(!n)return pop("게스트 이름을 입력해 주세요.");const c=S.cur,d=ymd(nextMeeting(c).date);
+  try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_g${Date.now().toString(36)}`),{clubId:c.id,date:d,uid:null,name:n,status:"in",start:$("#st").value,end:$("#et").value,position:S.form.pos,noPlay:false,guest:true,responseSource:"admin",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("추가하지 못했습니다.")}},
+async approve(el){const a=S.apps.find(x=>x.uid===el.dataset.id),c=S.cur;
+  try{await setDoc(doc(db,"clubMembers",`${c.id}_${a.uid}`),{clubId:c.id,uid:a.uid,displayName:a.displayName,photoURL:"",role:"member",status:"active",defaultPosition:"either",tierId:null,joinedAt:serverTimestamp()});
+  await updateDoc(doc(db,"clubApplications",`${c.id}_${a.uid}`),{status:"approved"});load()}catch(e){pop("승인하지 못했습니다.")}},
+async reject(el){try{await updateDoc(doc(db,"clubApplications",`${S.cur.id}_${el.dataset.id}`),{status:"rejected"});load()}catch(e){pop("처리하지 못했습니다.")}},
+async role(el){const m=S.mem.find(x=>x.uid===el.dataset.id),r=m.role==="staff"?"member":"staff";
+  try{await updateDoc(doc(db,"clubMembers",`${S.cur.id}_${m.uid}`),{role:r});load()}catch(e){pop("변경하지 못했습니다.")}},
+async saveSettings(){const v={regularDays:[...S.form.days].sort(),regularStartTime:$("#st").value,regularEndTime:$("#et").value,regularCourtCount:+$("#cc").value||3,roundInterval:+$("#ri").value||40,noPlayEnabled:S.form.np==="1"};
+  try{await updateDoc(doc(db,"clubs",S.cur.id),v);Object.assign(S.cur,v);pop("저장했습니다.")}catch(e){pop("저장하지 못했습니다.")}},
 async doCreate(){const name=$("#cn").value.trim();if(!name)return pop("클럽 이름을 입력해 주세요.");
   const id=doc(collection(db,"clubs")).id,ic=code(),uid=S.user.uid,b=writeBatch(db);
   b.set(doc(db,"clubs",id),{name,meetingLocation:$("#cl").value.trim(),description:$("#cd").value.trim(),visibility:S.form.vis,joinMethod:S.form.join,primaryAdminId:uid,createdBy:uid,noPlayEnabled:true,tierEnabled:false,regularCourtCount:3,roundInterval:40,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
@@ -149,7 +197,8 @@ async byCode(){const ic=$("#ic").value.trim().toUpperCase();if(!ic)return;
     await addMember(d.data().clubId,{viaCode:ic});openClubs()}catch(e){pop("가입하지 못했습니다. 이미 가입한 클럽일 수 있습니다.")}}
 };
 document.addEventListener("click",e=>{
-  const seg=e.target.closest(".seg div");if(seg){S.form[seg.parentNode.dataset.k]=seg.dataset.v;const v={cn:$("#cn")?.value,cl:$("#cl")?.value,cd:$("#cd")?.value};render();["cn","cl","cd"].forEach(k=>{if($("#"+k))$("#"+k).value=v[k]||""});return}
+  const dy=e.target.closest("[data-d]");if(dy){const n=+dy.dataset.d,a=S.form.days;S.form.days=a.includes(n)?a.filter(x=>x!==n):[...a,n];dy.classList.toggle("on");return}
+  const seg=e.target.closest(".seg div[data-v]");if(seg){const vals=[...document.querySelectorAll("#app [id]")].filter(x=>"value" in x).map(x=>[x.id,x.value]);S.form[seg.parentNode.dataset.k]=seg.dataset.v;render();vals.forEach(([i,v])=>{const x=document.getElementById(i);if(x)x.value=v});return}
   const el=e.target.closest("[data-a]");if(el&&A[el.dataset.a])A[el.dataset.a](el)});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js");
 </script>
