@@ -85,7 +85,7 @@ import {firebaseConfig} from "./firebase-config.js";
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
 const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
-let auth,db,app;const AI_MODEL="gemini-2.5-flash";
+let auth,db,app;const AI_MODEL="gemini-3.5-flash";
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
