@@ -46,6 +46,11 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .nav{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;display:flex;background:#fff;box-shadow:0 -6px 22px rgba(23,74,67,.08);padding-bottom:env(safe-area-inset-bottom);border-radius:20px 20px 0 0;z-index:5}
 .nav div{flex:1;text-align:center;padding:15px 0;color:var(--sub);cursor:pointer}.nav .on{color:var(--main);font-weight:700}
 .sm{width:auto!important;margin:0!important;padding:9px 15px!important}
+.list{background:#fff;border-radius:18px;box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
+.li{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);min-height:42px}.li:last-child{border:0}
+.li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.li .tm{color:var(--sub);font-size:13px;white-space:nowrap}.li .pill{font-size:11px;padding:2px 8px;white-space:nowrap}
+.av.s{width:28px;height:28px;border-radius:9px;font-size:13px}
 </style>
 </head>
 <body>
@@ -101,10 +106,10 @@ today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center"
  return `<div class="card hero" style="padding:20px"><div class="sub">${m.today?"오늘의 모임":"다음 모임"}</div><div style="font-size:24px;font-weight:700">${m.date.getMonth()+1}월 ${m.date.getDate()}일 (${DOW[m.date.getDay()]})</div><div class="sub">${c.regularStartTime||"13:00"}–${c.regularEndTime||"16:00"} · ${c.regularCourtCount||3}코트</div></div>
 <div class="card row"><div><b>내 참석</b><div class="sub">${mine?(mine.status==="in"?`${mine.start}–${mine.end} · ${POS[mine.position]}${mine.noPlay?" · 놀참":""}`:"불참"):"아직 응답하지 않았어요"}</div></div><button class="sm" data-a="toAttend">${mine?"수정":"참석 등록"}</button></div>
 <h2>참석 ${yes.length}명 · 불참 ${no.length}명</h2>
-${yes.map(p=>`<div class="card row"><div><b>${esc(p.name)}</b>${p.guest?' <span class="pill">게스트</span>':""}<div class="sub">${p.start}–${p.end}</div></div><span class="pill">${POS[p.position]}${p.noPlay?" · 놀참":""}</span></div>`).join("")}
+${yes.length?`<div class="list">${yes.map(p=>`<div class="li"><span class="nm">${esc(p.name)}</span>${p.guest?'<span class="pill">게스트</span>':""}<span class="tm">${p.start}–${p.end}</span><span class="pill">${p.noPlay?"놀참":POS[p.position]}</span></div>`).join("")}</div>`:""}
 ${isSt()?'<button class="ghost" data-a="toGuest">게스트 추가</button>':""}`},
 members:()=>{const adm=S.cur.role==="admin";return `${adm&&S.apps.length?`<h2>가입 신청 ${S.apps.length}</h2>${S.apps.map(a=>`<div class="card row"><b>${esc(a.displayName)}</b><div style="display:flex;gap:6px">${btn("approve",a.uid,"승인")}${btn("reject",a.uid,"거절",1)}</div></div>`).join("")}`:""}
-<h2>회원 ${S.mem.length}명</h2>${S.mem.map(m=>{const t=adm&&m.uid!==S.user.uid&&m.role!=="admin";return `<div class="card row ${t?"tap":""}" ${t?`data-a="role" data-id="${m.uid}"`:""}><div class="row"><div class="av">${esc([...m.displayName][0])}</div><b>${esc(m.displayName)}</b></div>${m.role!=="member"?`<span class="pill">${m.role==="admin"?"관리자":"운영진"}</span>`:""}</div>`}).join("")}${adm?'<div class="sub center">회원을 누르면 운영진으로 지정하거나 해제해요</div>':""}`},
+<h2>회원 ${S.mem.length}명</h2><div class="list">${S.mem.map(m=>{const t=adm&&m.uid!==S.user.uid&&m.role!=="admin";return `<div class="li ${t?"tap":""}" ${t?`data-a="role" data-id="${m.uid}"`:""}><div class="av s">${esc([...m.displayName][0])}</div><span class="nm">${esc(m.displayName)}</span>${m.role!=="member"?`<span class="pill">${m.role==="admin"?"관리자":"운영진"}</span>`:""}</div>`}).join("")}</div>${adm?'<div class="sub center">회원을 누르면 운영진으로 지정하거나 해제해요</div>':""}`},
 settings:()=>{const c=S.cur;return `<div class="card"><b>정기 모임</b><div class="seg" style="margin-top:10px">${[...DOW].map((d,i)=>`<div data-d="${i}" class="${S.form.days.includes(i)?"on":""}">${d}</div>`).join("")}</div>
 시작<input id="st" type="time" value="${c.regularStartTime||"13:00"}">종료<input id="et" type="time" value="${c.regularEndTime||"16:00"}">
 코트 수<input id="cc" type="number" min="1" max="12" value="${c.regularCourtCount||3}">회차 간격(분)<input id="ri" type="number" min="20" max="90" value="${c.roundInterval||40}">
@@ -135,8 +140,8 @@ ${S.found.map(c=>`<div class="card"><div class="row"><div><b>${esc(c.name)}</b><
 clubHome:()=>{const c=S.cur,adm=c.role==="admin";return `<div class="row"><h1>${esc(c.name)}</h1><button class="link" data-a="back">내 클럽</button></div>${T[S.tab]()}<div style="height:90px"></div>
 <nav class="nav">${[["today","오늘"],["members","회원"],...(adm?[["settings","설정"]]:[])].map(([k,t])=>`<div data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}">${t}</div>`).join("")}</nav>`},
 attend:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>참석</h1>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
-포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
 ${S.cur.noPlayEnabled!==false?`<div class="seg" data-k="play"><div data-v="play" class="${S.form.play==="play"?"on":""}">경기 참여</div><div data-v="no" class="${S.form.play==="no"?"on":""}">놀참</div></div>`:""}
+${S.form.play==="no"&&S.cur.noPlayEnabled!==false?"":`포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>`}
 <div class="bar"><button data-a="saveAttend" data-s="in">참석 저장</button><button class="ghost" data-a="saveAttend" data-s="out">불참</button></div>`,
 guest:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>게스트 추가</h1>이름<input id="gn" maxlength="20">시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
 포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
@@ -166,7 +171,7 @@ tab(el){S.tab=el.dataset.k;if(S.tab==="settings")S.form={...S.form,np:S.cur.noPl
 toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||"either",play:m?.noPlay?"no":"play",st:m?.start||c.regularStartTime||"13:00",et:m?.end||c.regularEndTime||"16:00"};go("attend")},
 toGuest(){S.form={...S.form,pos:"either",st:S.cur.regularStartTime||"13:00",et:S.cur.regularEndTime||"16:00"};go("guest")},
 async saveAttend(el){const c=S.cur,m=nextMeeting(c),d=ymd(m.date),inn=el.dataset.s==="in";
-  try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${S.user.uid}`),{clubId:c.id,date:d,uid:S.user.uid,name:S.profile.name,status:el.dataset.s,start:inn?$("#st").value:"",end:inn?$("#et").value:"",position:S.form.pos,noPlay:inn&&S.form.play==="no",guest:false,responseSource:"member",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("저장하지 못했습니다. 다시 시도해 주세요.")}},
+  try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${S.user.uid}`),{clubId:c.id,date:d,uid:S.user.uid,name:S.profile.name,status:el.dataset.s,start:inn?$("#st").value:"",end:inn?$("#et").value:"",position:inn&&S.form.play==="no"?"either":S.form.pos,noPlay:inn&&S.form.play==="no"&&c.noPlayEnabled!==false,guest:false,responseSource:"member",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("저장하지 못했습니다. 다시 시도해 주세요.")}},
 async addGuest(){const n=$("#gn").value.trim();if(!n)return pop("게스트 이름을 입력해 주세요.");const c=S.cur,d=ymd(nextMeeting(c).date);
   try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_g${Date.now().toString(36)}`),{clubId:c.id,date:d,uid:null,name:n,status:"in",start:$("#st").value,end:$("#et").value,position:S.form.pos,noPlay:false,guest:true,responseSource:"admin",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("추가하지 못했습니다.")}},
 async approve(el){const a=S.apps.find(x=>x.uid===el.dataset.id),c=S.cur;
