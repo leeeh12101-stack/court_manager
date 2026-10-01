@@ -52,6 +52,12 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .li .tm{color:var(--sub);font-size:13px;white-space:nowrap}.li .pill{font-size:11px;padding:2px 8px;white-space:nowrap}
 .li .tm{width:92px;text-align:center;font-variant-numeric:tabular-nums}.li .ps{display:inline-block;width:58px;text-align:center;padding:2px 0}.nm .pill{margin-left:6px}
 .av.s{width:28px;height:28px;border-radius:9px;font-size:13px}
+.gr{display:grid;grid-template-columns:34px 1fr 1fr 18px 1fr 1fr;align-items:center;gap:2px;padding:7px 12px;border-bottom:1px solid var(--line)}.gr:last-child{border:0}
+.gr .ct{color:var(--sub);font-size:12px}.gr .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;text-align:center}.gr .vs{color:var(--sub);font-size:11px;text-align:center}
+.rh{padding:6px 12px;background:var(--tint);color:var(--main);font-weight:600;font-size:13px}
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px;padding:8px 14px;margin-top:6px}.pg div{display:flex;justify-content:space-between;gap:4px;padding:4px 0;font-size:14px}.pg b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pg span{color:var(--sub);font-variant-numeric:tabular-nums}
+.cmp select{padding:9px 10px;margin:4px 0 8px;font-size:14px}.cmp .seg{margin:4px 0 8px}.cmp .seg div{padding:8px 4px;font-size:14px}.cmp .chips div{flex:none;padding:6px 12px}
+.cmp button{padding:10px;margin-top:6px;font-size:14px}.cmp h2{margin:16px 0 4px;font-size:15px}.cmp .li{min-height:34px;padding:5px 12px}.cmp .bar button{padding:13px;font-size:15px}
 </style>
 </head>
 <body>
@@ -127,8 +133,8 @@ function buildDraw(parts,c,dr){
  }
  return{rounds,players:pl.map(p=>({n:p.n,g:p.g}))};
 }
-const gRow=g=>`<div class="li"><span class="sub" style="width:42px">${g.court}코트</span><span class="nm" style="white-space:normal;font-weight:500">${g.t1.map(x=>esc(x.n)).join("·")} <span class="sub">vs</span> ${g.t2.map(x=>esc(x.n)).join("·")}</span></div>`;
-const rList=rs=>rs.map(r=>`<div class="list"><div class="li" style="background:var(--tint);color:var(--main);font-weight:600">${r.n}회차 · ${r.time}</div>${r.games.map(gRow).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("");
+const gRow=g=>`<div class="gr"><span class="ct">${g.court}코트</span>${g.t1.map(x=>`<span class="pn">${esc(x.n)}</span>`).join("")}<span class="vs">vs</span>${g.t2.map(x=>`<span class="pn">${esc(x.n)}</span>`).join("")}</div>`;
+const rList=rs=>rs.map(r=>`<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map(gRow).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("");
 const nmOf=k=>(S.parts.find(p=>key(p)===k)||{}).name||k;
 const T={
 today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center" style="padding:28px"><b>정기 모임이 없어요</b><div class="sub">${c.role==="admin"?"설정에서 모임 요일을 정해 주세요.":"관리자가 모임 요일을 정하면 보여요."}</div></div>`;
@@ -178,15 +184,15 @@ guest:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>게스트
 포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
 <div class="bar"><button data-a="addGuest">추가</button></div>`,
 draw:()=>{const R=rinfo(S.cur).R,d=S.dr,o=S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>`<option value="${esc(key(p))}">${esc(p.name)}</option>`).join(""),dm=S.form.dmode||"pos";
- return `<button class="link" data-a="toClub">← 뒤로</button><h1>대진 만들기</h1>
+ return `<div class="cmp"><button class="link" data-a="toClub">← 뒤로</button><h1>대진 만들기</h1>
 <div class="seg" data-k="dmode"><div data-v="random" class="${dm==="random"?"on":""}">랜덤</div><div data-v="pos" class="${dm==="pos"?"on":""}">포지션 반영</div></div>
-<h2>회차 제외</h2><select id="xp">${o}</select><div class="seg" style="flex-wrap:wrap">${Array.from({length:R},(_,i)=>`<div data-r="${i+1}">${i+1}회차</div>`).join("")}</div><button class="ghost" data-a="addExcl">제외 추가</button>
+<h2>회차 제외</h2><select id="xp">${o}</select><div class="seg chips" style="flex-wrap:wrap">${Array.from({length:R},(_,i)=>`<div data-r="${i+1}">${i+1}회차</div>`).join("")}</div><button class="ghost" data-a="addExcl">제외 추가</button>
 ${Object.keys(d.excl).length?`<div class="list" style="margin-top:12px">${Object.entries(d.excl).map(([k,v])=>`<div class="li"><span class="nm">${esc(nmOf(k))}</span><span class="sub">${v.join(", ")}회차 제외</span><span class="tap sub" data-a="delExcl" data-id="${esc(k)}">✕</span></div>`).join("")}</div>`:""}
 <h2>고정 페어</h2><div class="row"><select id="pa">${o}</select><select id="pb">${o}</select></div><button class="ghost" data-a="addPair">페어 추가</button>
 ${d.pairs.length?`<div class="list" style="margin-top:12px">${d.pairs.map(([a,b],i)=>`<div class="li"><span class="nm">${esc(nmOf(a))} · ${esc(nmOf(b))}</span><span class="tap sub" data-a="delPair" data-id="${i}">✕</span></div>`).join("")}</div>`:""}
-<div class="bar"><button data-a="gen">대진 생성</button></div>`},
+<div class="bar"><button data-a="gen">대진 생성</button></div></div>`},
 preview:()=>{const p=S.dr.plan;return `<button class="link" data-a="toDraw">← 설정</button><h1>대진 미리보기</h1><div class="sub">참여 회원(경기수)</div>
-<div class="list" style="padding:10px 14px;line-height:1.9;margin-top:6px">${p.players.map(x=>`${esc(x.n)}(${x.g})`).join("&nbsp; ")}</div>${rList(p.rounds)}
+<div class="list pg">${p.players.map(x=>`<div><b>${esc(x.n)}</b><span>${x.g}</span></div>`).join("")}</div>${rList(p.rounds)}
 <div class="bar"><button data-a="confirm">대진 확정</button><button class="ghost" data-a="gen">다시 생성</button></div>`},
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드</button></div><p class="sub">개인 경기·메모는 다음 단계에서 추가됩니다.</p>`
 };
