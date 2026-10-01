@@ -10,27 +10,39 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{--bg:#F6F7F5;--card:#fff;--tx:#202522;--sub:#747A76;--main:#174A43;--pt:#B8C96B;--line:#E3E6E3;--off:#D9DCDA;--tint:#EEF2E2}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
-#app{max-width:480px;margin:0 auto;min-height:100vh;padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
-h1{font-size:22px;margin:8px 0 16px}h2{font-size:17px;margin:20px 0 8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
-.tap{cursor:pointer}.tap:active{background:var(--tint)}
+:root{--bg:#F6F7F5;--card:#fff;--tx:#202522;--sub:#747A76;--main:#174A43;--pt:#B8C96B;--line:#E3E6E3;--off:#D9DCDA;--tint:#EEF2E2;--sh:0 1px 2px rgba(23,74,67,.06),0 8px 22px rgba(23,74,67,.07)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
+#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding:calc(20px + env(safe-area-inset-top)) 18px 0}
+.scr{flex:1;display:flex;flex-direction:column;animation:in .22s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.scr{animation:none}}
+h1{font-size:24px;letter-spacing:-.02em;margin:6px 0 4px}h2{font-size:16px;margin:22px 0 8px}
+.hi{color:var(--sub);margin:0 0 18px}
+.card{background:var(--card);border-radius:18px;padding:15px 16px;margin-bottom:12px;box-shadow:var(--sh);transition:transform .12s}
+.tap{cursor:pointer}.tap:active{transform:scale(.985)}
 .sub{color:var(--sub);font-size:13px}
-button{font:inherit;border:0;border-radius:12px;padding:13px 16px;width:100%;margin-top:8px;cursor:pointer;background:var(--main);color:#fff}
-button.ghost{background:var(--card);color:var(--main);border:1px solid var(--line)}
-button.link{background:none;color:var(--sub);width:auto;padding:6px 0}
-button:disabled{background:var(--off);color:#fff}
-input,select,textarea{font:inherit;width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;margin:4px 0 10px}
-.seg{display:flex;gap:6px;margin:4px 0 10px}.seg div{flex:1;text-align:center;padding:10px 4px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
-.seg .on{background:var(--tint);border-color:var(--pt);color:var(--main);font-weight:600}
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.pill{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--tint);color:var(--main)}
-.logo{width:88px;height:88px;border-radius:20px;display:block;margin:40px auto 12px}
-.center{text-align:center}
+button{font:inherit;font-weight:600;border:0;border-radius:16px;padding:15px 16px;width:100%;margin-top:10px;cursor:pointer;background:var(--main);color:#fff;transition:transform .12s,opacity .12s}
+button:active{transform:scale(.98);opacity:.92}
+button.ghost{background:#fff;color:var(--main);box-shadow:var(--sh)}
+button.link{background:none;color:var(--sub);width:auto;padding:8px 0;font-weight:500;box-shadow:none}
+button:disabled{background:var(--off)}
+input,select,textarea{font:inherit;width:100%;padding:14px;border:1.5px solid transparent;border-radius:14px;background:#fff;box-shadow:var(--sh);margin:6px 0 14px;outline:0}
+input:focus,textarea:focus{border-color:var(--pt)}
+.seg{display:flex;gap:8px;margin:6px 0 14px}.seg div{flex:1;text-align:center;padding:12px 4px;border-radius:14px;background:#fff;box-shadow:var(--sh);cursor:pointer;transition:background .15s}
+.seg .on{background:var(--tint);box-shadow:inset 0 0 0 1.5px var(--pt);color:var(--main);font-weight:600}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pill{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--tint);color:var(--main);font-weight:600}
+.av{width:42px;height:42px;border-radius:14px;background:var(--tint);color:var(--main);display:grid;place-items:center;font-weight:700;flex:none}
+.grow{flex:1}
+.bar{position:sticky;bottom:0;margin:auto -18px 0;padding:14px 18px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,rgba(246,247,245,0))}
+.bar button:first-child{margin-top:0}
+.hero{background:var(--main);color:#fff;box-shadow:0 10px 26px rgba(23,74,67,.28)}
+.hero .sub{color:#cfe0c0}
+.logo{width:96px;height:96px;border-radius:24px;display:block;margin:0 auto 16px;box-shadow:var(--sh)}
+.mid{margin:auto 0}.center{text-align:center}
 #pop{position:fixed;inset:0;background:#0006;display:none;align-items:center;justify-content:center;padding:24px;z-index:9}
-#pop div{background:#fff;border-radius:14px;padding:18px;max-width:340px;width:100%}
+#pop div{background:#fff;border-radius:20px;padding:20px;max-width:340px;width:100%}
 </style>
 </head>
 <body>
@@ -72,33 +84,34 @@ const joined=()=>S.clubs.length-created();
 const code=()=>Array.from({length:7},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.random()*32|0]).join("");
 
 const V={
-login:()=>`<img class="logo" src="icon-192.png" alt=""><h1 class="center">Court Manager</h1><button data-a="login">Google로 시작</button>`,
+login:()=>`<div class="mid center"><img class="logo" src="icon-192.png" alt=""><h1>Court Manager</h1><p class="hi">테니스 클럽 운영과 내 경기 기록</p></div><div class="bar"><button data-a="login">Google로 시작</button></div>`,
 name:()=>`<h1>이름 설정</h1><div class="card"><div class="sub">Google 이름</div><b>${esc(S.profile.name||"(없음)")}</b></div>
 <p class="sub">경기 기록이 누구 것인지 알아보기 쉽도록 실명 사용을 권장합니다. 나중에 바꿀 수 있습니다.</p>
-<input id="nm" value="${esc(S.profile.name)}" maxlength="20"><button data-a="saveName">시작하기</button>`,
-mode:()=>`<h1>${esc(S.profile.name)}</h1>
-<div class="card tap" data-a="modeClub"><b>클럽</b></div><div class="card tap" data-a="modePersonal"><b>개인</b></div>
-<button class="link" data-a="logout">로그아웃</button>`,
-clubs:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드</button></div>
-${S.clubs.map(c=>`<div class="card tap" data-a="club" data-id="${c.id}"><div class="row"><b>${esc(c.name)}</b>${c.role==="admin"?'<span class="pill">관리자</span>':""}</div><div class="sub">${esc(c.meetingLocation||"")}</div></div>`).join("")||'<p class="sub">가입한 클럽이 없습니다.</p>'}
-<div class="sub">가입 ${joined()} / ${MAX_JOIN} · 생성 ${created()} / ${MAX_CREATE}</div>
-<button class="ghost" data-a="toJoin">클럽 가입하기</button><button data-a="toCreate">클럽 만들기</button>`,
+<input id="nm" value="${esc(S.profile.name)}" maxlength="20"><div class="bar"><button data-a="saveName">시작하기</button></div>`,
+mode:()=>`<h1>안녕하세요, ${esc(S.profile.name)}님</h1><p class="hi">오늘은 어떤 모드로 시작할까요?</p>
+<div class="card hero tap" data-a="modeClub" style="padding:22px 18px"><b style="font-size:18px">클럽</b><div class="sub">모임, 대진, 경기 결과</div></div>
+<div class="card tap" data-a="modePersonal" style="padding:22px 18px"><b style="font-size:18px">개인</b><div class="sub">내 경기 기록과 메모</div></div>
+<div class="bar"><button class="link" data-a="logout" style="margin:0 auto;display:block">로그아웃</button></div>`,
+clubs:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드 변경</button></div>
+<p class="hi">가입 ${joined()}/${MAX_JOIN} · 생성 ${created()}/${MAX_CREATE}</p>
+${S.clubs.map(c=>`<div class="card tap row" data-a="club" data-id="${c.id}"><div class="av">${esc([...c.name][0])}</div><div class="grow"><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"장소 미정")}</div></div>${c.role==="admin"?'<span class="pill">관리자</span>':""}</div>`).join("")||'<div class="card center" style="padding:32px 16px"><b>아직 클럽이 없어요</b><div class="sub">클럽을 만들거나 초대코드로 가입해 보세요.</div></div>'}
+<div class="bar"><button data-a="toCreate">클럽 만들기</button><button class="ghost" data-a="toJoin">클럽 가입하기</button></div>`,
 create:()=>`<button class="link" data-a="back">← 뒤로</button><h1>클럽 만들기</h1>
 클럽 이름<input id="cn" maxlength="30">모임 장소<input id="cl" maxlength="40">설명 (선택)<textarea id="cd" rows="2" maxlength="100"></textarea>
 공개 여부<div class="seg" data-k="vis"><div data-v="public" class="${S.form.vis==="public"?"on":""}">공개</div><div data-v="private" class="${S.form.vis==="private"?"on":""}">비공개</div></div>
 가입 방법<div class="seg" data-k="join">${[["open","바로 가입"],["approval","가입 승인"],["invite","초대만"]].map(([v,t])=>`<div data-v="${v}" class="${S.form.join===v?"on":""}">${t}</div>`).join("")}</div>
-<button data-a="doCreate">만들기</button>`,
+<div class="bar"><button data-a="doCreate">만들기</button></div>`,
 join:()=>`<button class="link" data-a="back">← 뒤로</button><h1>클럽 가입하기</h1>
 초대코드<input id="ic" maxlength="8" style="text-transform:uppercase"><button data-a="byCode">코드로 가입</button>
 <h2>공개 클럽</h2><input id="sq" placeholder="클럽 이름 검색"><button class="ghost" data-a="search">검색</button>
 ${S.found.map(c=>`<div class="card"><div class="row"><div><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"")}</div></div><button style="width:auto;margin:0" data-a="join" data-id="${c.id}">${c.joinMethod==="open"?"가입":c.joinMethod==="approval"?"신청":"초대만"}</button></div></div>`).join("")}`,
 clubHome:()=>`<button class="link" data-a="back">← 내 클럽</button><h1>${esc(S.cur.name)}</h1>
-<div class="card"><div class="sub">모임 장소</div>${esc(S.cur.meetingLocation||"-")}</div>
-${S.cur.role==="admin"?`<div class="card"><div class="sub">초대코드</div><b id="invc">…</b></div>`:""}
+<div class="card hero"><div class="sub">모임 장소</div><b>${esc(S.cur.meetingLocation||"미정")}</b></div>
+${S.cur.role==="admin"?`<div class="card"><div class="sub">초대코드</div><b id="invc" style="font-size:20px;letter-spacing:.12em">…</b></div>`:""}
 <p class="sub">오늘의 모임·참석·대진은 다음 단계에서 추가됩니다.</p>`,
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드</button></div><p class="sub">개인 경기·메모는 다음 단계에서 추가됩니다.</p>`
 };
-function render(){ $("#app").innerHTML=V[S.screen]?V[S.screen]():""; if(S.screen==="clubHome"&&S.cur.role==="admin")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
+function render(){ $("#app").innerHTML=V[S.screen]?`<div class="scr">${V[S.screen]()}</div>`:""; if(S.screen==="clubHome"&&S.cur.role==="admin")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
 
 async function addMember(clubId,extra={}){
   await setDoc(doc(db,"clubMembers",clubId+"_"+S.user.uid),{clubId,uid:S.user.uid,displayName:S.profile.name,photoURL:S.user.photoURL||"",role:"member",status:"active",defaultPosition:"either",tierId:null,joinedAt:serverTimestamp(),...extra});
