@@ -89,7 +89,7 @@ import * as CFG from "./firebase-config.js";
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
 const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
-let auth,db,app;const AI_MODEL="gemini-2.5-flash";
+let auth,db,app;const AI_MODEL="gemini-3.5-flash";
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
@@ -390,7 +390,7 @@ async analyze(f){if(!f)return;const P=S.ph,rr=()=>{S.still=1;render();S.still=0}
   if(!gs.length)throw new Error("empty");
   const inc=async id=>{await setDoc(doc(db,"aiUsage",id),{kind:id.startsWith(u)?"user":"club",ownerId:id.split("_")[0],date:d,count:(await useCnt(id))+1})};await inc(`${u}_${d}`);if(cid)await inc(`${cid}_${d}`);
   P.img="data:image/jpeg;base64,"+b64;P.games=await Promise.all(gs.map(async g=>({t1:g.t1.map(String),t2:g.t2.map(String),a:g.scoreA,b:g.scoreB,crop:await cropBox(P.img,Array.isArray(g.box)?g.box:[])})));P.date=/^\d{4}-\d{2}-\d{2}$/.test(j.date||"")?j.date:`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6)}`;P.step="review"}
- catch(e){const m=String(e.message||e);P.step="pick";P.err=m==="limit-u"?"오늘 사진 읽기 횟수(계정 2회)를 모두 사용했어요.":m==="limit-c"?"이 클럽의 오늘 사진 읽기 횟수(5회)를 모두 사용했어요.":m==="empty"||e instanceof SyntaxError?"경기를 찾지 못했어요. 더 선명한 사진으로 다시 시도해 주세요.":/403|permission|not.*enabled|API key|disabled/i.test(m)?"Firebase 콘솔에서 AI Logic이 켜져 있는지 확인해 주세요.":"분석하지 못했어요. 잠시 후 다시 시도해 주세요."}
+ catch(e){const m=String(e.message||e);P.step="pick";P.err=m==="limit-u"?"오늘 사진 읽기 횟수(계정 2회)를 모두 사용했어요.":m==="limit-c"?"이 클럽의 오늘 사진 읽기 횟수(5회)를 모두 사용했어요.":m==="empty"||e instanceof SyntaxError?"경기를 찾지 못했어요. 더 선명한 사진으로 다시 시도해 주세요.":/403|permission|not.*enabled|API key|disabled/i.test(m)?"Firebase 콘솔에서 AI Logic이 켜져 있는지 확인해 주세요.":"분석하지 못했어요: "+m.slice(0,150)}
  rr()},
 async phSave(){phSnap();const P=S.ph,u=S.user.uid,date=P.date.replace(/-/g,"");if(!date)return pop("날짜를 입력해 주세요.");const out=[];
   for(const [i,g] of P.games.entries()){const nm=[...g.t1,...g.t2].map(x=>x.trim()),a=parseInt(g.a),b=parseInt(g.b);if(nm.some(x=>!x)||isNaN(a)||isNaN(b))return pop(`경기 ${i+1}의 이름과 점수를 모두 채워 주세요.`);if(new Set(nm).size<4)return pop(`경기 ${i+1}에 같은 이름이 있어요.`);out.push({nm,a,b})}
