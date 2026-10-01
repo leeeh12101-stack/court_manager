@@ -52,10 +52,11 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .li .tm{color:var(--sub);font-size:13px;white-space:nowrap}.li .pill{font-size:11px;padding:2px 8px;white-space:nowrap}
 .li .tm{width:92px;text-align:center;font-variant-numeric:tabular-nums}.li .ps{display:inline-block;width:58px;text-align:center;padding:2px 0}.nm .pill{margin-left:6px}
 .av.s{width:28px;height:28px;border-radius:9px;font-size:13px}
-.gr{display:grid;grid-template-columns:34px 1fr 1fr 18px 1fr 1fr;align-items:center;gap:2px;padding:7px 12px;border-bottom:1px solid var(--line)}.gr:last-child{border:0}
-.gr .ct{color:var(--sub);font-size:12px}.gr .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;text-align:center}.gr .vs{color:var(--sub);font-size:11px;text-align:center}
+.gr{display:grid;grid-template-columns:36px 1fr 22px 1fr;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line)}.gr:last-child{border:0}
+.gr .ct{color:var(--sub);font-size:12px}.gr .vs{color:var(--sub);font-size:11px;text-align:center}
+.tg{display:grid;grid-template-columns:repeat(2,4.3em);column-gap:2px}.tg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;text-align:left}
 .rh{padding:6px 12px;background:var(--tint);color:var(--main);font-weight:600;font-size:13px}
-.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px;padding:8px 14px;margin-top:6px}.pg div{display:flex;justify-content:space-between;gap:4px;padding:4px 0;font-size:14px}.pg b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pg span{color:var(--sub);font-variant-numeric:tabular-nums}
+.pg{display:grid;grid-template-columns:repeat(5,1fr);gap:0 4px;padding:8px 12px;margin-top:6px}.pg div{padding:4px 0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pg span{color:var(--sub);margin-left:1px;font-variant-numeric:tabular-nums}
 .cmp select{padding:9px 10px;margin:4px 0 8px;font-size:14px}.cmp .seg{margin:4px 0 8px}.cmp .seg div{padding:8px 4px;font-size:14px}.cmp .chips div{flex:none;padding:6px 12px}
 .cmp button{padding:10px;margin-top:6px;font-size:14px}.cmp h2{margin:16px 0 4px;font-size:15px}.cmp .li{min-height:34px;padding:5px 12px}.cmp .bar button{padding:13px;font-size:15px}
 </style>
@@ -133,7 +134,7 @@ function buildDraw(parts,c,dr){
  }
  return{rounds,players:pl.map(p=>({n:p.n,g:p.g}))};
 }
-const gRow=g=>`<div class="gr"><span class="ct">${g.court}코트</span>${g.t1.map(x=>`<span class="pn">${esc(x.n)}</span>`).join("")}<span class="vs">vs</span>${g.t2.map(x=>`<span class="pn">${esc(x.n)}</span>`).join("")}</div>`;
+const gRow=g=>`<div class="gr"><span class="ct">${g.court}코트</span><div class="tg">${g.t1.map(x=>`<span>${esc(x.n)}</span>`).join("")}</div><span class="vs">vs</span><div class="tg">${g.t2.map(x=>`<span>${esc(x.n)}</span>`).join("")}</div></div>`;
 const rList=rs=>rs.map(r=>`<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map(gRow).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("");
 const nmOf=k=>(S.parts.find(p=>key(p)===k)||{}).name||k;
 const T={
@@ -192,7 +193,7 @@ ${Object.keys(d.excl).length?`<div class="list" style="margin-top:12px">${Object
 ${d.pairs.length?`<div class="list" style="margin-top:12px">${d.pairs.map(([a,b],i)=>`<div class="li"><span class="nm">${esc(nmOf(a))} · ${esc(nmOf(b))}</span><span class="tap sub" data-a="delPair" data-id="${i}">✕</span></div>`).join("")}</div>`:""}
 <div class="bar"><button data-a="gen">대진 생성</button></div></div>`},
 preview:()=>{const p=S.dr.plan;return `<button class="link" data-a="toDraw">← 설정</button><h1>대진 미리보기</h1><div class="sub">참여 회원(경기수)</div>
-<div class="list pg">${p.players.map(x=>`<div><b>${esc(x.n)}</b><span>${x.g}</span></div>`).join("")}</div>${rList(p.rounds)}
+<div class="list pg">${p.players.map(x=>`<div>${esc(x.n)}<span>(${x.g})</span></div>`).join("")}</div>${rList(p.rounds)}
 <div class="bar"><button data-a="confirm">대진 확정</button><button class="ghost" data-a="gen">다시 생성</button></div>`},
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드</button></div><p class="sub">개인 경기·메모는 다음 단계에서 추가됩니다.</p>`
 };
