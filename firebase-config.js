@@ -1,4 +1,4 @@
- firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDPycFoHApQnJyxmMCseBH1Um46bzAKTbk",
   authDomain: "court-manager-abcde.firebaseapp.com",
   projectId: "court-manager-abcde",
