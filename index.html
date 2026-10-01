@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b9b70">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Court Manager">
+<title>Court Manager</title>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- FontAwesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Google Fonts: Inter & Noto Sans KR -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --green: #0b9b70;
+  --green2: #087f5b;
+  --green-light: #ecfbf6;
+  --navy: #172033;
+  --bg: #f4f7f8;
+  --line: #dce4ea;
+  --muted: #728094;
+  --blue: #2563eb;
+  --pink: #e11d48;
+  --shadow: 0 4px 20px rgba(18, 32, 51, 0.08);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background-color: var(--bg);
+  color: #182235;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  word-break: keep-all;
+}
+
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+
+.whitespace-nowrap { white-space: nowrap; }
+.break-keep { word-break: keep-all; }
+
+.mobile-nowrap-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.mobile-nowrap-row > * { flex-shrink: 0; }
+
+@media (max-width: 560px) {
+  .player-item { padding: 8px 9px; gap: 6px; grid-template-columns: 96px minmax(0, 1fr) 54px; }
+  .player-item .player-name { font-size: 12px; }
+  .player-item .select-custom { width: 54px !important; min-width: 54px !important; }
+  .match-mode-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .match-mode-grid .btn-custom { padding: 8px 4px; font-size: 11px; white-space: nowrap; }
+  .court-schedule-row { overflow: visible; padding-bottom: 2px; }
+  .court-schedule-row .select-custom { width: 76px !important; min-width: 76px !important; }
+  .player-item .player-info-fixed { width: 96px; min-width: 96px; }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+/* App layout constraint */
+.app {
+  max-width: 720px;
+  margin: auto;
+  min-height: 100vh;
+  background: #ffffff;
+  padding-bottom: 90px;
+  box-shadow: 0 0 30px rgba(0,0,0,0.05);
+}
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--green);
+  color: #fff;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(11, 155, 112, 0.2);
+}
+
+.card-box {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(18, 32, 51, 0.04);
+  margin-bottom: 12px;
+}
+
+.btn-custom {
+  border: 1px solid #cbd5df;
+  background: #ffffff;
+  color: #263449;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-weight: 700;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-custom:active { transform: scale(0.98); }
+.btn-custom.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn-custom.dark { background: var(--navy); border-color: var(--navy); color: #fff; }
+.btn-custom.selected { background: #f1f5f9; border-color: #94a3b8; color: #0f172a; }
+.btn-custom.big { width: 100%; padding: 14px; font-size: 16px; }
+.btn-custom.small { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+
+.select-custom {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5df;
+  border-radius: 10px;
+  background: #ffffff;
+  font-weight: 600;
+  color: #1e293b;
+  outline: none;
+}
+.select-custom:focus { border-color: var(--green); }
+
+.player-item {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  transition: background 0.15s ease;
+}
+
+.pos-btn {
+  border-radius: 8px;
+  padding: 4px 4px;
+  font-size: 11px;
+  font-weight: 800;
+  min-width: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  flex-shrink: 0;
+}
+.pos-btn.fore { color: var(--blue); background: #eff6ff; border: 1px solid #bfdbfe; }
+.pos-btn.back { color: var(--pink); background: #fff1f2; border: 1px solid #fecdd3; }
+.pos-btn.free { color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; }
+
+.photo-drop {
+  border: 1.5px dashed #9bd8c4;
+  background: linear-gradient(135deg, #f1fcf7 0%, #ffffff 100%);
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+}
+.photo-preview {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.photo-pos-toggle {
+  border: 1px solid #cbd5df;
+  background: #fff;
+  border-radius: 999px;
+  padding: 7px 11px;
+  min-width: 82px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #334155;
+}
+.photo-pos-toggle.mix {
+  background: #ecfdf5;
+  border-color: #8bd9bf;
+  color: #087f5b;
+}
+.photo-pos-toggle.free {
+  background: #f8fafc;
+  border-color: #dbe3ea;
+  color: #64748b;
+}
+
+.court-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  background: #fff;
+}
+.court-head {
+  background: var(--navy);
+  color: #fff;
+  padding: 12px 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.club-setting-row { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: #fff; margin-bottom: 8px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  background: var(--navy);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  z-index: 100;
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+</style>
+</head>
+<body>
+
+<div id="app" class="app"></div>
+
+<script>
+const btn = "background:#0b9b70;color:#fff;font-weight:800;border:0;border-radius:12px;padding:14px 18px;width:100%;font-size:15px";
+const btn2 = "background:#fff;color:#334155;font-weight:700;border:1px solid #cbd5e1;border-radius:12px;padding:12px 18px;width:100%;font-size:14px;margin-top:10px";
+
+const KEY = "courtmate_v4_state";
+let appMode = localStorage.getItem("cm_app_mode") || "club"; // "club" | "personal"
+
+// 하드코딩된 특정 클럽 정보 및 회원 명부 전면 제거 (빈 상태 초기화)
+const initial = {
+  clubId: "",
+  club: "",
+  meetingDrawMakerByDate: {},
+  clubConfig: {
+    positionEnabled: true,
+    genderEnabled: false,
+    tier: { enabled: false, names: ["1", "2"], mode: "off", rules: [] },
+    recurringMeetings: [],
+    dateOverrides: {},
+    draw: { partnerVariety: true, opponentVariety: true, drawMakerMode: "perMeeting", drawMakerByWeekday: {}, drawMakerUids: [] }
+  },
+  date: new Date().toISOString().slice(0, 10),
+  start: "12:00",
+  end: "15:00",
+  roundMin: 40,
+  courts: 2,
+  mode: "reflect",
+  courtSchedules: [{ from: "12:00", to: "15:00", courts: 2 }],
+  players: [],
+  attendance: [],
+  fixedPairs: [],
+  rounds: [],
+  games: [],
+  attendanceHistory: []
+};
+
+let state = JSON.parse(localStorage.getItem(KEY) || "null") || initial;
+let personalGames = []; // 개인 모드에서 불러올 Firestore 전적 데이터
+let expandedDrawPlayer = null;
+let applyingRemote = false;
+
+function normalize() {
+  state.meetingDrawMakerByDate = state.meetingDrawMakerByDate || {};
+  state.clubConfig = state.clubConfig || {};
+  state.clubConfig.positionEnabled = state.clubConfig.positionEnabled !== false;
+  state.clubConfig.genderEnabled = state.clubConfig.genderEnabled === true;
+  state.clubConfig.tier = state.clubConfig.tier || { enabled:false, names:["1","2"], mode:"off", rules:[] };
+  state.clubConfig.tier.enabled = state.clubConfig.tier.enabled === true;
+  state.clubConfig.tier.names = Array.isArray(state.clubConfig.tier.names) && state.clubConfig.tier.names.length ? state.clubConfig.tier.names : ["1","2"];
+  state.clubConfig.tier.mode = state.clubConfig.tier.enabled ? (state.clubConfig.tier.mode || "same") : "off";
+  state.clubConfig.tier.rules = Array.isArray(state.clubConfig.tier.rules) ? state.clubConfig.tier.rules : [];
+  state.clubConfig.recurringMeetings = Array.isArray(state.clubConfig.recurringMeetings) ? state.clubConfig.recurringMeetings : [];
+  state.clubConfig.dateOverrides = state.clubConfig.dateOverrides || {};
+  state.clubConfig.draw = state.clubConfig.draw || {};
+  state.clubConfig.draw.partnerVariety = state.clubConfig.draw.partnerVariety !== false;
+  state.clubConfig.draw.opponentVariety = state.clubConfig.draw.opponentVariety !== false;
+  state.clubConfig.draw.drawMakerMode = state.clubConfig.draw.drawMakerMode || "perMeeting";
+  state.clubConfig.draw.drawMakerByWeekday = state.clubConfig.draw.drawMakerByWeekday || {};
+  state.clubConfig.draw.drawMakerUids = Array.isArray(state.clubConfig.draw.drawMakerUids) ? state.clubConfig.draw.drawMakerUids : [];
+  
+  if (!Array.isArray(state.players)) state.players = [];
+  if (!Array.isArray(state.attendance)) state.attendance = [];
+  if (!Array.isArray(state.courtSchedules)) state.courtSchedules = initial.courtSchedules;
+  if (!Array.isArray(state.fixedPairs)) state.fixedPairs = [];
+  if (!Array.isArray(state.attendanceHistory)) state.attendanceHistory = [];
+  if (!Array.isArray(state.games)) state.games = [];
+
+  (state.attendance || []).forEach(a => { if (!a.status) a.status = "play"; });
+  (state.players || []).forEach(p => {
+    if (!p.position) p.position = "포백";
+    if (state.clubConfig.tier.enabled && !p.tier) p.tier = state.clubConfig.tier.names[0];
+    if (!p.gender) p.gender = "";
+  });
+
+  state.start = round60(state.start || "12:00");
+  state.start = hhmm(Math.max(6 * 60, Math.min(23 * 60, mins(state.start))));
+  state.end = round60(state.end || "15:00");
+  state.end = hhmm(Math.max(mins(state.start) + 60, Math.min(24 * 60, mins(state.end))));
+}
+
+function roundsTemplate() {
+  const startM = mins(state.start);
+  const endM = mins(state.end);
+  const duration = state.roundMin || 40;
+  const list = [];
+  let no = 1;
+
+  for (let m = startM; m + duration <= endM; m += duration) {
+    const sStr = fmtTime(m);
+    const eStr = fmtTime(m + duration);
+    const courts = getCourtsForTime(sStr);
+    list.push({
+      no: no++,
+      start: sStr,
+      end: eStr,
+      courts: courts
+    });
+  }
+  return list;
+}
+
+function att(id) { return (state.attendance || []).find(a => a.id === id); }
+function eligibleIds(r) {
+  const rStart = mins(r.start), rEnd = mins(r.end);
+  return (state.attendance || [])
+    .filter(a => (a.status || "play") === "play")
+    .filter(a => mins(a.from) <= rStart && mins(a.to) >= rEnd)
+    .map(a => a.id);
+}
+
+function syncAttendanceHistory() {
+  if (!Array.isArray(state.attendanceHistory)) state.attendanceHistory = [];
+  const rec = state.attendanceHistory.find(x => x.date === state.date);
+  const ids = (state.attendance || []).map(a => a.id);
+  const statuses = {};
+  (state.attendance || []).forEach(a => statuses[a.id] = a.status || "play");
+  if (rec) {
+    rec.ids = ids;
+    rec.statuses = statuses;
+  } else {
+    state.attendanceHistory.push({ date: state.date, ids, statuses });
+  }
+}
+
+function memberLine(id, pos) {
+  const p = player(id);
+  const name = esc(p ? p.name : "게스트");
+  if (!pos || pos === "모름" || pos === "포백") return name;
+  const color = pos === "포" ? "text-blue-600" : "text-pink-600";
+  return `${name}<span class="text-[10px] ${color} font-black ml-0.5">(${pos})</span>`;
+}
+
+normalize();
+
+let page = "home", activeRound = 0, toastTimer = null;
+
+function clubConfig(){ return state.clubConfig || (state.clubConfig = initial.clubConfig); }
+function positionEnabled(){ return clubConfig().positionEnabled !== false; }
+function tierEnabled(){ return clubConfig().tier?.enabled === true; }
+function genderEnabled(){ return clubConfig().genderEnabled === true; }
+function tierNames(){ return clubConfig().tier?.names || []; }
+function weekdayLabel(d){ return ["일","월","화","수","목","금","토"][d]; }
+
+function meetingTemplateForDate(date){
+  const ov = clubConfig().dateOverrides?.[date];
+  if (ov?.cancelled) return { cancelled:true };
+  if (ov) return { ...ov, cancelled:false };
+  const wd = new Date(date + "T12:00:00").getDay();
+  const rec = (clubConfig().recurringMeetings || []).find(x => (x.weekdays || []).includes(wd) && x.active !== false);
+  return rec ? { ...rec, cancelled:false } : null;
+}
+
+function applyMeetingTemplate(date){
+  const t = meetingTemplateForDate(date);
+  if (!t || t.cancelled) { state.meetingCancelled = !!t?.cancelled; return; }
+  state.meetingCancelled = false;
+  state.start = round60(t.start || state.start || "12:00");
+  state.end = round60(t.end || state.end || "15:00");
+  state.roundMin = +(t.roundMin || state.roundMin || 40);
+  state.courts = +(t.courts || state.courts || 2);
+  state.courtSchedules = [{from:state.start,to:state.end,courts:state.courts}];
+  (state.attendance || []).forEach(a => { a.from = state.start; a.to = state.end; });
+}
+
+function canMakeDraw(){
+  if (window.isAdmin) return true;
+  const d = clubConfig().draw || {};
+  const uid = window.currentUserUid || "";
+  if (d.drawMakerMode === "adminOnly") return false;
+  if (d.drawMakerMode === "weekday") {
+    const wd = new Date((state.date || "") + "T12:00:00").getDay();
+    return d.drawMakerByWeekday?.[wd] === uid;
+  }
+  const meetingMaker = state.meetingDrawMakerByDate?.[state.date] || "";
+  if (meetingMaker) return meetingMaker === uid;
+  return (d.drawMakerUids || []).includes(uid);
+}
+function drawMakerLabel(){ return canMakeDraw() ? "대진 생성 권한 있음" : "대진 보기 전용"; }
+
+function player(id) { return state.players.find(p => p.id === id); }
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(state));
+  if (!applyingRemote && window.cloudSave) window.cloudSave();
+}
+window.getState = () => state;
+
+let renderPending = false;
+function softRender() {
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { renderPending = true; return; }
+  render();
+}
+document.addEventListener("focusout", () => { if (renderPending) { renderPending = false; setTimeout(render, 50); } });
+
+window.applyRemoteState = obj => {
+  applyingRemote = true;
+  try { state = obj; normalize(); localStorage.setItem(KEY, JSON.stringify(state)); } finally { applyingRemote = false; }
+  if (window._needsSave) { window._needsSave = false; save(); }
+  softRender();
+};
+window.importState = obj => { state = obj; normalize(); save(); render(); };
+
+function esc(s) {
+  return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+}
+
+function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }
+function pair(a, b) { return [a, b].sort().join("|"); }
+function pct(w, g) { return g ? ((w / g) * 100).toFixed(1) + "%" : "0.0%"; }
+
+function toast(s) {
+  clearTimeout(toastTimer);
+  document.querySelectorAll(".toast").forEach(e => e.remove());
+  let x = document.createElement("div");
+  x.className = "toast";
+  x.innerHTML = `<i class="fa-solid fa-circle-info mr-2"></i> ${esc(s)}`;
+  document.body.appendChild(x);
+  toastTimer = setTimeout(() => x.remove(), 2000);
+}
+
+function switchAppMode(mode) {
+  appMode = mode;
+  localStorage.setItem("cm_app_mode", mode);
+  page = "home";
+  render();
+}
+
+function go(p) { page = p; render(); window.scrollTo(0, 0); }
+
+function freshPhotoDraft() {
+  const ids = ["", "", "", ""];
+  return {
+    imageName: "",
+    preview: "",
+    date: state.date || new Date().toISOString().slice(0, 10),
+    a: [ids[0], ids[1]],
+    b: [ids[2], ids[3]],
+    apos: ["모름", "모름"],
+    bpos: ["모름", "모름"],
+    sa: "",
+    sb: ""
+  };
+}
+
+window.photoDraft = window.photoDraft || freshPhotoDraft();
+
+function openPhotoEntry() {
+  window.photoDraft = freshPhotoDraft();
+  go("photo");
+}
+
+function photoFileChange(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  window.photoDraft.imageName = file.name || "사진";
+  const reader = new FileReader();
+  reader.onload = e => {
+    window.photoDraft.preview = e.target.result || "";
+    render();
+  };
+  reader.readAsDataURL(file);
+  if (window.aiScan) shrinkImage(file).then(scanPhoto).catch(() => toast("사진을 불러오지 못했어요."));
+}
+
+function photoSetDate(v) { window.photoDraft.date = v; }
+function photoSetPlayer(side, idx, id) {
+  if (id === GUEST_OPT) { id = askGuest(); if (!id) { render(); return; } }
+  const other = side === "a" ? window.photoDraft.b : window.photoDraft.a;
+  if (id && other.includes(id)) {
+    toast("같은 경기에서 같은 회원을 중복 선택할 수 없습니다.");
+    render();
+    return;
+  }
+  window.photoDraft[side][idx] = id;
+}
+
+function photoSetScore(side, v) {
+  window.photoDraft[side === "a" ? "sa" : "sb"] = v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
+}
+
+function cyclePhotoPos(side) {
+  const key = side === "a" ? "apos" : "bpos";
+  const arr = window.photoDraft[key] || ["모름", "모름"];
+  const a = arr[0], b = arr[1];
+  if (a === "모름" && b === "모름") window.photoDraft[key] = ["포", "백"];
+  else if (a === "포" && b === "백") window.photoDraft[key] = ["백", "포"];
+  else window.photoDraft[key] = ["모름", "모름"];
+  render();
+}
+
+function savePhotoDraft() {
+  const d = window.photoDraft;
+  if (!d.date) { toast("경기 날짜를 확인해주세요."); return; }
+  const ids = [...d.a, ...d.b];
+  if (ids.some(id => !id)) { toast("선수 4명을 모두 선택해주세요."); return; }
+  if (new Set(ids).size !== 4) { toast("같은 회원을 중복 선택할 수 없습니다."); return; }
+  if (d.sa === "" || d.sb === "") { toast("스코어를 입력해주세요."); return; }
+
+  const newGame = {
+    id: "G" + Date.now() + Math.random().toString(16).slice(2),
+    date: d.date,
+    club: state.club,
+    round: "사진",
+    start: "",
+    end: "",
+    a: [...d.a],
+    b: [...d.b],
+    apos: [...d.apos],
+    bpos: [...d.bpos],
+    sa: Number(d.sa) || 0,
+    sb: Number(d.sb) || 0,
+    source: "photo"
+  };
+
+  if (appMode === "personal") {
+    if (window.savePersonalGame) window.savePersonalGame(newGame);
+    toast("개인 전적에 저장했습니다.");
+    go("p_games");
+  } else {
+    state.games.push(newGame);
+    save();
+    window.photoDraft = freshPhotoDraft();
+    toast("사진 경기 결과를 클럽에 저장했습니다.");
+    go("games");
+  }
+}
+
+function mins(t) { if (!t) return 0; let [h, m] = t.split(":").map(Number); return h * 60 + m; }
+function hhmm(n) { n = ((n % 1440) + 1440) % 1440; return String(Math.floor(n / 60)).padStart(2, "0") + ":" + String(n % 60).padStart(2, "0"); }
+function fmtTime(n) { return Number(n) === 1440 ? "24:00" : hhmm(n); }
+function round60(t) { if (!t) return "12:00"; let [h, m] = t.split(":").map(Number); return hhmm(Math.round((h * 60 + m) / 60) * 60); }
+
+function meetingStartSelect(val, onchangeAttr, styleStr = "") {
+  let opts = []; val = round60(val);
+  for (let m = 6 * 60; m <= 23 * 60; m += 60) {
+    let t = hhmm(m);
+    opts.push(`<option value="${t}" ${t === val ? 'selected' : ''}>${t}</option>`);
+  }
+  return `<select class="select-custom" style="${styleStr}" onchange="${onchangeAttr}">${opts.join('')}</select>`;
+}
+function meetingEndSelect(val, onchangeAttr, styleStr = "") {
+  let startM = mins(state.start);
+  let minM = Math.max(7 * 60, startM + 60);
+  let opts = []; val = round60(val);
+  for (let m = minM; m <= 24 * 60; m += 60) {
+    let t = hhmm(m);
+    opts.push(`<option value="${t}" ${t === val ? 'selected' : ''}>${t}</option>`);
+  }
+  return `<select class="select-custom" style="${styleStr}" onchange="${onchangeAttr}">${opts.join('')}</select>`;
+}
+function attTimeSelect60(val, onchangeAttr, styleStr = "", kind = "from", rowFrom = null) {
+  let opts = [];
+  let minM = 6 * 60, maxM = 24 * 60;
+  if (kind === "to" && rowFrom != null) minM = Math.min(24 * 60, mins(rowFrom) + 60);
+  let valM = mins(val);
+  if (valM < minM) valM = minM;
+  if (valM > maxM) valM = maxM;
+  let valStr = fmtTime(Math.round(valM / 60) * 60);
+  for (let m = minM; m <= maxM; m += 60) {
+    let t = fmtTime(m);
+    opts.push(`<option value="${t}" ${t === valStr ? 'selected' : ''}>${t}</option>`);
+  }
+  return `<select class="select-custom" style="${styleStr}" onchange="${onchangeAttr}">${opts.join('')}</select>`;
+}
+
+function attTimeSelect30(val, onchangeAttr, styleStr = "") {
+  let startM = mins(state.start), endM = mins(state.end);
+  if (startM >= endM) { endM = startM + 180; }
+  let valM = mins(val);
+  if (valM < startM) valM = startM;
+  if (valM > endM) valM = endM;
+  let valStr = hhmm(valM);
+  let opts = [];
+  for (let m = startM; m <= endM; m += 30) {
+    let t = hhmm(m);
+    opts.push(`<option value="${t}" ${t === valStr ? 'selected' : ''}>${t}</option>`);
+  }
+  return `<select class="select-custom" style="${styleStr}" onchange="${onchangeAttr}">${opts.join('')}</select>`;
+}
+
+function updateDate(val) {
+  if (!val) return;
+  state.date = val;
+  applyMeetingTemplate(val);
+  save();
+  render();
+}
+
+function updateMeetingStart(val) {
+  let startM = Math.max(6 * 60, Math.min(23 * 60, mins(val)));
+  state.start = hhmm(startM);
+  if (mins(state.end) <= startM) state.end = hhmm(Math.min(24 * 60, startM + 60));
+  state.attendance.forEach(a => {
+    if (mins(a.from) < startM) a.from = state.start;
+    if (mins(a.to) < startM) a.to = state.start;
+    if (mins(a.from) > mins(a.to)) a.to = a.from;
+  });
+  save(); render();
+}
+
+function updateMeetingEnd(val) {
+  let startM = mins(state.start);
+  let endM = Math.max(startM + 60, Math.min(24 * 60, mins(val)));
+  state.end = hhmm(endM);
+  state.attendance.forEach(a => {
+    if (mins(a.to) > endM) a.to = state.end;
+    if (mins(a.from) > endM) a.from = state.end;
+    if (mins(a.from) > mins(a.to)) a.from = a.to;
+  });
+  save(); render();
+}
+
+function toggleAttend(id) {
+  let a = att(id);
+  if (a) { state.attendance = state.attendance.filter(x => x.id !== id); }
+  else { state.attendance.push({ id, from: state.start, to: state.end, status: "play" }); }
+  syncAttendanceHistory();
+  save(); render();
+}
+
+function setAttendStatus(id, status) {
+  const a = att(id);
+  if (!a) return;
+  a.status = status === "social" ? "social" : "play";
+  syncAttendanceHistory();
+  save(); render();
+}
+
+function setAttendTime(id, k, v) {
+  let a = att(id); if (!a) return; a[k] = v;
+  if (mins(a.from) > mins(a.to)) { if (k === "from") a.to = v; else a.from = v; }
+  syncAttendanceHistory();
+  save(); render();
+}
+
+function setPlayerPos(id, pos) {
+  let p = player(id);
+  if (p) { p.position = pos; save(); render(); }
+}
+
+function setPlayerTier(id, tier) {
+  const p = player(id); if (!p) return; p.tier = tier; save(); render();
+}
+
+function addGuest() {
+  let nameEl = document.getElementById("guestName");
+  let name = nameEl?.value.trim();
+  if (!name) { toast("게스트 이름을 입력해주세요."); return; }
+  let pos = document.getElementById("guestPos")?.value || "포백";
+  let id = "G" + Date.now();
+  let newPlayer = { id, name, position: pos, active: true, isGuest: true };
+
+  state.players.push(newPlayer);
+  state.attendance.push({ id, from: state.start, to: state.end });
+  save(); render();
+  toast(`${name} 게스트가 추가되었습니다.`);
+}
+
+function removeGuest(id) {
+  let p = player(id);
+  state.players = state.players.filter(x => x.id !== id);
+  state.attendance = state.attendance.filter(x => x.id !== id);
+  state.fixedPairs = (state.fixedPairs || []).filter(fp => fp.p1 !== id && fp.p2 !== id);
+  save(); render();
+  toast(`${p?.name || '게스트'}가 삭제되었습니다.`);
+}
+
+function addFixedPair() {
+  let p1 = document.getElementById("pairP1")?.value;
+  let p2 = document.getElementById("pairP2")?.value;
+  if (!p1 || !p2) { toast("선수 두 명을 선택해주세요."); return; }
+  if (p1 === p2) { toast("서로 다른 두 회원을 선택해주세요."); return; }
+  if (!state.fixedPairs) state.fixedPairs = [];
+  if (state.fixedPairs.some(fp => (fp.p1 === p1 && fp.p2 === p2) || (fp.p1 === p2 && fp.p2 === p1))) {
+    toast("이미 등록된 페어입니다."); return;
+  }
+  state.fixedPairs.push({ id: "FP" + Date.now(), p1, p2 });
+  save(); render();
+  toast("고정 페어가 추가되었습니다.");
+}
+
+function removeFixedPair(id) {
+  state.fixedPairs = (state.fixedPairs || []).filter(fp => fp.id !== id);
+  save(); render();
+  toast("고정 페어가 삭제되었습니다.");
+}
+
+function getPlayerPairTag(pId) {
+  let fp = (state.fixedPairs || []).find(x => x.p1 === pId || x.p2 === pId);
+  if (!fp) return "";
+  let partnerId = fp.p1 === pId ? fp.p2 : fp.p1;
+  let partner = player(partnerId);
+  return partner ? `<span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold ml-1 whitespace-nowrap shrink-0"><i class="fa-solid fa-link text-[10px]"></i> ${esc(partner.name)}</span>` : "";
+}
+
+function getCourtsForTime(t) {
+  let m = mins(t);
+  if (state.courtSchedules && state.courtSchedules.length > 0) {
+    let match = state.courtSchedules.find(s => {
+      let f = mins(s.from), to = mins(s.to);
+      return m >= f && m < to;
+    });
+    if (match) return match.courts;
+  }
+  return state.courts || 2;
+}
+
+function addCourtSchedule() {
+  if (!state.courtSchedules) state.courtSchedules = [];
+  let last = state.courtSchedules[state.courtSchedules.length - 1];
+  let from = last ? last.to : (state.start || "12:00");
+  let to = hhmm(mins(from) + 120);
+  state.courtSchedules.push({ from, to, courts: state.courts || 2 });
+  save(); render();
+}
+
+function updateCourtSchedule(idx, key, val) {
+  if (!state.courtSchedules[idx]) return;
+  const row = state.courtSchedules[idx];
+  if (key === "courts") {
+    row.courts = Math.max(1, Math.min(8, +val));
+  } else if (key === "from") {
+    const fm = Math.max(6 * 60, Math.min(23 * 60, mins(val)));
+    row.from = fmtTime(fm);
+    if (mins(row.to) <= fm) row.to = fmtTime(Math.min(24 * 60, fm + 60));
+  } else if (key === "to") {
+    const tm = Math.max(mins(row.from) + 60, Math.min(24 * 60, mins(val)));
+    row.to = fmtTime(tm);
+  }
+  save(); render();
+}
+
+function removeCourtSchedule(idx) {
+  state.courtSchedules.splice(idx, 1);
+  save(); render();
+}
+
+function resolveTeamPositions(p1Id, p2Id) {
+  if (!positionEnabled()) return ["", ""];
+  const p1 = player(p1Id), p2 = player(p2Id);
+  const pos1 = p1?.position || "포백", pos2 = p2?.position || "포백";
+  if (pos1 === "포" && pos2 === "백") return ["포", "백"];
+  if (pos1 === "백" && pos2 === "포") return ["백", "포"];
+  if (pos1 === "백" && pos2 !== "백") return ["백", "포"];
+  if (pos2 === "백" && pos1 !== "백") return ["포", "백"];
+  if (pos1 === "포" && pos2 !== "포") return ["포", "백"];
+  if (pos2 === "포" && pos1 !== "포") return ["백", "포"];
+  return ["포", "백"];
+}
+function evalTeamPos(p1, p2) {
+  if (!positionEnabled()) return 0;
+  const pos1 = p1.position || "포백", pos2 = p2.position || "포백";
+  if (pos1 === "포" && pos2 === "포") return -15;
+  if (pos1 === "백" && pos2 === "백") return -15;
+  if ((pos1 === "포" && pos2 === "백") || (pos1 === "백" && pos2 === "포")) return 10;
+  if (pos1 === "포백" || pos2 === "포백") return 5;
+  return 0;
+}
+
+function makeSchedule() {
+  if (!canMakeDraw()) { toast("이 모임의 대진 생성 권한이 없습니다."); return; }
+  const tpl = roundsTemplate(); if (!tpl.length) { toast("모임 시간과 회차 간격을 확인해주세요."); return; }
+  const playCount = state.attendance.filter(a => (a.status || "play") === "play").length;
+  if (playCount < 4) { toast("경기참 회원이 최소 4명 필요합니다."); return; }
+  syncAttendanceHistory();
+  let partnerCount = {}, opponentCount = {}, gameCount = {}, rounds = []; state.players.forEach(p => gameCount[p.id] = 0);
+  tpl.forEach(r => {
+    let ids = eligibleIds(r).map(player).filter(Boolean), roundCourts = r.courts || getCourtsForTime(r.start);
+    if (ids.length < 4) { rounds.push({ no: r.no, start: r.start, end: r.end, courts: roundCourts, games: [], eligible: ids.map(x => x.id), note: "참석 가능 인원이 4명 미만" }); return; }
+    let pool = shuffle(ids), games = [], maxGames = Math.min(Math.floor(ids.length / 4), roundCourts);
+    for (let c = 0; c < maxGames; c++) {
+      pool = shuffle(pool).sort((a, b) => (gameCount[a.id] || 0) - (gameCount[b.id] || 0));
+      if (pool.length < 4) break;
+      let four = pool.slice(0, 4);
+      let g = { court: c + 1, a: [four[0].id, four[1].id], b: [four[2].id, four[3].id], apos: resolveTeamPositions(four[0].id, four[1].id), bpos: resolveTeamPositions(four[2].id, four[3].id), sa: 0, sb: 0, saved: false };
+      games.push(g); [...g.a, ...g.b].forEach(id => gameCount[id] = (gameCount[id] || 0) + 1);
+      pool = pool.filter(x => ![...g.a, ...g.b].includes(x.id));
+    }
+    const used = games.flatMap(g => [...g.a, ...g.b]);
+    rounds.push({ no: r.no, start: r.start, end: r.end, courts: roundCourts, games, eligible: ids.map(x => x.id), bench: ids.filter(x => !used.includes(x.id)).map(x => x.id) });
+  });
+  state.rounds = rounds; save(); go("draw");
+}
+
+function header() {
+  return `<header class="top-bar">
+    <div class="flex items-center gap-2 cursor-pointer" onclick="go('home')">
+      <span class="text-xl">🎾</span>
+      <div class="font-extrabold text-lg tracking-tight">Court Manager</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" onclick="switchAppMode('${appMode === 'club' ? 'personal' : 'club'}')" class="bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs px-3 py-1.5 rounded-full border border-white/30 transition-all">
+        ${appMode === 'club' ? '🏆 클럽 모드' : '👤 개인 모드'} ⇄
+      </button>
+      <button type="button" onclick="window.openAccountMenu && openAccountMenu()" class="text-emerald-50 text-xl leading-none ml-1" aria-label="계정">
+        <i class="fa-solid fa-circle-user"></i>
+      </button>
+    </div>
+  </header>`;
+}
+
+function nav() {
+  if (appMode === "personal") {
+    return `<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[720px] grid grid-cols-3 bg-white border-t border-slate-200 z-40 pb-safe shadow-lg">
+      <button class="py-2.5 text-slate-500 flex flex-col items-center ${page === 'home' ? 'text-emerald-600 font-bold' : ''}" onclick="go('home')">
+        <i class="fa-solid fa-chart-line text-base mb-1"></i>
+        <span class="text-[11px]">통산 분석</span>
+      </button>
+      <button class="py-2.5 text-slate-500 flex flex-col items-center ${page === 'p_games' ? 'text-emerald-600 font-bold' : ''}" onclick="go('p_games')">
+        <i class="fa-solid fa-list-check text-base mb-1"></i>
+        <span class="text-[11px]">내 전적 목록</span>
+      </button>
+      <button class="py-2.5 text-slate-500 flex flex-col items-center ${page === 'p_add' ? 'text-emerald-600 font-bold' : ''}" onclick="go('p_add')">
+        <i class="fa-solid fa-plus-circle text-base mb-1"></i>
+        <span class="text-[11px]">경기 추가</span>
+      </button>
+    </nav>`;
+  }
+
+  return `<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[720px] grid grid-cols-5 bg-white border-t border-slate-200 z-40 pb-safe shadow-lg">
+  ${[
+    ["home", "fa-house", "홈"],
+    ["session", "fa-users", "모임"],
+    ["draw", "fa-sitemap", "오늘 대진"],
+    ["games", "fa-trophy", "경기"],
+    ["stats", "fa-chart-pie", "통계"]
+  ].map(x => `
+    <button class="border-none bg-transparent py-2 px-1 text-slate-500 flex flex-col items-center justify-center transition-colors ${page === x[0] ? "text-emerald-600 font-bold" : "hover:text-slate-800"}" onclick="go('${x[0]}')">
+      <i class="fa-solid ${x[1]} text-base mb-1"></i>
+      <span class="text-[11px] whitespace-nowrap">${x[2]}</span>
+    </button>
+  `).join("")}
+  </nav>`;
+}
+
+// ================= 개인 모드 UI 함수 =================
+function personalHome() {
+  const sync = window.userProfile?.syncGamesEnabled !== false;
+  const games = personalGames || [];
+  let w = 0, d = 0, l = 0;
+  games.forEach(g => {
+    if (g.result === "WIN") w++;
+    else if (g.result === "DRAW") d++;
+    else if (g.result === "LOSE") l++;
+  });
+  const total = games.length;
+  const rate = total ? ((w + d * 0.5) / total * 100).toFixed(1) : "0.0";
+
+  return `<main class="p-4 sm:p-5">
+    <section class="border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-sky-50 rounded-2xl p-5 shadow-sm mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <h1 class="text-xl font-black text-slate-800">👤 내 통산 전적 분석</h1>
+        <span class="text-xs font-bold px-2.5 py-1 rounded-full ${sync ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">
+          ${sync ? '클럽 자동 동기화 ON' : '동기화 OFF'}
+        </span>
+      </div>
+      <p class="text-xs text-slate-500 mb-4">여러 클럽 및 개인 경기 통합 기록</p>
+
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="bg-white/80 p-3 rounded-xl border border-slate-100"><b class="text-2xl font-black text-indigo-600 block">${total}</b><span class="text-[11px] text-slate-500 font-bold">총 경기</span></div>
+        <div class="bg-white/80 p-3 rounded-xl border border-slate-100"><b class="text-lg font-black text-slate-800 block">${w}승 ${d}무 ${l}패</b><span class="text-[11px] text-slate-500 font-bold">전적</span></div>
+        <div class="bg-white/80 p-3 rounded-xl border border-slate-100"><b class="text-2xl font-black text-emerald-600 block">${rate}%</b><span class="text-[11px] text-slate-500 font-bold">승률</span></div>
+      </div>
+    </section>
+
+    <div class="card-box mb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <b class="text-sm font-extrabold text-slate-800">클럽 경기 개인 전적 자동 동기화</b>
+          <p class="text-xs text-slate-400 mt-0.5">클럽에서 확정된 내 경기를 개인 통산 기록에 자동 반영합니다.</p>
+        </div>
+        <input type="checkbox" class="w-6 h-6 accent-emerald-600" ${sync ? 'checked' : ''} onchange="window.togglePersonalSync && window.togglePersonalSync(this.checked)">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 mb-4">
+      <button class="btn-custom primary p-4" onclick="go('p_add')"><i class="fa-solid fa-plus-circle"></i> 개인 경기 즉시 추가</button>
+      <button class="btn-custom dark p-4" onclick="go('p_games')"><i class="fa-solid fa-list"></i> 전체 기록 보기</button>
+    </div>
+  </main>`;
+}
+
+function personalGamesList() {
+  const games = personalGames || [];
+  return `<main class="p-4 sm:p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-xl font-black text-slate-800">내 개인 통산 전적 목록</h1>
+      <button class="btn-custom primary small" onclick="go('p_add')">+ 경기 기록</button>
+    </div>
+
+    <div class="space-y-3">
+      ${games.length ? games.map(g => `
+        <div class="card-box">
+          <div class="flex items-center justify-between text-xs text-slate-400 border-b pb-2 mb-2">
+            <span>${g.date} ·${esc(g.clubName || '개인 매치')}</span>
+            <span class="font-extrabold ${g.result === 'WIN' ? 'text-emerald-600' : g.result === 'LOSE' ? 'text-rose-600' : 'text-amber-600'}">${g.result || '-'}</span>
+          </div>
+          <div class="grid grid-cols-[1fr_auto_1fr] items-center text-center text-xs font-bold">
+            <div>${esc(g.myTeam?.join('·') || '나')}</div>
+            <div class="px-3 text-lg font-black text-slate-800">${g.myScore} :${g.oppScore}</div>
+            <div>${esc(g.oppTeam?.join('·') || '상대')}</div>
+          </div>
+        </div>
+      `).join('') : `<div class="text-center text-slate-400 py-16">아직 기록된 개인 전적이 없습니다.</div>`}
+    </div>
+  </main>`;
+}
+
+function personalAddView() {
+  return `<main class="p-4 sm:p-5">
+    <h1 class="text-xl font-black text-slate-800 mb-4">개인 경기 결과 등록</h1>
+
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <button class="photo-drop !p-4" onclick="openPhotoEntry()">
+        <i class="fa-solid fa-camera text-2xl text-emerald-600 mb-1"></i>
+        <b class="text-xs font-black block text-slate-800">📷 사진 / AI 인식</b>
+      </button>
+      <button class="photo-drop !p-4 !border-indigo-200 !bg-indigo-50/30" onclick="openManualEntry()">
+        <i class="fa-solid fa-pen-to-square text-2xl text-indigo-600 mb-1"></i>
+        <b class="text-xs font-black block text-slate-800">✍️ 수동 직접 입력</b>
+      </button>
+    </div>
+  </main>`;
+}
+
+// ================= 클럽 모드 UI 함수 =================
+function clubHome() {
+  const tpl = roundsTemplate(), expected = tpl.length, saved = state.games.length;
+  return `<main class="p-4 sm:p-5">
+  <section class="border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-2xl p-5 shadow-sm mb-5">
+    <h1 class="text-2xl font-black text-slate-800 mb-1">오늘의 테니스</h1>
+    <div class="text-xs text-slate-500 flex items-center gap-2">
+      <span><i class="fa-regular fa-calendar mr-1"></i>${state.date}</span>
+      <span>•</span>
+      <span><i class="fa-solid fa-users-rectangle mr-1"></i>${esc(state.club || "클럽")}</span>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 mt-4">
+      <div class="bg-white/80 backdrop-blur-sm border border-slate-100 rounded-xl p-3 text-center shadow-xs">
+        <b class="block text-2xl font-black text-emerald-600">${state.attendance.length}</b>
+        <span class="text-[11px] text-slate-500 font-semibold whitespace-nowrap">참석 회원</span>
+      </div>
+      <div class="bg-white/80 backdrop-blur-sm border border-slate-100 rounded-xl p-3 text-center shadow-xs">
+        <b class="block text-2xl font-black text-slate-800">${expected}</b>
+        <span class="text-[11px] text-slate-500 font-semibold whitespace-nowrap">예상 회차</span>
+      </div>
+      <div class="bg-white/80 backdrop-blur-sm border border-slate-100 rounded-xl p-3 text-center shadow-xs">
+        <b class="block text-2xl font-black text-indigo-600">${saved}</b>
+        <span class="text-[11px] text-slate-500 font-semibold whitespace-nowrap">완료 경기</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex flex-col gap-2.5">
+    <button class="btn-custom primary big text-base shadow-sm" onclick="go('session')">
+      <i class="fa-solid fa-user-gear"></i> 참석자 & 시간 설정
+    </button>
+    <button class="btn-custom dark big text-base shadow-sm" onclick="${state.rounds.length ? "go('draw')" : (canMakeDraw() ? "makeSchedule()" : "go('draw')")}">
+      <i class="fa-solid fa-dice"></i> ${state.rounds.length ? "오늘 전체 대진 보기" : (canMakeDraw() ? "🚀 오늘 전체 대진 만들기" : "오늘 대진 보기")}
+    </button>
+  </div>
+  </main>`;
+}
+
+function session() {
+  const tpl = roundsTemplate();
+  return `<main class="p-4 sm:p-5">
+  <section class="border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-2xl p-4 sm:p-5 shadow-sm mb-5">
+    <h1 class="text-xl font-black text-slate-800 mb-1">오늘 참석자 & 코트 설정</h1>
+  </section>
+
+  <section class="mb-5">
+    <div class="text-base font-extrabold text-slate-800 mb-2.5">모임 날짜</div>
+    <div class="card-box !p-3 flex items-center gap-3">
+      <i class="fa-regular fa-calendar text-emerald-600"></i>
+      <input type="date" class="select-custom flex-1" value="${state.date}" onchange="updateDate(this.value)">
+    </div>
+  </section>
+
+  <section class="mb-5">
+    <div class="text-base font-extrabold text-slate-800 mb-2.5">회원 참석 설정</div>
+    ${state.players.filter(p => p.active).map(p => {
+      let a = att(p.id), on = !!a;
+      return `<div class="player-item ${on ? '' : 'opacity-40 bg-slate-50'} grid items-center gap-1.5">
+        <div class="player-info-fixed flex items-center gap-1 min-w-0 overflow-hidden">
+          <input type="checkbox" class="w-5 h-5 accent-emerald-600 rounded cursor-pointer shrink-0" ${on ? "checked" : ""} onchange="toggleAttend('${p.id}')">
+          <span class="font-extrabold text-slate-800 text-xs whitespace-nowrap shrink-0">${esc(p.name)}</span>
+        </div>
+        <div class="min-w-0 flex items-center gap-0.5 text-[9px] text-slate-400 overflow-hidden">
+          ${on ? `${attTimeSelect30(a.from, `setAttendTime('${p.id}','from',this.value)`, "width:65px;padding:4px;font-size:9px", "from", a.to)} ~ ${attTimeSelect30(a.to, `setAttendTime('${p.id}','to',this.value)`, "width:65px;padding:4px;font-size:9px", "to", a.from)}` : `<span class="text-slate-300">불참</span>`}
+        </div>
+      </div>`;
+    }).join("") || `<div class="text-xs text-slate-400 text-center py-4">등록된 회원이 없습니다.</div>`}
+  </section>
+
+  <button class="btn-custom primary big text-base shadow-sm" onclick="makeSchedule()">
+    <i class="fa-solid fa-play"></i> 전체 회차 대진표 생성하기
+  </button>
+  </main>`;
+}
+
+function render() {
+  const appContainer = document.getElementById("app");
+  if (!appContainer) return;
+
+  if (appMode === "personal") {
+    appContainer.innerHTML = header() + (
+      page === "home" ? personalHome() :
+      page === "p_games" ? personalGamesList() :
+      page === "p_add" ? personalAddView() :
+      personalHome()
+    ) + nav();
+    return;
+  }
+
+  appContainer.innerHTML = header() + (
+    page === "home" ? clubHome() :
+    page === "session" ? session() :
+    clubHome()
+  ) + nav();
+}
+
+window.addEventListener("DOMContentLoaded", render);
+render();
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, onSnapshot, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const firebaseConfig = { apiKey: "AIzaSyCzVYoqgB-u2M6ZqF7vVzr-d_y8IodcBbE", authDomain: "jade-7eba0.firebaseapp.com", projectId: "jade-7eba0", storageBucket: "jade-7eba0.firebasestorage.app", messagingSenderId: "59308844276", appId: "1:59308844276:web:6fc2877fb0d030d8a96aa1" };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window.togglePersonalSync = async (enabled) => {
+  const u = auth.currentUser;
+  if (!u) return;
+  await updateDoc(doc(db, "users", u.uid), { syncGamesEnabled: enabled });
+  if (window.userProfile) window.userProfile.syncGamesEnabled = enabled;
+  toast(enabled ? "개인 전적 동기화가 활성화되었습니다." : "동기화가 해제되었습니다.");
+  render();
+};
+
+window.savePersonalGame = async (gameData) => {
+  const u = auth.currentUser;
+  if (!u) return;
+  const gameId = gameData.id || ("G" + Date.now());
+  const myScore = Number(gameData.sa) || 0;
+  const oppScore = Number(gameData.sb) || 0;
+  const result = myScore > oppScore ? "WIN" : myScore === oppScore ? "DRAW" : "LOSE";
+
+  await setDoc(doc(db, "users", u.uid, "games", gameId), {
+    gameId,
+    clubId: state.clubId || "",
+    clubName: state.club || "개인 매치",
+    date: gameData.date || state.date,
+    myTeam: gameData.a || [],
+    oppTeam: gameData.b || [],
+    myScore,
+    oppScore,
+    result,
+    createdAt: serverTimestamp()
+  });
+};
+
+onAuthStateChanged(auth, async (u) => {
+  if (!u) {
+    document.getElementById("app").innerHTML = `<div class="p-8 text-center mt-20"><b class="text-2xl font-black block mb-4 text-slate-800">Court Manager</b><p class="text-xs text-slate-500 mb-6">로그인 후 클럽 및 개인 통산 전적을 관리하세요.</p><button class="btn-custom primary big" id="loginBtn">Google 로그인</button></div>`;
+    document.getElementById("loginBtn")?.addEventListener("click", () => signInWithPopup(auth, new GoogleAuthProvider()));
+    return;
+  }
+
+  window.currentUserUid = u.uid;
+
+  // 내 개인 전적 실시간 데이터 수신
+  onSnapshot(collection(db, "users", u.uid, "games"), (snap) => {
+    personalGames = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  });
+
+  const uSnap = await getDoc(doc(db, "users", u.uid));
+  if (uSnap.exists()) window.userProfile = uSnap.data();
+
+  render();
+});
+</script>
+</body>
+</html>

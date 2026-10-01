@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function memberPath(clubId) {
+      return /databases/$(database)/documents/clubs/$(clubId)/members/$(request.auth.uid);
+    }
+    function isMember(clubId) {
+      return signedIn() && exists(memberPath(clubId)) && get(memberPath(clubId)).data.approved == true;
+    }
+    function isClubAdmin(clubId) {
+      return isMember(clubId) && get(memberPath(clubId)).data.get('role', 'member') in ['owner', 'admin'];
+    }
+
+    // 개인 계정: 프로필, 내 클럽 목록, 개인 메모(본인만)
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['email', 'name', 'gender', 'defaultPosition', 'createdAt']);
+      allow update: if signedIn() && request.auth.uid == uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'gender', 'defaultPosition']);
+      allow delete: if false;
+
+      match /clubs/{clubId} { allow read, write: if signedIn() && request.auth.uid == uid; }
+      match /notes/{noteId} { allow read, write: if signedIn() && request.auth.uid == uid; }
+    }
+
+    match /clubs/{clubId} {
+      // 클럽 데이터: 승인된 클럽 회원만 (아직 없는 클럽 ID 확인용 조회는 허용)
+      allow read: if isMember(clubId) || (signedIn() && resource == null);
+      allow create: if signedIn()
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['name', 'ownerUid', 'data', 'createdAt']);
+      allow update: if isMember(clubId)
+                    && request.resource.data.get('ownerUid', '') == resource.data.get('ownerUid', '');
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || isClubAdmin(clubId));
+
+        // 가입 신청(승인 대기) 또는 클럽 생성자의 소유자 등록
+        allow create: if signedIn() && request.auth.uid == uid
+                      && exists(/databases/$(database)/documents/clubs/$(clubId))
+                      && (
+                        (request.resource.data.approved == false
+                          && request.resource.data.get('role', 'member') == 'member')
+                        || (request.resource.data.approved == true
+                          && request.resource.data.role == 'owner'
+                          && get(/databases/$(database)/documents/clubs/$(clubId)).data.get('ownerUid', '') == request.auth.uid)
+                      );
+
+        // 승인/해제, 관리자 지정: 클럽 관리자만 (소유자 문서와 본인 문서는 변경 불가)
+        allow update: if isClubAdmin(clubId) && request.auth.uid != uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved', 'role'])
+                      && request.resource.data.get('role', 'member') in ['member', 'admin'];
+
+        // 거절/탈퇴: 관리자는 소유자 제외, 본인은 소유자가 아닐 때 탈퇴 가능
+        allow delete: if (isClubAdmin(clubId) && request.auth.uid != uid && resource.data.get('role', 'member') != 'owner')
+                      || (signedIn() && request.auth.uid == uid && resource.data.get('role', 'member') != 'owner');
+      }
+    }
+  }
+}
