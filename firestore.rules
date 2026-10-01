@@ -7,6 +7,12 @@ service cloud.firestore {
     function isActive(c) { return authed() && exists(/databases/$(db)/documents/clubMembers/$(c + '_' + me())) && memberDoc(c).data.status == 'active'; }
     function isAdmin(c) { return isActive(c) && memberDoc(c).data.role == 'admin'; }
     function isStaff(c) { return isActive(c) && memberDoc(c).data.role in ['admin','staff']; }
+    function can(c, k, def) {
+      return isActive(c) && (
+        memberDoc(c).data.role == 'admin'
+        || (get(/databases/$(db)/documents/clubs/$(c)).data.get('permissions', {}).get(k, {}).get('mode', def) == 'staff' && memberDoc(c).data.role == 'staff')
+        || (get(/databases/$(db)/documents/clubs/$(c)).data.get('permissions', {}).get(k, {}).get('mode', def) == 'custom' && me() in get(/databases/$(db)/documents/clubs/$(c)).data.get('permissions', {}).get(k, {}).get('users', [])));
+    }
     function isAdminAfter(c) { return authed() && getAfter(/databases/$(db)/documents/clubMembers/$(c + '_' + me())).data.role == 'admin'; }
 
     match /users/{u} { allow read, write: if authed() && me() == u; }
@@ -42,7 +48,7 @@ service cloud.firestore {
               || ('viaCode' in request.resource.data
                   && get(/databases/$(db)/documents/inviteCodes/$(request.resource.data.viaCode)).data.clubId == request.resource.data.clubId)))))
         ||
-        (isAdmin(request.resource.data.clubId) && request.resource.data.role == 'member' && request.resource.data.status == 'active')
+        (can(request.resource.data.clubId, 'members', 'admin') && request.resource.data.role == 'member' && request.resource.data.status == 'active')
       );
       allow update: if authed() && (isAdmin(resource.data.clubId)
         || (resource.data.uid == me() && request.resource.data.role == resource.data.role
@@ -51,8 +57,8 @@ service cloud.firestore {
 
     match /clubApplications/{a} {
       allow create: if authed() && request.resource.data.uid == me() && a == request.resource.data.clubId + '_' + me();
-      allow read: if authed() && (resource.data.uid == me() || isAdmin(resource.data.clubId));
-      allow update: if isAdmin(resource.data.clubId);
+      allow read: if authed() && (resource.data.uid == me() || can(resource.data.clubId, 'members', 'admin'));
+      allow update: if can(resource.data.clubId, 'members', 'admin');
     }
 
     match /sessionParticipants/{p} {
@@ -60,19 +66,28 @@ service cloud.firestore {
       allow create, update: if authed() && (
         (request.resource.data.uid == me() && isActive(request.resource.data.clubId)
           && p == request.resource.data.clubId + '_' + request.resource.data.date + '_' + me())
-        || isStaff(request.resource.data.clubId));
-      allow delete: if isStaff(resource.data.clubId);
+        || can(request.resource.data.clubId, 'guest', 'staff'));
+      allow delete: if can(resource.data.clubId, 'guest', 'staff');
     }
 
     match /sessions/{s} {
       allow read: if isActive(s.split('_')[0]);
-      allow create, update: if isStaff(request.resource.data.clubId);
+      allow create: if can(request.resource.data.clubId, 'draw', 'staff');
+      allow update: if can(request.resource.data.clubId, 'draw', 'staff')
+        || (resource.data.get('drawWriterId', '') == me() && request.resource.data.get('drawWriterId', '') == me());
     }
 
     match /games/{g} {
       allow read: if isActive(resource.data.clubId);
-      allow create, update: if isStaff(request.resource.data.clubId);
-      allow delete: if isStaff(resource.data.clubId);
+      allow create, update: if can(request.resource.data.clubId, 'result', 'staff');
+      allow delete: if can(resource.data.clubId, 'result', 'staff');
+    }
+
+    match /aiUsage/{u} {
+      allow get: if authed() && (u.matches(me() + '_.*') || isActive(u.split('_')[0]));
+      allow create, update: if authed() && request.resource.data.date is string && u == request.resource.data.ownerId + '_' + request.resource.data.date && (
+        (request.resource.data.kind == 'user' && request.resource.data.ownerId == me() && request.resource.data.count <= 2)
+        || (request.resource.data.kind == 'club' && can(request.resource.data.ownerId, 'result', 'staff') && request.resource.data.count <= 5));
     }
 
     match /personalGames/{g} {
