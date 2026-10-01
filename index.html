@@ -58,7 +58,10 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .rest{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:7px 12px;font-size:13px;color:var(--sub);background:#FAFBF9}.rest span[data-a]{padding:1px 7px;border-radius:6px;background:var(--bg);color:var(--tx)}
 #popmsg{white-space:pre-line}.tg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;text-align:left}
 .rh{padding:6px 12px;background:var(--tint);color:var(--main);font-weight:600;font-size:13px}
-.pg{display:grid;grid-template-columns:repeat(5,1fr);gap:0 4px;padding:8px 12px;margin-top:6px}.pg div{padding:4px 0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pg span{color:var(--sub);margin-left:1px;font-variant-numeric:tabular-nums}
+.pg{display:grid;grid-template-columns:repeat(5,1fr);gap:0 6px;padding:8px 12px;margin-top:6px}.pg>div{display:flex;padding:4px 0;font-size:13px;white-space:nowrap;cursor:pointer;min-width:0}.pg .n{overflow:hidden;text-overflow:ellipsis;min-width:0}.pg span{flex:none;color:var(--sub);font-variant-numeric:tabular-nums}
+.sh{position:fixed;inset:0;background:#0005;z-index:8;display:flex;align-items:flex-end}.sh>div{background:#fff;width:100%;max-width:480px;margin:0 auto;max-height:72vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.sh h3{margin:0 0 4px;font-size:18px}.sh .k{margin:12px 0 4px;font-size:13px;color:var(--sub)}.sh .ch{display:flex;flex-wrap:wrap;gap:6px}.sh .ch span{background:var(--tint);color:var(--main);padding:3px 10px;border-radius:99px;font-size:13px}
+.sh .gl{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}.sh .gl:last-child{border:0}.sh .gl .t{width:96px;flex:none;color:var(--sub)}
 .cmp select{padding:9px 10px;margin:4px 0 8px;font-size:14px}.cmp .seg{margin:4px 0 8px}.cmp .seg div{padding:8px 4px;font-size:14px}.cmp .chips div{flex:none;padding:6px 12px}
 .cmp button{padding:10px;margin-top:6px;font-size:14px}.cmp h2{margin:16px 0 4px;font-size:15px}.cmp .li{min-height:34px;padding:5px 12px}.cmp .bar button{padding:13px;font-size:15px}
 </style>
@@ -74,7 +77,7 @@ import {firebaseConfig} from "./firebase-config.js";
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
-const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",sel:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
+const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
 let auth,db;
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
@@ -138,11 +141,19 @@ function buildDraw(parts,c,dr){
  return{rounds,players:pl.map(p=>({n:p.n,g:p.g}))};
 }
 const pool=()=>S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:p.name,p:p.position}));
-const planPlayers=rs=>{const g={};rs.forEach(r=>r.games.forEach(x=>[...x.t1,...x.t2].forEach(p=>g[p.k]=(g[p.k]||0)+1)));return pool().map(p=>({n:p.n,g:g[p.k]||0}))};
+const planPlayers=rs=>{const g={};rs.forEach(r=>r.games.forEach(x=>[...x.t1,...x.t2].forEach(p=>g[p.k]=(g[p.k]||0)+1)));return pool().map(p=>({k:p.k,n:p.n,g:g[p.k]||0}))};
 const cell=(x,ref,ed)=>`<span ${ed?`data-a="pick" data-s="${ref}"`:""} class="${S.sel===ref?"sel":""}">${esc(x.n)}</span>`;
 const gRow=(g,ri,gi,ed)=>`<div class="gr"><span class="ct">${g.court}코트</span><div class="tg">${g.t1.map((x,i)=>cell(x,`${ri}:${gi}:1:${i}`,ed)).join("")}</div><span class="vs">vs</span><div class="tg">${g.t2.map((x,i)=>cell(x,`${ri}:${gi}:2:${i}`,ed)).join("")}</div></div>`;
 const rList=(rs,ed)=>rs.map((r,ri)=>{const on=new Set(r.games.flatMap(g=>[...g.t1,...g.t2].map(x=>x.k)));const rest=ed?pool().filter(p=>!on.has(p.k)):[];
  return `<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map((g,gi)=>gRow(g,ri,gi,ed)).join("")||'<div class="li sub">경기 없음</div>'}${rest.length?`<div class="rest">쉼${rest.map(p=>`<span data-a="pick" data-s="${ri}:x:${esc(p.k)}" class="${S.sel===`${ri}:x:${p.k}`?"sel":""}">${esc(p.n)}</span>`).join("")}</div>`:""}</div>`}).join("");
+function mSheet(){const k=S.mdt,rs=S.dr.plan.rounds,pa={},op={},gm=[],me=pool().find(p=>p.k===k);if(!me)return"";
+ rs.forEach(r=>r.games.forEach(g=>{const a=g.t1.some(x=>x.k===k),b=g.t2.some(x=>x.k===k);if(!a&&!b)return;const my=a?g.t1:g.t2,ot=a?g.t2:g.t1;
+  my.filter(x=>x.k!==k).forEach(x=>pa[x.n]=(pa[x.n]||0)+1);ot.forEach(x=>op[x.n]=(op[x.n]||0)+1);gm.push({r,g,my,ot})}));
+ const ch=o=>Object.entries(o).sort((x,y)=>y[1]-x[1]).map(([n,c])=>`<span>${esc(n)}(${c})</span>`).join("")||'<span style="background:none;color:var(--sub)">없음</span>';
+ const nm=l=>l.map(x=>x.k===k?`<b>${esc(x.n)}</b>`:esc(x.n)).join("·");
+ return `<div class="sh" data-a="mclose"><div data-keep="1"><div class="row"><h3>${esc(me.n)} · ${gm.length}경기</h3><button class="link" data-a="mclose">닫기</button></div>
+<div class="k">파트너</div><div class="ch">${ch(pa)}</div><div class="k">상대</div><div class="ch">${ch(op)}</div><div class="k">대진</div>
+${gm.map(x=>`<div class="gl"><span class="t">${x.r.n}회차 ${x.r.time} · ${x.g.court}코트</span><span>${nm(x.my)} <span class="sub">vs</span> ${nm(x.ot)}</span></div>`).join("")||'<div class="sub">이번 대진에 경기가 없어요</div>'}</div></div>`}
 const nmOf=k=>(S.parts.find(p=>key(p)===k)||{}).name||k;
 const T={
 today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center" style="padding:28px"><b>정기 모임이 없어요</b><div class="sub">${c.role==="admin"?"설정에서 모임 요일을 정해 주세요.":"관리자가 모임 요일을 정하면 보여요."}</div></div>`;
@@ -200,8 +211,8 @@ ${Object.keys(d.excl).length?`<div class="list" style="margin-top:12px">${Object
 ${d.pairs.length?`<div class="list" style="margin-top:12px">${d.pairs.map(([a,b],i)=>`<div class="li"><span class="nm">${esc(nmOf(a))} · ${esc(nmOf(b))}</span><span class="tap sub" data-a="delPair" data-id="${i}">✕</span></div>`).join("")}</div>`:""}
 <div class="bar"><button data-a="gen">대진 생성</button></div></div>`},
 preview:()=>{const p=S.dr.plan;return `<button class="link" data-a="toDraw">← 설정</button><h1>대진 미리보기</h1><div class="sub">참여 회원(경기수)</div>
-<div class="list pg">${planPlayers(p.rounds).map(x=>`<div>${esc(x.n)}<span>(${x.g})</span></div>`).join("")}</div><div class="sub" style="margin:2px 2px 8px">이름을 차례로 두 번 누르면 자리가 바뀌어요</div>${rList(p.rounds,1)}
-<div class="bar"><button data-a="confirm">대진 확정</button><button class="ghost" data-a="gen">다시 생성</button></div>`},
+<div class="list pg">${planPlayers(p.rounds).map(x=>`<div data-a="mdt" data-id="${esc(x.k)}"><b class="n" style="font-weight:400">${esc(x.n)}</b><span>(${x.g})</span></div>`).join("")}</div><div class="sub" style="margin:2px 2px 8px">이름을 차례로 두 번 누르면 자리가 바뀌어요</div>${rList(p.rounds,1)}
+<div class="bar"><button data-a="confirm">대진 확정</button><button class="ghost" data-a="gen">다시 생성</button></div>${S.mdt?mSheet():""}`},
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드</button></div><p class="sub">개인 경기·메모는 다음 단계에서 추가됩니다.</p>`
 };
 function render(){ $("#app").innerHTML=V[S.screen]?`<div class="scr${S.still?" still":""}">${V[S.screen]()}</div>`:""; if(S.screen==="clubHome"&&S.tab==="settings")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
@@ -225,6 +236,8 @@ club(el){S.cur=S.clubs.find(c=>c.id===el.dataset.id);S.tab="today";S.parts=[];go
 toClub(){go("clubHome");load()},
 tab(el){S.tab=el.dataset.k;if(S.tab==="settings")S.form={...S.form,np:S.cur.noPlayEnabled===false?"0":"1",days:[...(S.cur.regularDays||[])]};render();load()},
 toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||"either",play:m?.noPlay?"no":"play",st:m?.start||c.regularStartTime||"13:00",et:m?.end||c.regularEndTime||"16:00"};go("attend")},
+mdt(el){S.mdt=el.dataset.id;S.still=1;render();S.still=0},
+mclose(el,ev){S.mdt=null;S.still=1;render();S.still=0},
 toEdit(){S.dr={mode:S.sess.drawMode||"pos",excl:{},pairs:[],plan:{rounds:JSON.parse(JSON.stringify(S.sess.rounds))}};S.sel=null;go("preview")},
 async pick(el){const ref=el.dataset.s,rr=()=>{S.still=1;render();S.still=0},isR=x=>x.split(":")[1]==="x";
   if(!S.sel||S.sel===ref){S.sel=S.sel===ref?null:ref;return rr()}
@@ -242,7 +255,7 @@ delExcl(el){delete S.dr.excl[el.dataset.id];render()},
 addPair(){const a=$("#pa").value,b=$("#pb").value;if(!a||!b||a===b)return pop("서로 다른 두 사람을 골라 주세요.");if(S.dr.pairs.some(p=>p.includes(a)||p.includes(b)))return pop("이미 다른 페어에 속한 사람입니다.");S.dr.pairs.push([a,b]);render()},
 delPair(el){S.dr.pairs.splice(+el.dataset.id,1);render()},
 gen(){S.dr.mode=S.form.dmode||"pos";if(S.parts.filter(p=>p.status==="in"&&!p.noPlay).length<4)return pop("경기 참여 인원이 4명 이상 필요합니다.");S.sel=null;S.dr.plan=buildDraw(S.parts,S.cur,S.dr);go("preview")},
-async confirm(){const c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawMode:S.dr.mode,rounds:S.dr.plan.rounds,status:"confirmed",createdBy:S.user.uid,updatedAt:serverTimestamp()});S.dr=null;A.toClub()}catch(e){pop("확정하지 못했습니다. Firestore 규칙이 게시되었는지 확인해 주세요.")}},
+async confirm(){const c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawMode:S.dr.mode,rounds:S.dr.plan.rounds,status:"confirmed",createdBy:S.user.uid,updatedAt:serverTimestamp()});S.dr=null;S.mdt=null;A.toClub()}catch(e){pop("확정하지 못했습니다. Firestore 규칙이 게시되었는지 확인해 주세요.")}},
 toGuest(){S.form={...S.form,pos:"either",st:S.cur.regularStartTime||"13:00",et:S.cur.regularEndTime||"16:00"};go("guest")},
 async saveAttend(el){const c=S.cur,m=nextMeeting(c),d=ymd(m.date),inn=el.dataset.s==="in";
   try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${S.user.uid}`),{clubId:c.id,date:d,uid:S.user.uid,name:S.profile.name,status:el.dataset.s,start:inn?$("#st").value:"",end:inn?$("#et").value:"",position:inn&&S.form.play==="no"?"either":S.form.pos,noPlay:inn&&S.form.play==="no"&&c.noPlayEnabled!==false,guest:false,responseSource:"member",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("저장하지 못했습니다. 다시 시도해 주세요.")}},
@@ -279,7 +292,7 @@ document.addEventListener("click",e=>{
   const rc=e.target.closest("[data-r]");if(rc){rc.classList.toggle("on");return}
   const dy=e.target.closest("[data-d]");if(dy){const n=+dy.dataset.d,a=S.form.days;S.form.days=a.includes(n)?a.filter(x=>x!==n):[...a,n];dy.classList.toggle("on");return}
   const seg=e.target.closest(".seg div[data-v]");if(seg){const vals=[...document.querySelectorAll("#app [id]")].filter(x=>"value" in x).map(x=>[x.id,x.value]);S.form[seg.parentNode.dataset.k]=seg.dataset.v;render();vals.forEach(([i,v])=>{const x=document.getElementById(i);if(x)x.value=v});return}
-  const el=e.target.closest("[data-a]");if(el&&A[el.dataset.a])A[el.dataset.a](el)});
+  const el=e.target.closest("[data-a]");if(el&&el.dataset.a==="mclose"&&el.classList.contains("sh")&&e.target.closest("[data-keep]"))return;if(el&&A[el.dataset.a])A[el.dataset.a](el)});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js");
 </script>
 </body>
