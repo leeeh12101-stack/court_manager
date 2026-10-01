@@ -76,22 +76,23 @@ input:focus,textarea:focus{border-color:var(--pt)}
 <div id="app"></div>
 <div id="pop"><div><p id="popmsg"></p><button id="popok">확인</button><button class="ghost" id="popno" style="display:none">취소</button></div></div>
 <script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,collection,query,where,getDocs,writeBatch,serverTimestamp,limit,updateDoc,deleteDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,collection,query,where,getDocs,writeBatch,serverTimestamp,limit,updateDoc,deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js";
 import {firebaseConfig} from "./firebase-config.js";
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
-const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
-let auth,db;
+const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
+let auth,db,app;const AI_MODEL="gemini-2.5-flash";
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=m=>new Promise(r=>{$("#popmsg").textContent=m;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const go=async(screen,extra={})=>{Object.assign(S,extra,{screen});if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
 
-try{ auth=getAuth(initializeApp(firebaseConfig)); db=getFirestore(); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
+try{ app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
 if(auth) onAuthStateChanged(auth,async u=>{
   S.user=u; if(!u){S.profile=null;return go("login")}
   const snap=await getDoc(doc(db,"users",u.uid));
@@ -186,6 +187,8 @@ function sSheet(){if(S.sd.startsWith("pair:"))return pairSheet();const k=S.sd,nm
 const pres=g=>g.scoreA===g.scoreB?"d":g.scoreA>g.scoreB?"w":"l",rt=o=>o.w+o.l?Math.round(o.w/(o.w+o.l)*1000)/10:0,wl2=o=>`${o.g}경기 ${o.w}승 ${o.d}무 ${o.l}패`,padd=(o,n,r)=>{const z=o[n]=o[n]||{g:0,w:0,d:0,l:0};z.g++;z[r]++};
 const pRow=g=>`<div class="pgm tap" data-a="pdet" data-id="${g.id}"><div class="sub">${md(g.date)} · ${esc(g.label)}</div><div class="gr s"><div class="tg">${nm3(g.t1,0,1)}</div><span class="vs">vs</span><div class="tg">${nm3(g.t2,0,2)}</div><span class="pill sc">${g.scoreA} : ${g.scoreB}</span></div></div>`;
 const topL=o=>Object.entries(o).sort((a,b)=>b[1].g-a[1].g).slice(0,6).map(([n,z])=>`<div class="li"><span class="nm">${esc(n)}</span><span class="sub">${wl2(z)}</span></div>`).join("");
+const who=g=>{const me=S.profile.name,rows=[...g.t1.slice(1).map(p=>[p,"함께"]),...g.t2.map(p=>[p,"상대"])].map(([p,rel])=>{let tg=0,ag=0,w=0,l=0;S.pg.forEach(x=>{const a=x.t1.slice(1).some(q=>q.n===p.n),b=x.t2.some(q=>q.n===p.n);if(!a&&!b)return;a?tg++:ag++;const r=pres(x);if(r==="w")w++;if(r==="l")l++});
+  return `<div class="li"><span class="nm">${esc(p.n)}${p.p==="fore"?' <span class="pill">포</span>':p.p==="back"?' <span class="pill">백</span>':""}</span><span class="sub">${rel} · 함께 ${tg} · 상대 ${ag} · ${w}승 ${l}패</span></div>`}).join("");return `<div class="sub" style="margin:10px 0 4px">함께한 사람</div><div class="list">${rows}</div>`};
 const P={
 home:()=>{const c={w:0,d:0,l:0};S.pg.forEach(g=>c[pres(g)]++);return `<div class="card hero" style="padding:18px"><div class="sub">내 테니스</div><div style="font-size:26px;font-weight:700">${S.pg.length}경기 · 승률 ${rt(c)}%</div><div class="sub">${c.w}승 ${c.d}무 ${c.l}패</div></div>
 <h2>최근 경기</h2>${S.pg.length?`<div class="list">${S.pg.slice(0,3).map(pRow).join("")}</div>`:'<div class="card sub center">설정에서 클럽 동기화를 켜거나 경기를 추가해 보세요</div>'}<button data-a="padd">경기 추가</button>`},
@@ -200,6 +203,9 @@ stats:()=>{const c={w:0,d:0,l:0},by={},pa={},op={};S.pg.forEach(g=>{const r=pres
  return `<div class="card hero" style="padding:16px"><div style="font-size:24px;font-weight:700">승률 ${rt(c)}%</div><div class="sub">${S.pg.length}경기 · ${c.w}승 ${c.d}무 ${c.l}패</div></div>
 <h2>클럽·대회별</h2><div class="list">${topL(by)||'<div class="li sub">기록 없음</div>'}</div><h2>파트너별</h2><div class="list">${topL(pa)||'<div class="li sub">기록 없음</div>'}</div><h2>상대별</h2><div class="list">${topL(op)||'<div class="li sub">기록 없음</div>'}</div>`},
 settings:()=>{const sy=S.profile.sync||{};return `<h2>클럽 경기 자동 동기화</h2>${S.pclubs.length?`<div class="list">${S.pclubs.map(c=>`<div class="li"><span class="nm">${esc(c.name)}</span><span class="pill" data-a="syncT" data-id="${c.id}" style="cursor:pointer;${sy[c.id]?"background:var(--main);color:#fff":"background:var(--bg);color:var(--sub)"}">${sy[c.id]?"ON":"OFF"}</span></div>`).join("")}</div>`:'<div class="card sub center">가입한 클럽이 없어요</div>'}`}};
+const shrink=f=>new Promise((ok,no)=>{const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL("image/jpeg",.85).split(",")[1])};im.onerror=no;im.src=u});
+const useCnt=id=>getDoc(doc(db,"aiUsage",id)).then(x=>x.exists()?x.data().count:0).catch(()=>0);
+const phSnap=()=>{const P=S.ph;if(P.step!=="review")return;P.date=$("#phd").value;P.games=P.games.map((g,i)=>({t1:[0,1].map(j=>$(`#h${i}${j}`).value),t2:[2,3].map(j=>$(`#h${i}${j}`).value),a:$(`#h${i}a`).value,b:$(`#h${i}b`).value}))};
 const nmOf=k=>(S.parts.find(p=>key(p)===k)||{}).name||k;
 const nmj=l=>l.map(x=>esc(x.n)).join("·"),md=d=>d.slice(4,6)+"."+d.slice(6);
 const gTeams=g=>{const w=g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0,f=(l,i)=>w===i?`<b>${nmj(l)}</b>`:nmj(l);return `${f(g.t1,1)} <span class="sub">vs</span> ${f(g.t2,2)}`};
@@ -226,7 +232,7 @@ games:()=>{const c=S.cur,by=Object.fromEntries(S.games.map(g=>[g.id,g])),ed=isSt
  const row=x=>{const g=by[x.id],t1=g?g.t1:x.g.t1,t2=g?g.t2:x.g.t2,w=g?(g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0):0;
   return rowS(x.g.court+"코트",t1,t2,w,g?`${g.scoreA} : ${g.scoreB}`:ed?"입력":"-",ed?`data-a="${g?"gedit":"gslot"}" data-id="${g?g.id:x.id}"`:"",g?"":' style="background:var(--bg);color:var(--sub)"')};
  return `${S.sess?`<h2>오늘 대진</h2>${S.sess.rounds.map(r=>`<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map(g=>row({id:`${c.id}_${S.sess.date}_r${r.n}_c${g.court}`,g})).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("")}`:""}
-${isSt()?'<button class="ghost" data-a="gnew">경기 추가</button>':""}
+${isSt()?'<div class="row" style="gap:8px"><button class="ghost" data-a="gnew">경기 추가</button><button class="ghost" data-a="phClub">사진으로 입력</button></div>':""}
 <h2>기록 ${S.games.length}</h2>${S.games.length?`<div class="list">${S.games.slice(0,60).map(gm).join("")}</div>`:'<div class="card sub center">아직 경기 기록이 없어요</div>'}`},
 today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center" style="padding:28px"><b>정기 모임이 없어요</b><div class="sub">${c.role==="admin"?"설정에서 모임 요일을 정해 주세요.":"관리자가 모임 요일을 정하면 보여요."}</div></div>`;
  const mine=S.parts.find(p=>p.uid===S.user.uid),yes=S.parts.filter(p=>p.status==="in"),no=S.parts.filter(p=>p.status==="out");
@@ -245,6 +251,14 @@ settings:()=>{const c=S.cur;return `<div class="cmp"><div class="card" style="pa
 <div class="card"><div class="sub">초대코드</div><b id="invc" style="font-size:20px;letter-spacing:.12em">…</b></div></div>`}};
 const snap=()=>{const g=S.ge;g.date=$("#gd").value;g.a=$("#sa").value;g.b=$("#sb").value;[0,1,2,3].forEach(i=>{const e=$("#gn"+i);if(e)g.gn[i]=e.value})};
 const V={
+photo:()=>{const P=S.ph;if(P.step==="busy")return `<div class="mid center"><b>사진을 읽는 중이에요</b><div class="sub">잠시만 기다려 주세요</div></div>`;
+ if(P.step==="pick")return `<button class="link" data-a="phBack">← 뒤로</button><h1>사진으로 입력</h1>${P.err?`<div class="card sub" style="color:#B3402A">${esc(P.err)}</div>`:""}<input type="file" accept="image/*" capture="environment" id="fcam" style="display:none"><input type="file" accept="image/*" id="fgal" style="display:none">
+<div class="sub center" style="margin-top:8px">성공한 분석만 횟수에 포함돼요 · 계정 하루 2회${P.mode==="club"?" · 클럽 하루 5회":""}</div><div class="bar"><button data-a="pick1" data-i="fcam">사진 촬영</button><button class="ghost" data-a="pick1" data-i="fgal">갤러리에서 선택</button></div>`;
+ const names=P.mode==="club"?S.mem.map(m=>m.displayName):[S.profile.name,...S.pp.map(p=>p.name)];
+ return `<div class="cmp"><button class="link" data-a="phBack">← 다시 선택</button><h1>${P.games.length}경기를 찾았어요</h1>날짜<input id="phd" type="date" value="${P.date}"><datalist id="ml2">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+${P.games.map((g,i)=>`<div class="card" style="padding:10px 12px"><div class="row"><span class="sub">경기 ${i+1}</span><span class="tap sub" data-a="phDel" data-i="${i}">✕</span></div><div class="gt"><div>${[0,1].map(j=>`<input id="h${i}${j}" list="ml2" maxlength="20" value="${esc(g.t1[j]||"")}">`).join("")}</div><div>${[0,1].map(j=>`<input id="h${i}${j+2}" list="ml2" maxlength="20" value="${esc(g.t2[j]||"")}">`).join("")}</div></div>
+<div class="row" style="gap:10px;justify-content:center"><input class="big" id="h${i}a" type="number" inputmode="numeric" value="${g.a}"><b>:</b><input class="big" id="h${i}b" type="number" inputmode="numeric" value="${g.b}"></div></div>`).join("")}
+<div class="bar"><button data-a="phSave"${P.games.length?"":" disabled"}>${P.games.length}경기 저장</button></div></div>`},
 gedit:()=>{const g=S.ge,dd=g.date.replace(/-/g,""),att=S.ap.filter(p=>p.status==="in"&&p.date===dd),names=att.length?[...new Set(att.map(p=>(S.mem.find(m=>m.uid===p.uid)||{}).displayName||p.name))]:S.mem.map(m=>m.displayName),PL=[["포","백"],["백","포"],["–","–"]],pr=i=>`<div class="pr"><div class="pc"><input id="gn${i}" list="ml" placeholder="이름" maxlength="20" autocomplete="off" value="${esc(g.gn[i]||"")}"></div><span class="pill pp" data-a="cyc" data-t="${i>>1}">${PL[g.ps[i>>1]][i&1]}</span></div>`;
  return `<div class="cmp"><button class="link" data-a="toClub">← 뒤로</button><h1>${g.exist?"경기 수정":"경기 입력"}</h1>날짜<input id="gd" type="date" value="${g.date}">
 <datalist id="ml">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist><div class="gt"><div><div class="sub">팀 1</div>${pr(0)}${pr(1)}</div><div><div class="sub">팀 2</div>${pr(2)}${pr(3)}</div></div>
@@ -293,8 +307,8 @@ preview:()=>{const p=S.dr.plan;return `<button class="link" data-a="toDraw">← 
 <div class="bar"><button data-a="confirm">대진 확정</button><button class="ghost" data-a="gen">다시 생성</button></div>${S.mdt?mSheet():""}`},
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드 변경</button></div>${P[S.ptab]()}<div style="height:90px"></div><nav class="nav">${[["home","홈"],["games","경기"],["stats","통계"],["settings","설정"]].map(([k,t])=>`<div data-a="ptab" data-k="${k}" class="${S.ptab===k?"on":""}">${t}</div>`).join("")}</nav>`,
 pdet:()=>{const g=S.pd;return `<button class="link" data-a="toP">← 뒤로</button><h1>${md(g.date)} · ${esc(g.label)}</h1><div class="card"><div class="gr s" style="padding:0;border:0"><div class="tg">${nm3(g.t1,0,1)}</div><span class="vs">vs</span><div class="tg">${nm3(g.t2,0,2)}</div><span class="pill sc">${g.scoreA} : ${g.scoreB}</span></div></div>
-경기 메모<textarea id="pn" rows="4" placeholder="이 경기에 대한 메모">${esc(g.note||"")}</textarea><div class="bar"><button data-a="pnote">저장</button>${g.src==="own"?'<button class="ghost" data-a="pdel">삭제</button>':""}</div>`},
-padd:()=>{const f=S.pf,pn=S.pp.map(p=>`<option value="${esc(p.name)}">`).join("");return `<div class="cmp"><button class="link" data-a="toP">← 뒤로</button><h1>경기 추가</h1>날짜<input id="pdt" type="date" value="${f.date}">대회·경기 이름<input id="plb" maxlength="20" placeholder="예: 부산오픈" value="${esc(f.label)}">
+${who(g)}경기 메모<textarea id="pn" rows="4" placeholder="이 경기에 대한 메모">${esc(g.note||"")}</textarea><div class="bar"><button data-a="pnote">저장</button>${g.src==="own"?'<button class="ghost" data-a="pdel">삭제</button>':""}</div>`},
+padd:()=>{const f=S.pf,pn=S.pp.map(p=>`<option value="${esc(p.name)}">`).join("");return `<div class="cmp"><button class="link" data-a="toP">← 뒤로</button><h1>경기 추가</h1><button class="ghost" data-a="phPers" style="margin:0 0 8px">사진으로 입력</button>날짜<input id="pdt" type="date" value="${f.date}">대회·경기 이름<input id="plb" maxlength="20" placeholder="예: 부산오픈" value="${esc(f.label)}">
 <datalist id="pl">${pn}</datalist><div class="gt"><div><div class="sub">팀 1</div><input disabled value="${esc(S.profile.name)}"><input id="pn1" list="pl" maxlength="20" placeholder="파트너" value="${esc(f.n[0])}"></div><div><div class="sub">팀 2</div><input id="pn2" list="pl" maxlength="20" placeholder="상대 1" value="${esc(f.n[1])}"><input id="pn3" list="pl" maxlength="20" placeholder="상대 2" value="${esc(f.n[2])}"></div></div>
 <div class="sub" style="margin-top:4px">점수</div><div class="row" style="gap:10px;justify-content:center"><input class="big" id="psa" type="number" inputmode="numeric" value="${f.a}"><b>:</b><input class="big" id="psb" type="number" inputmode="numeric" value="${f.b}"></div><div class="bar"><button data-a="psave">저장</button></div></div>`},
 };
@@ -348,6 +362,31 @@ async psave(){const u=S.user.uid,ns=[1,2,3].map(i=>$("#pn"+i).value.trim()),a=pa
   if(ns.some(x=>!x))return pop("파트너와 상대 이름을 모두 입력해 주세요.");if(isNaN(a)||isNaN(b))return pop("점수를 입력해 주세요.");
   const mk=n=>({k:"p:"+n,n});try{for(const n of new Set(ns))if(!S.pp.some(p=>p.name===n))await setDoc(doc(collection(db,"personalPeople")),{ownerUid:u,name:n,privateNote:"",createdAt:serverTimestamp()});
   await setDoc(doc(collection(db,"personalGames")),{ownerUid:u,date:dt.replace(/-/g,""),sourceType:"other",label:$("#plb").value.trim(),t1:[{k:u,n:S.profile.name},mk(ns[0])],t2:[mk(ns[1]),mk(ns[2])],scoreA:a,scoreB:b,note:"",createdAt:serverTimestamp()});A.toP()}catch(e){pop("저장하지 못했습니다.")}},
+phClub(){S.ph={mode:"club",step:"pick",games:[],err:"",date:""};go("photo")},
+phPers(){S.ph={mode:"personal",step:"pick",games:[],err:"",date:""};go("photo")},
+phBack(){phSnap();if(S.ph.step==="review"){S.ph.step="pick";S.still=1;render();S.still=0}else S.ph.mode==="club"?A.toClub():A.toP()},
+phDel(el){phSnap();S.ph.games.splice(+el.dataset.i,1);S.still=1;render();S.still=0},
+pick1(el){$("#"+el.dataset.i).click()},
+async analyze(f){if(!f)return;const P=S.ph,rr=()=>{S.still=1;render();S.still=0};P.step="busy";P.err="";rr();
+ try{const d=ymd(new Date()),u=S.user.uid,cid=P.mode==="club"?S.cur.id:null;
+  if(await useCnt(`${u}_${d}`)>=2)throw new Error("limit-u");if(cid&&await useCnt(`${cid}_${d}`)>=5)throw new Error("limit-c");
+  const b64=await shrink(f),model=getGenerativeModel(getAI(app,{backend:new GoogleAIBackend()}),{model:AI_MODEL,generationConfig:{responseMimeType:"application/json"}}),
+   names=P.mode==="club"?S.mem.map(m=>m.displayName):[S.profile.name,...S.pp.map(p=>p.name)];
+  const res=await model.generateContent([{inlineData:{data:b64,mimeType:"image/jpeg"}},`테니스 복식 경기 결과가 적힌 사진입니다(손글씨, 화이트보드, 표, 앱 화면 등). 경기들을 읽어 JSON으로만 답하세요: {"date":"YYYY-MM-DD 또는 null","games":[{"t1":["이름","이름"],"t2":["이름","이름"],"scoreA":숫자,"scoreB":숫자}]}. t1은 점수 앞쪽(왼쪽) 팀입니다. 읽을 수 없는 경기는 넣지 마세요. 이름은 사진에 쓰인 대로 쓰되, 아래 명단의 사람과 같아 보이면 명단 표기를 쓰세요. 명단: ${names.join(", ")}`]);
+  const j=JSON.parse(res.response.text().replace(/```json|```/g,"").trim()),gs=(j.games||[]).filter(g=>Array.isArray(g.t1)&&Array.isArray(g.t2)&&g.t1.length===2&&g.t2.length===2&&g.scoreA!=null&&g.scoreB!=null);
+  if(!gs.length)throw new Error("empty");
+  const inc=async id=>{await setDoc(doc(db,"aiUsage",id),{kind:id.startsWith(u)?"user":"club",ownerId:id.split("_")[0],date:d,count:(await useCnt(id))+1})};await inc(`${u}_${d}`);if(cid)await inc(`${cid}_${d}`);
+  P.games=gs.map(g=>({t1:g.t1.map(String),t2:g.t2.map(String),a:g.scoreA,b:g.scoreB}));P.date=/^\d{4}-\d{2}-\d{2}$/.test(j.date||"")?j.date:`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6)}`;P.step="review"}
+ catch(e){const m=String(e.message||e);P.step="pick";P.err=m==="limit-u"?"오늘 사진 읽기 횟수(계정 2회)를 모두 사용했어요.":m==="limit-c"?"이 클럽의 오늘 사진 읽기 횟수(5회)를 모두 사용했어요.":m==="empty"||e instanceof SyntaxError?"경기를 찾지 못했어요. 더 선명한 사진으로 다시 시도해 주세요.":/403|permission|not.*enabled|API key|disabled/i.test(m)?"Firebase 콘솔에서 AI Logic이 켜져 있는지 확인해 주세요.":"분석하지 못했어요. 잠시 후 다시 시도해 주세요."}
+ rr()},
+async phSave(){phSnap();const P=S.ph,u=S.user.uid,date=P.date.replace(/-/g,"");if(!date)return pop("날짜를 입력해 주세요.");const out=[];
+  for(const [i,g] of P.games.entries()){const nm=[...g.t1,...g.t2].map(x=>x.trim()),a=parseInt(g.a),b=parseInt(g.b);if(nm.some(x=>!x)||isNaN(a)||isNaN(b))return pop(`경기 ${i+1}의 이름과 점수를 모두 채워 주세요.`);if(new Set(nm).size<4)return pop(`경기 ${i+1}에 같은 이름이 있어요.`);out.push({nm,a,b})}
+  try{if(P.mode==="club"){for(const g of out){const pl=g.nm.map(n=>{const m=S.mem.find(x=>x.displayName===n);return m?{k:m.uid,n:m.displayName,p:"either"}:{k:"g:"+n,n,p:"either"}}),id=doc(collection(db,"games")).id;
+    await setDoc(doc(db,"games",id),{id,clubId:S.cur.id,date,round:0,court:0,t1:pl.slice(0,2),t2:pl.slice(2),scoreA:g.a,scoreB:g.b,source:"photo",updatedBy:u,updatedAt:serverTimestamp()})}A.toClub()}
+   else{const me=S.profile.name;for(const g of out){let {nm,a,b}=g;const i=nm.indexOf(me);if(i<0)return pop(`내 이름(${me})이 없는 경기가 있어요. 이름을 확인해 주세요.`);if(i>1){nm=[nm[2],nm[3],nm[0],nm[1]];[a,b]=[b,a]}if(nm[1]===me)[nm[0],nm[1]]=[nm[1],nm[0]];
+    for(const n of nm.slice(1))if(!S.pp.some(p=>p.name===n)&&n!==me){await setDoc(doc(collection(db,"personalPeople")),{ownerUid:u,name:n,privateNote:"",createdAt:serverTimestamp()});S.pp.push({name:n})}
+    await setDoc(doc(collection(db,"personalGames")),{ownerUid:u,date,sourceType:"other",label:"사진 입력",t1:[{k:u,n:me},{k:"p:"+nm[1],n:nm[1]}],t2:[{k:"p:"+nm[2],n:nm[2]},{k:"p:"+nm[3],n:nm[3]}],scoreA:a,scoreB:b,note:"",createdAt:serverTimestamp()})}A.toP()}}
+  catch(e){pop("저장하지 못했습니다.")}},
 toEdit(){S.dr={mode:S.sess.drawMode||"pos",excl:{},pairs:[],plan:{rounds:JSON.parse(JSON.stringify(S.sess.rounds))}};S.sel=null;go("preview")},
 async pick(el){const ref=el.dataset.s,rr=()=>{S.still=1;render();S.still=0},isR=x=>x.split(":")[1]==="x";
   if(!S.sel||S.sel===ref){S.sel=S.sel===ref?null:ref;return rr()}
@@ -398,7 +437,7 @@ async byCode(){const ic=$("#ic").value.trim().toUpperCase();if(!ic)return;
   try{const d=await getDoc(doc(db,"inviteCodes",ic));if(!d.exists())return pop("초대코드를 찾을 수 없습니다.");
     await addMember(d.data().clubId,{viaCode:ic});openClubs()}catch(e){pop("가입하지 못했습니다. 이미 가입한 클럽일 수 있습니다.")}}
 };
-document.addEventListener("change",e=>{if(e.target.id==="pq"){S.pq=e.target.value;S.still=1;render();S.still=0;return}if(e.target.id==="gd"){snap();S.still=1;render();S.still=0;return}const x=e.target.closest("select[data-st]");if(x){S.form.stat=x.value;S.still=1;render();S.still=0}});
+document.addEventListener("change",e=>{if(e.target.id==="fcam"||e.target.id==="fgal"){A.analyze(e.target.files[0]);e.target.value="";return}if(e.target.id==="pq"){S.pq=e.target.value;S.still=1;render();S.still=0;return}if(e.target.id==="gd"){snap();S.still=1;render();S.still=0;return}const x=e.target.closest("select[data-st]");if(x){S.form.stat=x.value;S.still=1;render();S.still=0}});
 document.addEventListener("click",e=>{
   const rc=e.target.closest("[data-r]");if(rc){rc.classList.toggle("on");return}
   const dy=e.target.closest("[data-d]");if(dy){const n=+dy.dataset.d,a=S.form.days;S.form.days=a.includes(n)?a.filter(x=>x!==n):[...a,n];dy.classList.toggle("on");return}
