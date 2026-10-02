@@ -98,7 +98,8 @@ service cloud.firestore {
 
     match /sessions/{s} {
       allow delete: if closedPrimary(resource.data.clubId) || can(resource.data.clubId, 'meeting', 'staff');
-      allow read: if isActive(s.split('_')[0]);
+      allow get: if isActive(s.split('_')[0]);
+      allow list: if isActive(resource.data.clubId);
       allow create: if can(request.resource.data.clubId, 'draw', 'staff') || can(request.resource.data.clubId, 'meeting', 'staff');
       allow update: if can(request.resource.data.clubId, 'draw', 'staff') || can(request.resource.data.clubId, 'meeting', 'staff')
         || (resource.data.get('drawWriterId', '') == me() && request.resource.data.get('drawWriterId', '') == me());
