@@ -85,6 +85,7 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .link.bk{font-size:16px;font-weight:600;color:var(--main);padding:8px 8px 8px 0;display:flex;align-items:center;margin-top:0}.link.bk .ar{font-size:30px;line-height:1;margin-right:8px;font-weight:400}
 .fl1{background:#FFF4D6;border-radius:6px}.fl2{background:#FFE0DA;border-radius:6px}
 .me{background:var(--pt)!important;border-radius:6px;font-weight:700}
+.pvbar{position:sticky;top:0;z-index:7;margin:-8px -18px 10px;padding:10px 18px;background:var(--main);color:#fff;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600}.pvbar button{width:auto;margin:0;padding:6px 14px;background:var(--pt);color:var(--main);font-size:13px}
 </style>
 </head>
 <body>
@@ -93,15 +94,17 @@ input:focus,textarea:focus{border-color:var(--pt)}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,collection,query,where,getDocs,writeBatch,serverTimestamp,limit,updateDoc,deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc as _setDoc,collection,query,where,getDocs,writeBatch as _writeBatch,serverTimestamp,limit,updateDoc as _updateDoc,deleteDoc as _deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js";
 import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
 import {firebaseConfig} from "./firebase-config.js";
+const pvHold=()=>{pop("미리보기 중에는 저장되지 않아요. 위쪽 띠의 '끝내기'를 누르면 원래 화면으로 돌아가요.");return new Promise(()=>{})};
+const setDoc=(...a)=>S.pv?pvHold():_setDoc(...a),updateDoc=(...a)=>S.pv?pvHold():_updateDoc(...a),deleteDoc=(...a)=>S.pv?pvHold():_deleteDoc(...a),writeBatch=d=>{const b=_writeBatch(d);if(S.pv)b.commit=pvHold;return b};
 import * as CFG from "./firebase-config.js";
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
-const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",dp:null,exp:null,pmo:null,pe:null,soff:[],ms:null,ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
+const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",pv:null,dp:null,exp:null,pmo:null,pe:null,soff:[],ms:null,ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
 let auth,db,app;const AI_MODEL="gemini-3.5-flash";
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
@@ -119,7 +122,8 @@ if(auth) onAuthStateChanged(auth,async u=>{
   const m=localStorage.getItem("cm_mode"); if(m==="club")return openClubs(); if(m==="personal")return A.modePersonal(); go("mode");
 });
 
-async function openClubs(){
+function pvEnd(){if(S.pv&&S.cur){S.cur.role=S.cur.realRole||S.cur.role;delete S.cur.realRole}S.pv=null}
+async function openClubs(){pvEnd();
   await go("clubs");
   const ms=await getDocs(query(collection(db,"clubMembers"),where("uid","==",S.user.uid),where("status","==","active")));
   const list=[];
@@ -166,8 +170,8 @@ function nextMeeting(c){const days=c.regularDays||[],n=new Date(),ov=c.mtgOverri
 const btn=(a,id,t,g)=>`<button class="sm ${g?"ghost":""}" data-a="${a}" data-id="${id}">${t}</button>`;
 const PERM=[["draw","대진 관리","staff"],["result","결과 입력","staff"],["guest","참석자 관리","staff"],["members","회원 관리","admin"],["schedule","정기 모임 설정","admin"],["tiers","Tier 관리","admin"],["stats","통계 항목 설정","admin"],["meeting","모임 일정 수정","staff"]];
 const pm=k=>{const d=PERM.find(x=>x[0]===k)[2],p=(S.cur.permissions||{})[k]||{};if(p.mode!==undefined)return{staff:p.mode==="staff",custom:p.mode==="custom",users:p.users||[]};return{staff:p.staff!==undefined?p.staff:d==="staff",custom:!!p.custom,users:p.users||[]}};
-const can=k=>{const c=S.cur,p=pm(k);return c.role==="admin"||(p.staff&&c.role==="staff")||(p.custom&&p.users.includes(S.user.uid))};
-const canDraw=()=>can("draw")||(S.sessMeta&&S.sessMeta.drawWriterId===S.user.uid);
+const can=k=>{const c=S.cur,p=pm(k);return c.role==="admin"||(p.staff&&c.role==="staff")||(p.custom&&!S.pv&&p.users.includes(S.user.uid))};
+const canDraw=()=>can("draw")||(!S.pv&&S.sessMeta&&S.sessMeta.drawWriterId===S.user.uid);
 const writerRow=()=>{if(!can("draw"))return S.sessMeta&&S.sessMeta.drawWriterId?`<div class="sub" style="margin-bottom:6px">오늘 대진 작성자 ${esc((S.mem.find(m=>m.uid===S.sessMeta.drawWriterId)||{}).displayName||"")}</div>`:"";
  return `<div class="card row" style="padding:8px 12px"><span class="sub">오늘 대진 작성자</span><select id="dw" style="width:auto;margin:0;padding:6px 8px;font-size:14px"><option value="">없음</option>${S.mem.map(m=>`<option value="${m.uid}" ${S.sessMeta&&S.sessMeta.drawWriterId===m.uid?"selected":""}>${esc(m.displayName)}</option>`).join("")}</select><button class="sm" data-a="setWriter">지정</button></div>`};
 const permSum=p=>{const a=[];if(p.staff)a.push("운영진");if(p.custom)a.push(`지정 ${p.users.length}명`);return a.length?"관리자 · "+a.join(" · "):"관리자만"};
@@ -432,7 +436,7 @@ join:()=>`<button class="link bk" data-a="back"><span class="ar">←</span> 뒤�
 초대코드<input id="ic" maxlength="8" style="text-transform:uppercase"><button data-a="byCode">코드로 가입</button>
 <h2>공개 클럽</h2><input id="sq" placeholder="클럽 이름 검색"><button class="ghost" data-a="search">검색</button>
 ${S.found.map(c=>`<div class="card"><div class="row"><div><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"")}</div></div><button style="width:auto;margin:0" data-a="join" data-id="${c.id}">${c.joinMethod==="open"?"가입":c.joinMethod==="approval"?"신청":"초대만"}</button></div></div>`).join("")}`,
-clubHome:()=>{const c=S.cur,adm=c.role==="admin";return `<div class="row"><h1>${esc(c.name)}</h1><button class="link" data-a="back">내 클럽</button></div>${T[S.tab]()}<div style="height:90px"></div>
+clubHome:()=>{const c=S.cur,adm=c.role==="admin";return `<div class="row"><h1>${esc(c.name)}</h1><div style="display:flex;gap:12px;align-items:center">${!S.pv&&["admin","staff"].includes(c.role)?'<button class="link" data-a="pvOpen" style="color:var(--main)">👁 회원 화면</button>':""}<button class="link" data-a="back">내 클럽</button></div></div>${T[S.tab]()}<div style="height:90px"></div>
 <nav class="nav">${[["today","오늘"],["games","경기"],["stats","통계"],["members","회원"],...(adm||can("schedule")||can("tiers")||can("stats")?[["settings","설정"]]:[])].map(([k,t])=>`<div data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}">${t}</div>`).join("")}</nav>`},
 attend:()=>`<button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>참석</h1>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
 ${S.cur.noPlayEnabled!==false?`<div class="seg" data-k="play"><div data-v="play" class="${S.form.play==="play"?"on":""}">경기 참여</div><div data-v="no" class="${S.form.play==="no"?"on":""}">놀참</div></div>`:""}
@@ -460,7 +464,7 @@ padd:()=>{const f=S.pf,pn=S.pp.map(p=>`<option value="${esc(p.name)}">`).join(""
 <datalist id="pl">${pn}</datalist><div class="sub">내 포지션</div><div class="seg xs" data-k="ppos" style="margin-bottom:8px">${[["fore","포"],["back","백"],["either","모름"]].map(([v,t])=>`<div data-v="${v}" class="${(S.form.ppos||"either")===v?"on":""}">${t}</div>`).join("")}</div><div class="gt"><div><div class="sub">팀 1</div><input disabled value="${esc(S.profile.name)}"><input id="pn1" list="pl" maxlength="20" placeholder="파트너" value="${esc(f.n[0])}"></div><div><div class="sub">팀 2</div><input id="pn2" list="pl" maxlength="20" placeholder="상대 1" value="${esc(f.n[1])}"><input id="pn3" list="pl" maxlength="20" placeholder="상대 2" value="${esc(f.n[2])}"></div></div>
 <div class="sub" style="margin-top:4px">점수</div><div class="row" style="gap:10px;justify-content:center"><input class="big" id="psa" type="number" inputmode="numeric" value="${f.a}"><b>:</b><input class="big" id="psb" type="number" inputmode="numeric" value="${f.b}"></div><div class="bar"><button data-a="psave">저장</button></div></div>`},
 };
-function render(){ $("#app").innerHTML=V[S.screen]?`<div class="scr${S.still?" still":""}">${V[S.screen]()}${S.exp?expSheet():""}</div>`:""; if(S.screen==="clubHome"&&S.tab==="settings")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
+function render(){ $("#app").innerHTML=V[S.screen]?`${S.pv?`<div class="pvbar"><span>${S.pv==="staff"?"운영진":"일반 회원"} 화면으로 보는 중</span><button data-a="pvExit">끝내기</button></div>`:""}<div class="scr${S.still?" still":""}">${V[S.screen]()}${S.exp?expSheet():""}</div>`:""; if(S.screen==="clubHome"&&S.tab==="settings")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)e.textContent=d.data()?.inviteCode||"-"}).catch(()=>{}); }
 
 async function addMember(clubId,extra={}){
   await setDoc(doc(db,"clubMembers",clubId+"_"+S.user.uid),{clubId,uid:S.user.uid,displayName:S.profile.name,photoURL:S.user.photoURL||"",role:"member",status:"active",defaultPosition:"either",tierId:null,joinedAt:serverTimestamp(),...extra});
@@ -477,7 +481,7 @@ modePersonal(){localStorage.setItem("cm_mode","personal");S.ptab="home";go("pers
 back:()=>openClubs(),
 toCreate(){if(created()>=MAX_CREATE)return pop(`클럽은 최대 ${MAX_CREATE}개까지 만들 수 있습니다.`);go("create")},
 toJoin(){if(joined()>=MAX_JOIN)return pop(`클럽은 최대 ${MAX_JOIN}개까지 가입할 수 있습니다.`);go("join",{found:[]})},
-club(el){S.cur=S.clubs.find(c=>c.id===el.dataset.id);S.tab="today";S.parts=[];if(S.cur.status==="closed")return go("closed");go("clubHome");load()},
+club(el){pvEnd();S.cur=S.clubs.find(c=>c.id===el.dataset.id);S.tab="today";S.parts=[];if(S.cur.status==="closed")return go("closed");go("clubHome");load()},
 toClub(){go("clubHome");load()},
 tab(el){S.tab=el.dataset.k;if(S.tab==="settings")S.perm=Object.fromEntries(PERM.map(([k])=>[k,pm(k)]));if(S.tab==="settings")S.soff=[...(S.cur.statsOff||[])];if(S.tab==="settings")S.form={...S.form,te:S.cur.tierEnabled?"1":"0",mvt:(S.cur.memberView||{}).tier||"all",mvp:(S.cur.memberView||{}).pos||"all",np:S.cur.noPlayEnabled===false?"0":"1",days:[...(S.cur.regularDays||[])]};render();load()},
 toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||((S.mem.find(x=>x.uid===S.user.uid)||{}).defaultPosition)||"either",play:m?.noPlay?"no":"play",st:m?.start||eff(c).start,et:m?.end||eff(c).end};go("attend")},
@@ -616,6 +620,9 @@ async saveNewName(){const n=$("#nn").value.trim();if(!n)return pop("이름을 �
    A.toMode()}catch(e){pop("변경하지 못했습니다.")}},
 async saveMyName(){const m=S.mem.find(x=>mid(x)===S.ms),n=$("#mynm").value.trim();if(!n)return pop("이름을 입력해 주세요.");if(n===m.displayName)return;if(S.mem.some(x=>x!==m&&x.displayName===n))return pop("같은 이름의 회원이 이미 있어요. 구분할 수 있게 적어 주세요.");
   try{await updateDoc(doc(db,"clubMembers",`${S.cur.id}_${S.ms}`),{displayName:n});load()}catch(e){pop("변경하지 못했습니다.")}},
+async pvOpen(){const c=S.cur;let pv="member";if(c.role==="admin")pv=await ask("어떤 화면으로 볼까요?\n미리보기 중에는 아무것도 저장되지 않아요.","운영진 화면","일반 회원 화면")?"staff":"member";
+  c.realRole=c.role;c.role=pv;S.pv=pv;S.ms=S.sd=S.mdt=S.pe=null;if(S.tab==="settings")S.tab="today";render();load()},
+pvExit(){pvEnd();render();load()},
 async savePerm(){try{await updateDoc(doc(db,"clubs",S.cur.id),{permissions:S.perm});S.cur.permissions=JSON.parse(JSON.stringify(S.perm));pop("저장했습니다.")}catch(e){pop("저장하지 못했습니다.")}},
 async setWriter(){const v=$("#dw").value,c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawWriterId:v},{merge:true});A.toClub()}catch(e){pop("지정하지 못했습니다.")}},
 msheet(el){S.ms=el.dataset.id;S.still=1;render();S.still=0},
@@ -686,7 +693,7 @@ async byCode(){const ic=$("#ic").value.trim().toUpperCase();if(!ic)return;
   try{const d=await getDoc(doc(db,"inviteCodes",ic));if(!d.exists())return pop("초대코드를 찾을 수 없습니다.");
     await addMember(d.data().clubId,{viaCode:ic});openClubs()}catch(e){pop("가입하지 못했습니다. 이미 가입한 클럽일 수 있습니다.")}}
 };
-document.addEventListener("change",e=>{if(e.target.id==="dcam"||e.target.id==="dgal"){A.dpAnalyze(e.target.files[0]);e.target.value="";return}if(e.target.id==="fcam"||e.target.id==="fgal"){A.analyze(e.target.files[0]);e.target.value="";return}if(e.target.id==="pq"){S.pq=e.target.value;S.still=1;render();S.still=0;return}if(e.target.id==="gd"){snap();S.still=1;render();S.still=0;return}const x=e.target.closest("select[data-st]");if(x){S.form.stat=x.value;S.still=1;render();S.still=0}});
+document.addEventListener("change",e=>{if(S.pv&&["fcam","fgal","dcam","dgal"].includes(e.target.id)){e.target.value="";pvHold();return}if(e.target.id==="dcam"||e.target.id==="dgal"){A.dpAnalyze(e.target.files[0]);e.target.value="";return}if(e.target.id==="fcam"||e.target.id==="fgal"){A.analyze(e.target.files[0]);e.target.value="";return}if(e.target.id==="pq"){S.pq=e.target.value;S.still=1;render();S.still=0;return}if(e.target.id==="gd"){snap();S.still=1;render();S.still=0;return}const x=e.target.closest("select[data-st]");if(x){S.form.stat=x.value;S.still=1;render();S.still=0}});
 document.addEventListener("click",e=>{
   const rer=()=>{const v=[...document.querySelectorAll("#app [id]")].filter(x=>"value" in x).map(x=>[x.id,x.value]);S.still=1;render();S.still=0;v.forEach(([i,t])=>{const x=document.getElementById(i);if(x)x.value=t})};
   const epx=e.target.closest("[data-ep]");if(epx){S.pe.pos=epx.dataset.ep;return rer()}
