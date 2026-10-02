@@ -117,6 +117,12 @@ service cloud.firestore {
         || (request.resource.data.kind == 'club' && can(request.resource.data.ownerId, 'result', 'staff') && request.resource.data.count <= 5));
     }
 
+    match /aiDrawUsage/{u} {
+      allow get: if authed() && isActive(u.split('_')[0]);
+      allow create, update: if authed() && u == request.resource.data.clubId + '_' + request.resource.data.date
+        && can(request.resource.data.clubId, 'draw', 'staff') && request.resource.data.count <= 1;
+    }
+
     match /personalGames/{g} {
       allow create: if authed() && request.resource.data.ownerUid == me();
       allow read, update, delete: if authed() && resource.data.ownerUid == me();
