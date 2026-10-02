@@ -174,6 +174,7 @@ const permSum=p=>{const a=[];if(p.staff)a.push("운영진");if(p.custom)a.push(`
 const PRESETS={base:()=>Object.fromEntries(PERM.map(([k,,d])=>[k,{staff:d==="staff",custom:false,users:[]}])),staff:()=>Object.fromEntries(PERM.map(([k])=>[k,{staff:true,custom:false,users:[]}])),admin:()=>Object.fromEntries(PERM.map(([k])=>[k,{staff:false,custom:false,users:[]}]))};
 const presetOf=()=>Object.keys(PRESETS).find(n=>{const t=PRESETS[n]();return PERM.every(([k])=>{const p=S.perm[k];return p.staff===t[k].staff&&!p.custom&&!p.users.length})})||null;
 const dn=p=>(S.mem.find(m=>mkey(m)===p.k)||{}).displayName||p.n,dnp=p=>(p.guest?null:(S.mem.find(m=>mkey(m)===key(p))||{}).displayName)||p.name,pf=(rs,k)=>{for(const r of rs)for(const g of r.games)for(const p of [...g.t1,...g.t2])if(p.k===k)return p};
+const canon=(k,n)=>{if(!k||S.mem.some(m=>mkey(m)===k))return k;const m=S.mem.find(x=>String(x.displayName||"").replace(/\s+/g,"")===String(n||"").replace(/\s+/g,""));return m?mkey(m):k},ck=x=>canon(x.k,x.n);
 const key=p=>p.mk||p.uid||"g:"+p.name,tmin=x=>x.split(":").reduce((a,b)=>a*60+ +b),fmt=m=>String(m/60|0).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 const rinfo=c=>{const e=eff(c),iv=e.iv,st=tmin(e.start),en=tmin(e.end);return{iv,st,R:Math.max(1,Math.floor((en-st)/iv))}};
 const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -203,16 +204,16 @@ function buildDraw(parts,c,dr){
 }
 const pool=()=>S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:dnp(p),p:p.position}));
 const planPlayers=rs=>{const g={};rs.forEach(r=>r.games.forEach(x=>[...x.t1,...x.t2].forEach(p=>g[p.k]=(g[p.k]||0)+1)));return pool().map(p=>({k:p.k,n:p.n,g:g[p.k]||0}))};
-const cell=(x,ref,ed,tp)=>`<span ${ed?`data-a="pick" data-s="${ref}"`:tp?`data-a="mdt" data-id="${esc(x.k)}"`:""} class="${S.sel===ref?"sel":""} ${S.dr&&S.dr.imp?"fl"+flagOf(x):""} ${tp&&x.k===S.user.uid?"me":""}">${esc(dn(x))}</span>`;
+const cell=(x,ref,ed,tp)=>`<span ${ed?`data-a="pick" data-s="${ref}"`:tp?`data-a="mdt" data-id="${esc(ck(x))}"`:""} class="${S.sel===ref?"sel":""} ${S.dr&&S.dr.imp?"fl"+flagOf(x):""} ${tp&&ck(x)===S.user.uid?"me":""}">${esc(dn(x))}</span>`;
 const gRow=(g,ri,gi,ed,tp)=>`<div class="gr"><span class="ct">${g.cname||g.court+"코트"}</span><div class="tg">${g.t1.map((x,i)=>cell(x,`${ri}:${gi}:1:${i}`,ed,tp)).join("")}</div><span class="vs">vs</span><div class="tg">${g.t2.map((x,i)=>cell(x,`${ri}:${gi}:2:${i}`,ed,tp)).join("")}</div></div>`;
-const rList=(rs,ed,tp)=>rs.map((r,ri)=>{const on=new Set(r.games.flatMap(g=>[...g.t1,...g.t2].map(x=>x.k))),rt=r.time?tmin(r.time):null;
+const rList=(rs,ed,tp)=>rs.map((r,ri)=>{const on=new Set(r.games.flatMap(g=>[...g.t1,...g.t2].map(x=>ck(x)))),rt=r.time?tmin(r.time):null;
  const rest=(ed||tp)?pool().filter(p=>!on.has(p.k)&&(ed||rt==null||(()=>{const pa=S.parts.find(q=>key(q)===p.k);return !pa||(tmin(pa.start)<=rt&&tmin(pa.end)>rt)})())):[];
  return `<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map((g,gi)=>gRow(g,ri,gi,ed,tp)).join("")||'<div class="li sub">경기 없음</div>'}${rest.length?`<div class="rest">쉼${rest.map(p=>ed?`<span data-a="pick" data-s="${ri}:x:${esc(p.k)}" class="${S.sel===`${ri}:x:${p.k}`?"sel":""}">${esc(p.n)}</span>`:`<span data-a="mdt" data-id="${esc(p.k)}" class="${p.k===S.user.uid?"me":""}">${esc(p.n)}</span>`).join("")}</div>`:""}</div>`}).join("");
-function mSheet(){const k=S.mdt,rs=S.screen==="preview"?S.dr.plan.rounds:S.sess.rounds,pa={},op={},gm=[],me=pool().find(p=>p.k===k)||pf(S.screen==="preview"?S.dr.plan.rounds:S.sess.rounds,k)||(()=>{const m=S.mem.find(x=>mkey(x)===k);return m?{n:m.displayName}:null})();if(!me)return"";const att=pool().some(p=>p.k===k),rr=att?rs.filter(r=>!r.games.some(g=>[...g.t1,...g.t2].some(p=>p.k===k))).map(r=>r.n+"회차"):[],restHtml=rr.length?`<div class="k">쉬는 회차</div><div class="sub">${rr.join(", ")}</div>`:"";
- rs.forEach(r=>r.games.forEach(g=>{const a=g.t1.some(x=>x.k===k),b=g.t2.some(x=>x.k===k);if(!a&&!b)return;const my=a?g.t1:g.t2,ot=a?g.t2:g.t1;
-  my.filter(x=>x.k!==k).forEach(x=>pa[x.n]=(pa[x.n]||0)+1);ot.forEach(x=>op[x.n]=(op[x.n]||0)+1);gm.push({r,g,my,ot})}));
+function mSheet(){const k=S.mdt,rs=S.screen==="preview"?S.dr.plan.rounds:S.sess.rounds,pa={},op={},gm=[],me=pool().find(p=>ck(p)===k)||pf(S.screen==="preview"?S.dr.plan.rounds:S.sess.rounds,k)||(()=>{const m=S.mem.find(x=>mkey(x)===k);return m?{n:m.displayName}:null})();if(!me)return"";const att=pool().some(p=>ck(p)===k),rr=att?rs.filter(r=>!r.games.some(g=>[...g.t1,...g.t2].some(p=>ck(p)===k))).map(r=>r.n+"회차"):[],restHtml=rr.length?`<div class="k">쉬는 회차</div><div class="sub">${rr.join(", ")}</div>`:"";
+ rs.forEach(r=>r.games.forEach(g=>{const a=g.t1.some(x=>ck(x)===k),b=g.t2.some(x=>ck(x)===k);if(!a&&!b)return;const my=a?g.t1:g.t2,ot=a?g.t2:g.t1;
+  my.filter(x=>ck(x)!==k).forEach(x=>pa[x.n]=(pa[x.n]||0)+1);ot.forEach(x=>op[x.n]=(op[x.n]||0)+1);gm.push({r,g,my,ot})}));
  const ch=o=>Object.entries(o).sort((x,y)=>y[1]-x[1]).map(([n,c])=>`<span>${esc(n)}(${c})</span>`).join("")||'<span style="background:none;color:var(--sub)">없음</span>';
- const nm=l=>l.map(x=>x.k===k?`<b>${esc(dn(x))}</b>`:esc(dn(x))).join("·");
+ const nm=l=>l.map(x=>ck(x)===k?`<b>${esc(dn(x))}</b>`:esc(dn(x))).join("·");
  return `<div class="sh" data-a="mclose"><div data-keep="1"><div class="row"><h3>${esc(dn(me))} · ${gm.length}경기</h3><button class="link" data-a="mclose">닫기</button></div>
 <div class="k">파트너</div><div class="ch">${ch(pa)}</div><div class="k">상대</div><div class="ch">${ch(op)}</div><div class="k">대진</div>
 ${gm.map(x=>`<div class="gl"><span class="t">${x.r.n}회차 ${x.r.time} · ${x.g.cname||x.g.court+"코트"}</span><span>${nm(x.my)} <span class="sub">vs</span> ${nm(x.ot)}</span></div>`).join("")||'<div class="sub">이번 대진에 경기가 없어요</div>'}${restHtml}</div></div>`}
@@ -367,19 +368,19 @@ async function relink(ok,real){const c=S.cur,uid=real.uid,q=n=>getDocs(query(col
  const gd=(await q("games")).filter(d=>has([...d.data().t1,...d.data().t2]));
  for(let i=0;i<gd.length;i+=400){const b=writeBatch(db);gd.slice(i,i+400).forEach(d=>{const g=d.data();b.update(d.ref,{t1:fx(g.t1),t2:fx(g.t2)})});await b.commit()}
  for(const d of (await q("sessions")).filter(d=>(d.data().rounds||[]).some(r=>r.games.some(g=>has([...g.t1,...g.t2]))))){const x=d.data();await updateDoc(d.ref,{rounds:x.rounds.map(r=>({...r,games:r.games.map(g=>({...g,t1:fx(g.t1),t2:fx(g.t2)}))}))})}
- const all=await q("sessionParticipants"),mv=all.filter(d=>{const x=d.data();return x.mk===ok||(x.uid===uid&&d.id!==`${c.id}_${x.date}_${uid}`)});
+ const all=await q("sessionParticipants"),mv=all.filter(d=>{const x=d.data();return x.mk===ok||(x.guest&&"g:"+x.name===ok)||(x.uid===uid&&d.id!==`${c.id}_${x.date}_${uid}`)});
  for(const d of mv){const x=d.data(),nid=`${c.id}_${x.date}_${uid}`;if(!all.some(e=>e.id===nid)&&!mv.some(e=>e!==d&&e.data().date===x.date&&e.id<d.id))await setDoc(doc(db,"sessionParticipants",nid),{...x,uid,mk:null,name:real.displayName,guest:false});await deleteDoc(d.ref)}}
 async function doLink(off,real){const c=S.cur;await relink("o:"+off.oid,real);const u={};if(off.tierId!=null&&real.tierId==null)u.tierId=off.tierId;
  if(off.defaultPosition&&off.defaultPosition!=="either"&&(!real.defaultPosition||real.defaultPosition==="either"))u.defaultPosition=off.defaultPosition;
  if(Object.keys(u).length)await updateDoc(doc(db,"clubMembers",`${c.id}_${real.uid}`),u);await deleteDoc(doc(db,"clubMembers",`${c.id}_${off.oid}`))}
 const nz=t=>String(t||"").replace(/\s+/g,"");
 const linkPairs=()=>S.mem.filter(o=>!o.uid).flatMap(o=>S.mem.filter(r=>r.uid&&nz(r.displayName)===nz(o.displayName)&&!(o.skipLink||[]).includes(r.uid)).map(r=>[o,r]));
-const dangling=()=>{const known=new Set(S.mem.filter(m=>!m.uid).map(m=>"o:"+m.oid)),out=new Map(),add=(k,n)=>{if(k&&k.startsWith("o:")&&!known.has(k)&&!out.has(k)){const r=S.mem.find(x=>x.uid&&nz(x.displayName)===nz(n));if(r)out.set(k,r)}};
- (S.sess?S.sess.rounds:[]).forEach(r=>r.games.forEach(g=>[...g.t1,...g.t2].forEach(p=>add(p.k,p.n))));S.parts.forEach(p=>add(p.mk,p.name));return[...out]};
+const dangling=()=>{const known=new Set(S.mem.filter(m=>!m.uid).map(m=>"o:"+m.oid)),out=new Map(),add=(k,n)=>{if(k&&((k.startsWith("o:")&&!known.has(k))||k.startsWith("g:"))&&!out.has(k)){const r=S.mem.find(x=>x.uid&&nz(x.displayName)===nz(n));if(r)out.set(k,r)}};
+ (S.sess?S.sess.rounds:[]).forEach(r=>r.games.forEach(g=>[...g.t1,...g.t2].forEach(p=>add(p.k,p.n))));S.parts.forEach(p=>add(p.mk||(p.guest?"g:"+p.name:null),p.name));return[...out]};
 const linkBanner=()=>{if(S.cur.role!=="admin")return"";const ps=linkPairs(),dg=dangling();if(!ps.length&&!dg.length)return"";
  return `<div class="card" style="padding:12px 14px;background:#FFF8E6;box-shadow:none;border:1px solid #F0D9A0"><b>같은 사람일 수 있어요</b><div class="sub" style="margin:2px 0 6px">연동하면 참석·대진·경기 기록이 하나로 합쳐져요.</div>
 ${ps.map(([o,r])=>`<div class="row" style="padding:7px 0;border-top:1px solid #F0E3C0"><span>${esc(o.displayName)} <span class="pill">미가입</span> ↔ ${esc(r.displayName)}</span><div style="display:flex;gap:6px"><button class="sm" data-a="linkPair" data-off="${o.oid}" data-uid="${r.uid}">연동</button><button class="sm ghost" data-a="skipPair" data-off="${o.oid}" data-uid="${r.uid}">다른 사람</button></div></div>`).join("")}
-${dg.map(([k,r])=>`<div class="row" style="padding:7px 0;border-top:1px solid #F0E3C0"><span>이전 연동에서 남은 <b>${esc(r.displayName)}</b> 기록</span><button class="sm" data-a="fixLink" data-ok="${esc(k)}" data-uid="${r.uid}">정리</button></div>`).join("")}</div>`};
+${dg.map(([k,r])=>`<div class="row" style="padding:7px 0;border-top:1px solid #F0E3C0"><span><b>${esc(r.displayName)}</b>님의 기록이 둘로 나뉘어 있어요</span><button class="sm" data-a="fixLink" data-ok="${esc(k)}" data-uid="${r.uid}">정리</button></div>`).join("")}</div>`};
 const V={
 nameEdit:()=>`<div class="cmp"><button class="link bk" data-a="toMode"><span class="ar">←</span> 뒤로</button><h1>이름 변경</h1><div class="sub" style="margin-bottom:8px">앱 전체에서 쓰는 내 이름이에요. 실명 사용을 권장해요.</div><input id="nn" maxlength="20" value="${esc(S.profile.name)}"><div class="bar"><button data-a="saveNewName">저장</button></div></div>`,
 drawPhoto:()=>{const D=S.dp;if(D.step==="busy")return `<div class="mid center"><div class="spin"></div><b>${esc(D.msg||"대진표를 읽는 중이에요")}</b><div class="sub" style="margin-top:6px">화면을 닫지 말고 잠시만 기다려 주세요</div></div>`;
