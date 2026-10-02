@@ -82,6 +82,7 @@ input:focus,textarea:focus{border-color:var(--pt)}
 .pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.pills span{padding:7px 15px;border-radius:99px;background:#fff;box-shadow:var(--sh);font-size:15px;cursor:pointer}.pills span:active{background:var(--tint)}
 .nv{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;box-shadow:var(--sh);cursor:pointer;font-size:18px}
 .mc{flex:none;text-align:center;display:inline-block}.mc .pill{white-space:nowrap}
+.link.bk{font-size:16px;font-weight:600;color:var(--main);padding:8px 8px 8px 0;display:flex;align-items:center;margin-top:0}.link.bk .ar{font-size:30px;line-height:1;margin-right:8px;font-weight:400}
 </style>
 </head>
 <body>
@@ -104,7 +105,8 @@ let auth,db,app;const AI_MODEL="gemini-3.5-flash";
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
-const go=async(screen,extra={})=>{Object.assign(S,extra,{screen});if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
+const ROOT=["login","name","mode"];
+const go=async(screen,extra={})=>{Object.assign(S,extra,{screen});if(!ROOT.includes(screen)&&!(history.state&&history.state.r===2))history.pushState({r:2},"");if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
 
 try{ app=initializeApp(firebaseConfig);if(CFG.appCheckKey)try{initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
 if(auth) onAuthStateChanged(auth,async u=>{
@@ -154,19 +156,23 @@ const mid=m=>m.uid||m.oid,mkey=m=>m.uid||"o:"+m.oid;
 const POS={fore:"포",back:"백",either:"포or백"},DOW="일월화수목금토";
 const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
 const isSt=()=>["admin","staff"].includes(S.cur.role);
-function nextMeeting(c){const days=c.regularDays||[],n=new Date();if(!days.length)return null;for(let i=0;i<8;i++){const x=new Date(n.getFullYear(),n.getMonth(),n.getDate()+i);if(days.includes(x.getDay()))return{date:x,today:i===0}}}
+function eff(c){const m=nextMeeting(c)||{};return{start:m.start||c.regularStartTime||"13:00",end:m.end||c.regularEndTime||"16:00",courts:m.courts||c.regularCourtCount||3,iv:c.roundInterval||40}}
+function nextMeeting(c){const days=c.regularDays||[],n=new Date(),ov=c.mtgOverride||null,td=ymd(n);let reg=null,ex=null;
+ for(let i=0;i<30&&!reg;i++){const x=new Date(n.getFullYear(),n.getMonth(),n.getDate()+i);if(days.includes(x.getDay())&&!(ov&&ov.from===ymd(x)))reg={date:x,today:i===0}}
+ if(ov&&!ov.off&&ov.date&&ov.date>=td){const d=ov.date;ex={date:new Date(+d.slice(0,4),+d.slice(4,6)-1,+d.slice(6)),today:d===td,start:ov.start,end:ov.end,courts:ov.courts}}
+ return ex&&(!reg||ymd(ex.date)<=ymd(reg.date))?ex:reg}
 const btn=(a,id,t,g)=>`<button class="sm ${g?"ghost":""}" data-a="${a}" data-id="${id}">${t}</button>`;
-const PERM=[["draw","대진 관리","staff"],["result","결과 입력","staff"],["guest","참석자 관리","staff"],["members","회원 관리","admin"],["schedule","정기 모임 설정","admin"],["tiers","Tier 관리","admin"],["stats","통계 항목 설정","admin"]];
+const PERM=[["draw","대진 관리","staff"],["result","결과 입력","staff"],["guest","참석자 관리","staff"],["members","회원 관리","admin"],["schedule","정기 모임 설정","admin"],["tiers","Tier 관리","admin"],["stats","통계 항목 설정","admin"],["meeting","모임 일정 수정","staff"]];
 const pm=k=>{const d=PERM.find(x=>x[0]===k)[2],p=(S.cur.permissions||{})[k]||{};if(p.mode!==undefined)return{staff:p.mode==="staff",custom:p.mode==="custom",users:p.users||[]};return{staff:p.staff!==undefined?p.staff:d==="staff",custom:!!p.custom,users:p.users||[]}};
 const can=k=>{const c=S.cur,p=pm(k);return c.role==="admin"||(p.staff&&c.role==="staff")||(p.custom&&p.users.includes(S.user.uid))};
 const canDraw=()=>can("draw")||(S.sessMeta&&S.sessMeta.drawWriterId===S.user.uid);
 const writerRow=()=>{if(!can("draw"))return S.sessMeta&&S.sessMeta.drawWriterId?`<div class="sub" style="margin-bottom:6px">오늘 대진 작성자 ${esc((S.mem.find(m=>m.uid===S.sessMeta.drawWriterId)||{}).displayName||"")}</div>`:"";
  return `<div class="card row" style="padding:8px 12px"><span class="sub">오늘 대진 작성자</span><select id="dw" style="width:auto;margin:0;padding:6px 8px;font-size:14px"><option value="">없음</option>${S.mem.map(m=>`<option value="${m.uid}" ${S.sessMeta&&S.sessMeta.drawWriterId===m.uid?"selected":""}>${esc(m.displayName)}</option>`).join("")}</select><button class="sm" data-a="setWriter">지정</button></div>`};
 const key=p=>p.mk||p.uid||"g:"+p.name,tmin=x=>x.split(":").reduce((a,b)=>a*60+ +b),fmt=m=>String(m/60|0).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
-const rinfo=c=>{const iv=c.roundInterval||40,st=tmin(c.regularStartTime||"13:00"),en=tmin(c.regularEndTime||"16:00");return{iv,st,R:Math.max(1,Math.floor((en-st)/iv))}};
+const rinfo=c=>{const e=eff(c),iv=e.iv,st=tmin(e.start),en=tmin(e.end);return{iv,st,R:Math.max(1,Math.floor((en-st)/iv))}};
 const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 function buildDraw(parts,c,dr){
- const {iv,st,R}=rinfo(c),cts=c.regularCourtCount||3,pl=parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:p.name,p:p.position,s:tmin(p.start),e:tmin(p.end),g:0,t:(()=>{const m=S.mem.find(x=>mkey(x)===key(p));return m&&m.tierId!=null&&m.tierId!==""?m.tierId:null})()}));
+ const {iv,st,R}=rinfo(c),cts=eff(c).courts,pl=parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:p.name,p:p.position,s:tmin(p.start),e:tmin(p.end),g:0,t:(()=>{const m=S.mem.find(x=>mkey(x)===key(p));return m&&m.tierId!=null&&m.tierId!==""?m.tierId:null})()}));
  const pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a,cnt=(m,a,b)=>m[K(a,b)]||0,inc=(m,a,b)=>m[K(a,b)]=cnt(m,a,b)+1,rounds=[];
  for(let r=0;r<R;r++){
   const t=st+r*iv,av=pl.filter(p=>p.s<=t&&p.e>=t+iv&&!(dr.excl[p.k]||[]).includes(r+1)),by=Object.fromEntries(av.map(p=>[p.k,p])),used=new Set();
@@ -287,12 +293,12 @@ ${rows.length?`<div class="list">${rows.map((r,i)=>`<div class="li ${r.k?"tap":"
 games:()=>{const c=S.cur,by=Object.fromEntries(S.games.map(g=>[g.id,g])),ed=can("result");
  const row=x=>{const g=by[x.id],t1=g?g.t1:x.g.t1,t2=g?g.t2:x.g.t2,w=g?(g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0):0;
   return rowS(x.g.court+"코트",t1,t2,w,g?`${g.scoreA} : ${g.scoreB}`:ed?"입력":"-",ed?`data-a="${g?"gedit":"gslot"}" data-id="${g?g.id:x.id}"`:"",g?"":' style="background:var(--bg);color:var(--sub)"')};
- return `${S.sess?`<h2>오늘 대진</h2>${S.sess.rounds.map(r=>`<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map(g=>row({id:`${c.id}_${S.sess.date}_r${r.n}_c${g.court}`,g})).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("")}`:""}
-${can("result")?'<div class="row" style="gap:8px"><button class="ghost" data-a="gnew">경기 추가</button><button class="ghost" data-a="phClub">사진으로 입력</button></div>':""}
+ return `${can("result")?`<div class="row" style="justify-content:flex-end;gap:8px"><button class="ghost sm" data-a="gnew">경기 추가</button><button class="ghost sm" data-a="phClub">사진으로 입력</button></div>`:""}${S.sess?`<h2>오늘 대진</h2>${S.sess.rounds.map(r=>`<div class="list"><div class="rh">${r.n}회차 · ${r.time}</div>${r.games.map(g=>row({id:`${c.id}_${S.sess.date}_r${r.n}_c${g.court}`,g})).join("")||'<div class="li sub">경기 없음</div>'}</div>`).join("")}`:""}
+
 <h2>기록 ${S.games.length}</h2>${S.games.length?`<div class="list">${S.games.slice(0,60).map(gm).join("")}</div>`:'<div class="card sub center">아직 경기 기록이 없어요</div>'}`},
-today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center" style="padding:28px"><b>정기 모임이 없어요</b><div class="sub">${c.role==="admin"?"설정에서 모임 요일을 정해 주세요.":"관리자가 모임 요일을 정하면 보여요."}</div></div>`;
+today:()=>{const c=S.cur,m=nextMeeting(c);if(!m)return `<div class="card center" style="padding:28px"><b>정기 모임이 없어요</b><div class="sub">${c.role==="admin"?"설정에서 모임 요일을 정해 주세요.":"관리자가 모임 요일을 정하면 보여요."}</div>${can("meeting")?'<button class="ghost" data-a="toMtg" style="margin-top:12px">모임 만들기</button>':""}</div>`;
  const mine=S.parts.find(p=>p.uid===S.user.uid),yes=S.parts.filter(p=>p.status==="in"),no=S.parts.filter(p=>p.status==="out");
- return `<div class="card hero" style="padding:20px"><div class="sub">${m.today?"오늘의 모임":"다음 모임"}</div><div style="font-size:24px;font-weight:700">${m.date.getMonth()+1}월 ${m.date.getDate()}일 (${DOW[m.date.getDay()]})</div><div class="sub">${c.regularStartTime||"13:00"}–${c.regularEndTime||"16:00"} · ${c.regularCourtCount||3}코트</div></div>
+ return `<div class="card hero" style="padding:20px"><div class="row"><div class="sub">${m.today?"오늘의 모임":"다음 모임"}${c.mtgOverride&&!c.mtgOverride.off&&c.mtgOverride.date===ymd(m.date)?' <span class="pill" style="background:var(--pt);color:var(--main)">일정 변경</span>':""}</div>${can("meeting")?'<button class="sm" data-a="toMtg" style="background:rgba(255,255,255,.18)!important">수정</button>':""}</div><div style="font-size:24px;font-weight:700">${m.date.getMonth()+1}월 ${m.date.getDate()}일 (${DOW[m.date.getDay()]})</div><div class="sub">${eff(c).start}–${eff(c).end} · ${eff(c).courts}코트</div></div>
 <div class="card row"><div><b>내 참석</b><div class="sub">${mine?(mine.status==="in"?`${mine.start}–${mine.end} · ${POS[mine.position]}${mine.noPlay?" · 놀참":""}`:"불참"):"아직 응답하지 않았어요"}</div></div><button class="sm" data-a="toAttend">${mine?"수정":"참석 등록"}</button></div>
 <h2>대진</h2>${writerRow()}${S.sess?rList(S.sess.rounds):'<div class="card sub center">아직 확정된 대진이 없어요</div>'}${S.sess&&canDraw()?'<button class="ghost" data-a="toEdit">대진 수정</button>':""}${canDraw()?`<button class="ghost" data-a="toDraw">${S.sess?"대진 다시 만들기":"대진 만들기"}</button>`:""}
 <h2>참석 ${yes.length}명 · 불참 ${no.length}명</h2>
@@ -311,20 +317,22 @@ settings:()=>{const c=S.cur;return `<div class="cmp">${can("schedule")?`<div cla
 <div class="card"><div class="sub">초대코드</div><b id="invc" style="font-size:20px;letter-spacing:.12em">…</b></div>${S.cur.primaryAdminId===S.user.uid?`<div class="card dz" style="padding:12px 14px"><b>클럽 폐쇄</b><div class="sub" style="margin:4px 0 8px">대표 관리자만 할 수 있어요</div><button data-a="toClose" style="background:#B3402A;margin:0">클럽 폐쇄</button></div>`:""}`:""}</div>`}};
 const snap=()=>{const g=S.ge;g.date=$("#gd").value;g.a=$("#sa").value;g.b=$("#sb").value;[0,1,2,3].forEach(i=>{const e=$("#gn"+i);if(e)g.gn[i]=e.value})};
 const V={
-offAdd:()=>`<div class="cmp"><button class="link" data-a="toClub">← 뒤로</button><h1>오프라인 회원 추가</h1><div class="sub" style="margin-bottom:8px">앱에 가입하지 않은 클럽 회원을 명단에 넣어요. 나중에 가입하면 연동할 수 있어요.</div>이름<input id="on" maxlength="20">선호 포지션<div class="seg" data-k="opos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${(S.form.opos||"either")===v?"on":""}">${t}</div>`).join("")}</div><div class="bar"><button data-a="saveOff">추가</button></div></div>`,
-closeClub:()=>`<div class="cmp"><button class="link" data-a="toClub">← 뒤로</button><h1>클럽 폐쇄</h1><div class="card dz" style="padding:12px 14px"><div class="sub">폐쇄하면 목록과 검색에서 숨겨지고 더 이상 수정할 수 없어요.<br>데이터는 90일 동안 보관되고, 그 안에 복구할 수 있어요.<br>동기화를 켠 회원의 경기는 개인 기록으로 보관돼요.</div></div>폐쇄하려면 클럽 이름을 입력하세요<input id="cfm" placeholder="${esc(S.cur.name)}" autocomplete="off"><div class="bar"><button data-a="doClose" style="background:#B3402A">클럽 폐쇄</button></div></div>`,
+mtgEdit:()=>{const f=S.mf,c=S.cur;return `<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>모임 수정</h1>날짜<input id="mdt" type="date" value="${f.date}"><div class="r2"><label>시작<input id="mst" type="time" value="${f.st}"></label><label>종료<input id="met" type="time" value="${f.et}"></label></div><div class="r2"><label>코트 수<input id="mcc" type="number" min="1" max="12" value="${f.cc}"></label><span></span></div>${c.mtgOverride?'<div class="sub">정기 일정에서 변경된 모임이에요</div>':""}
+<div class="bar"><button data-a="saveMtg">저장</button>${f.had?'<button class="ghost" data-a="cancelMtg" style="color:#B3402A">이번 모임 취소</button>':""}${c.mtgOverride?'<button class="ghost" data-a="resetMtg">정기 일정으로 되돌리기</button>':""}</div></div>`},
+offAdd:()=>`<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>오프라인 회원 추가</h1><div class="sub" style="margin-bottom:8px">앱에 가입하지 않은 클럽 회원을 명단에 넣어요. 나중에 가입하면 연동할 수 있어요.</div>이름<input id="on" maxlength="20">선호 포지션<div class="seg" data-k="opos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${(S.form.opos||"either")===v?"on":""}">${t}</div>`).join("")}</div><div class="bar"><button data-a="saveOff">추가</button></div></div>`,
+closeClub:()=>`<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>클럽 폐쇄</h1><div class="card dz" style="padding:12px 14px"><div class="sub">폐쇄하면 목록과 검색에서 숨겨지고 더 이상 수정할 수 없어요.<br>데이터는 90일 동안 보관되고, 그 안에 복구할 수 있어요.<br>동기화를 켠 회원의 경기는 개인 기록으로 보관돼요.</div></div>폐쇄하려면 클럽 이름을 입력하세요<input id="cfm" placeholder="${esc(S.cur.name)}" autocomplete="off"><div class="bar"><button data-a="doClose" style="background:#B3402A">클럽 폐쇄</button></div></div>`,
 closed:()=>{const c=S.cur,d=c.closedAt&&c.closedAt.toDate?c.closedAt.toDate():new Date(),left=Math.max(0,90-Math.floor((Date.now()-d)/864e5)),pri=c.primaryAdminId===S.user.uid;
- return `<button class="link" data-a="back">← 내 클럽</button><h1>${esc(c.name)}</h1><div class="card dz" style="padding:14px"><b>폐쇄된 클럽이에요</b><div class="sub" style="margin-top:4px">${left>0?`${left}일 뒤부터 완전 삭제할 수 있어요`:"완전 삭제할 수 있어요"}</div></div>${pri?`<div class="bar"><button data-a="reopen">클럽 복구</button>${left===0?'<button class="ghost" data-a="purge" style="color:#B3402A">완전 삭제</button>':""}</div>`:'<div class="sub center">내 경기는 개인 기록으로 보관돼요</div>'}`},
+ return `<button class="link bk" data-a="back"><span class="ar">←</span> 내 클럽</button><h1>${esc(c.name)}</h1><div class="card dz" style="padding:14px"><b>폐쇄된 클럽이에요</b><div class="sub" style="margin-top:4px">${left>0?`${left}일 뒤부터 완전 삭제할 수 있어요`:"완전 삭제할 수 있어요"}</div></div>${pri?`<div class="bar"><button data-a="reopen">클럽 복구</button>${left===0?'<button class="ghost" data-a="purge" style="color:#B3402A">완전 삭제</button>':""}</div>`:'<div class="sub center">내 경기는 개인 기록으로 보관돼요</div>'}`},
 photo:()=>{const P=S.ph;if(P.step==="busy")return `<div class="mid center"><div class="spin"></div><b>${esc(P.msg||"사진을 읽는 중이에요")}</b><div class="sub" style="margin-top:6px">화면을 닫지 말고 잠시만 기다려 주세요</div></div>`;
- if(P.step==="pick")return `<button class="link" data-a="phBack">← 뒤로</button><h1>사진으로 입력</h1>${P.err?`<div class="card sub" style="color:#B3402A">${esc(P.err)}</div>`:""}<input type="file" accept="image/*" capture="environment" id="fcam" style="display:none"><input type="file" accept="image/*" id="fgal" style="display:none">
+ if(P.step==="pick")return `<button class="link bk" data-a="phBack"><span class="ar">←</span> 뒤로</button><h1>사진으로 입력</h1>${P.err?`<div class="card sub" style="color:#B3402A">${esc(P.err)}</div>`:""}<input type="file" accept="image/*" capture="environment" id="fcam" style="display:none"><input type="file" accept="image/*" id="fgal" style="display:none">
 <div class="sub center" style="margin-top:8px">성공한 분석만 횟수에 포함돼요 · 계정 하루 2회${P.mode==="club"?" · 클럽 하루 5회":""}</div><div class="bar"><button data-a="pick1" data-i="fcam">사진 촬영</button><button class="ghost" data-a="pick1" data-i="fgal">갤러리에서 선택</button></div>`;
  const names=P.mode==="club"?S.mem.map(m=>m.displayName):[S.profile.name,...S.pp.map(p=>p.name)];
- return `<div class="cmp"><button class="link" data-a="phBack">← 다시 선택</button><h1>${P.games.length}경기를 찾았어요</h1>날짜<input id="phd" type="date" value="${P.date}"><datalist id="ml2">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+ return `<div class="cmp"><button class="link bk" data-a="phBack"><span class="ar">←</span> 다시 선택</button><h1>${P.games.length}경기를 찾았어요</h1>날짜<input id="phd" type="date" value="${P.date}"><datalist id="ml2">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
 ${P.games.map((g,i)=>`<div class="card" style="padding:10px 12px"><div class="row"><span class="sub">경기 ${i+1}</span><span class="tap sub" data-a="phDel" data-i="${i}">✕</span></div><img class="pv" src="${g.crop||P.img}" data-a="phZoom"><div class="gt">${[0,1].map(t=>`<div>${[0,1].map(j=>`<div class="pr"><div class="pc"><input id="h${i}${t*2+j}" list="ml2" maxlength="20" value="${esc((t?g.t2:g.t1)[j]||"")}"></div><span class="pill pp" data-a="phCyc" data-i="${i}" data-t="${t}">${PLB[(g.ps||[2,2])[t]][j]}</span></div>`).join("")}</div>`).join("")}</div>
 <div class="row" style="gap:10px;justify-content:center"><input class="big" id="h${i}a" type="number" inputmode="numeric" value="${g.a}"><b>:</b><input class="big" id="h${i}b" type="number" inputmode="numeric" value="${g.b}"></div></div>`).join("")}
 <div class="bar"><button data-a="phSave"${P.games.length?"":" disabled"}>${P.games.length}경기 저장</button></div>${P.zoom?`<div class="sh" data-a="phZoomX" style="align-items:center;background:#000d"><img src="${P.img}" style="width:100%;max-height:92vh;object-fit:contain"></div>`:""}</div>`},
 gedit:()=>{const g=S.ge,dd=g.date.replace(/-/g,""),att=S.ap.filter(p=>p.status==="in"&&p.date===dd),names=att.length?[...new Set(att.map(p=>(S.mem.find(m=>m.uid===p.uid)||{}).displayName||p.name))]:S.mem.map(m=>m.displayName),PL=[["포","백"],["백","포"],["–","–"]],pr=i=>`<div class="pr"><div class="pc"><input id="gn${i}" list="ml" placeholder="이름" maxlength="20" autocomplete="off" value="${esc(g.gn[i]||"")}"></div><span class="pill pp" data-a="cyc" data-t="${i>>1}">${PL[g.ps[i>>1]][i&1]}</span></div>`;
- return `<div class="cmp"><button class="link" data-a="toClub">← 뒤로</button><h1>${g.exist?"경기 수정":"경기 입력"}</h1>날짜<input id="gd" type="date" value="${g.date}">
+ return `<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>${g.exist?"경기 수정":"경기 입력"}</h1>날짜<input id="gd" type="date" value="${g.date}">
 <datalist id="ml">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist><div class="gt"><div><div class="sub">팀 1</div>${pr(0)}${pr(1)}</div><div><div class="sub">팀 2</div>${pr(2)}${pr(3)}</div></div>
 <div class="sub" style="margin-top:8px">점수</div><div class="row" style="gap:10px;justify-content:center"><input class="big" id="sa" type="number" inputmode="numeric" min="0" max="99" value="${g.a}"><b>:</b><input class="big" id="sb" type="number" inputmode="numeric" min="0" max="99" value="${g.b}"></div>
 <div class="bar"><button data-a="saveGame">저장</button>${g.exist?'<button class="ghost" data-a="delGame">삭제</button>':""}</div></div>`},
@@ -341,26 +349,26 @@ clubs:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMo
 ${S.clubs.filter(c=>c.status!=="closed").map(c=>`<div class="card tap row" data-a="club" data-id="${c.id}"><div class="av">${esc([...c.name][0])}</div><div class="grow"><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"장소 미정")}</div></div>${c.role==="admin"?'<span class="pill">관리자</span>':""}</div>`).join("")||'<div class="card center" style="padding:32px 16px"><b>아직 클럽이 없어요</b><div class="sub">클럽을 만들거나 초대코드로 가입해 보세요.</div></div>'}
 ${S.clubs.some(c=>c.status==="closed")?`<div class="sub" style="margin:10px 2px 4px">폐쇄된 클럽</div>${S.clubs.filter(c=>c.status==="closed").map(c=>`<div class="card tap row" data-a="club" data-id="${c.id}" style="opacity:.6"><div class="av">${esc([...c.name][0])}</div><div class="grow"><b>${esc(c.name)}</b></div><span class="pill">폐쇄</span></div>`).join("")}`:""}
 <div class="bar"><button data-a="toCreate">클럽 만들기</button><button class="ghost" data-a="toJoin">클럽 가입하기</button></div>`,
-create:()=>`<button class="link" data-a="back">← 뒤로</button><h1>클럽 만들기</h1>
+create:()=>`<button class="link bk" data-a="back"><span class="ar">←</span> 뒤로</button><h1>클럽 만들기</h1>
 클럽 이름<input id="cn" maxlength="30">모임 장소<input id="cl" maxlength="40">설명 (선택)<textarea id="cd" rows="2" maxlength="100"></textarea>
 공개 여부<div class="seg" data-k="vis"><div data-v="public" class="${S.form.vis==="public"?"on":""}">공개</div><div data-v="private" class="${S.form.vis==="private"?"on":""}">비공개</div></div>
 가입 방법<div class="seg" data-k="join">${[["open","바로 가입"],["approval","가입 승인"],["invite","초대만"]].map(([v,t])=>`<div data-v="${v}" class="${S.form.join===v?"on":""}">${t}</div>`).join("")}</div>
 <div class="bar"><button data-a="doCreate">만들기</button></div>`,
-join:()=>`<button class="link" data-a="back">← 뒤로</button><h1>클럽 가입하기</h1>
+join:()=>`<button class="link bk" data-a="back"><span class="ar">←</span> 뒤로</button><h1>클럽 가입하기</h1>
 초대코드<input id="ic" maxlength="8" style="text-transform:uppercase"><button data-a="byCode">코드로 가입</button>
 <h2>공개 클럽</h2><input id="sq" placeholder="클럽 이름 검색"><button class="ghost" data-a="search">검색</button>
 ${S.found.map(c=>`<div class="card"><div class="row"><div><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"")}</div></div><button style="width:auto;margin:0" data-a="join" data-id="${c.id}">${c.joinMethod==="open"?"가입":c.joinMethod==="approval"?"신청":"초대만"}</button></div></div>`).join("")}`,
 clubHome:()=>{const c=S.cur,adm=c.role==="admin";return `<div class="row"><h1>${esc(c.name)}</h1><button class="link" data-a="back">내 클럽</button></div>${T[S.tab]()}<div style="height:90px"></div>
 <nav class="nav">${[["today","오늘"],["games","경기"],["stats","통계"],["members","회원"],...(adm||can("schedule")||can("tiers")||can("stats")?[["settings","설정"]]:[])].map(([k,t])=>`<div data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}">${t}</div>`).join("")}</nav>`},
-attend:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>참석</h1>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
+attend:()=>`<button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>참석</h1>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
 ${S.cur.noPlayEnabled!==false?`<div class="seg" data-k="play"><div data-v="play" class="${S.form.play==="play"?"on":""}">경기 참여</div><div data-v="no" class="${S.form.play==="no"?"on":""}">놀참</div></div>`:""}
 ${S.form.play==="no"&&S.cur.noPlayEnabled!==false?"":`포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>`}
 <div class="bar"><button data-a="saveAttend" data-s="in">참석 저장</button><button class="ghost" data-a="saveAttend" data-s="out">불참</button></div>`,
-guest:()=>`<button class="link" data-a="toClub">← 뒤로</button><h1>참석자 추가</h1>이름<input id="gn" list="gl" maxlength="20" placeholder="게스트 또는 회원 이름"><datalist id="gl">${S.mem.map(m=>`<option value="${esc(m.displayName)}">`).join("")}</datalist>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
+guest:()=>`<button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>참석자 추가</h1>이름<input id="gn" list="gl" maxlength="20" placeholder="게스트 또는 회원 이름"><datalist id="gl">${S.mem.map(m=>`<option value="${esc(m.displayName)}">`).join("")}</datalist>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
 포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
 <div class="bar"><button data-a="addGuest">추가</button></div>`,
 draw:()=>{const R=rinfo(S.cur).R,d=S.dr,o=S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>`<option value="${esc(key(p))}">${esc(p.name)}</option>`).join(""),dm=S.form.dmode||"pos";
- return `<div class="cmp"><button class="link" data-a="toClub">← 뒤로</button><h1>대진 만들기</h1>
+ return `<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>대진 만들기</h1>
 <div class="seg hl" data-k="dmode"><div data-v="random" class="${dm==="random"?"on":""}">랜덤</div><div data-v="pos" class="${dm==="pos"?"on":""}">포지션 반영</div></div>
 ${S.cur.tierEnabled?`<div class="seg hl" data-k="dtier">${[["none","Tier 미고려"],["within","Tier 내"],["balance","균형"]].map(([v,t])=>`<div data-v="${v}" class="${(S.form.dtier||"none")===v?"on":""}">${t}</div>`).join("")}</div>`:`<div class="seg" style="opacity:.45">${["Tier 미고려","Tier 내","균형"].map(t=>`<div data-nt="1">${t}</div>`).join("")}</div>`}
 <h2>고정 페어</h2><div class="row"><select id="pa">${o}</select><select id="pb">${o}</select></div><button class="ghost" data-a="addPair">페어 추가</button>
@@ -368,13 +376,13 @@ ${d.pairs.length?`<div class="list" style="margin-top:12px">${d.pairs.map(([a,b]
 <h2>회차 제외</h2><select id="xp">${o}</select><div class="seg chips" style="flex-wrap:wrap">${Array.from({length:R},(_,i)=>`<div data-r="${i+1}">${i+1}회차</div>`).join("")}</div><button class="ghost" data-a="addExcl">제외 추가</button>
 ${Object.keys(d.excl).length?`<div class="list" style="margin-top:12px">${Object.entries(d.excl).map(([k,v])=>`<div class="li"><span class="nm">${esc(nmOf(k))}</span><span class="sub">${v.join(", ")}회차 제외</span><span class="tap sub" data-a="delExcl" data-id="${esc(k)}">✕</span></div>`).join("")}</div>`:""}
 <div class="bar"><button data-a="gen">대진 생성</button></div></div>`},
-preview:()=>{const p=S.dr.plan;return `<button class="link" data-a="toDraw">← 설정</button><h1>대진 미리보기</h1><div class="sub">참여 회원(경기수)</div>
+preview:()=>{const p=S.dr.plan;return `<button class="link bk" data-a="toDraw"><span class="ar">←</span> 설정</button><h1>대진 미리보기</h1><div class="sub">참여 회원(경기수)</div>
 <div class="list pg">${planPlayers(p.rounds).map(x=>`<div data-a="mdt" data-id="${esc(x.k)}"><b class="n" style="font-weight:400">${esc(x.n)}</b><span>(${x.g})</span></div>`).join("")}</div><div class="sub" style="margin:2px 2px 8px">이름을 차례로 두 번 누르면 자리가 바뀌어요</div>${rList(p.rounds,1)}
 <div class="bar"><button data-a="confirm">대진 확정</button><button class="ghost" data-a="gen">다시 생성</button></div>${S.mdt?mSheet():""}`},
 personal:()=>`<div class="row"><h1>개인</h1><button class="link" data-a="toMode">모드 변경</button></div>${P[S.ptab]()}<div style="height:90px"></div><nav class="nav">${[["home","홈"],["games","경기"],["stats","통계"],["settings","설정"]].map(([k,t])=>`<div data-a="ptab" data-k="${k}" class="${S.ptab===k?"on":""}">${t}</div>`).join("")}</nav>`,
-pdet:()=>{const g=S.pd;return `<button class="link" data-a="toP">← 뒤로</button><h1>${md(g.date)} · ${esc(g.label)}</h1><div class="card"><div class="gr s p" style="padding:0;border:0"><div class="tg">${nm3(g.t1,0,1)}</div><span class="vs">vs</span><div class="tg">${nm3(g.t2,0,2)}</div><span class="pill sc">${g.scoreA} : ${g.scoreB}</span></div></div>
+pdet:()=>{const g=S.pd;return `<button class="link bk" data-a="toP"><span class="ar">←</span> 뒤로</button><h1>${md(g.date)} · ${esc(g.label)}</h1><div class="card"><div class="gr s p" style="padding:0;border:0"><div class="tg">${nm3(g.t1,0,1)}</div><span class="vs">vs</span><div class="tg">${nm3(g.t2,0,2)}</div><span class="pill sc">${g.scoreA} : ${g.scoreB}</span></div></div>
 ${who(g)}경기 메모<textarea id="pn" rows="4" placeholder="이 경기에 대한 메모">${esc(g.note||"")}</textarea><div class="bar"><button data-a="pnote">저장</button>${g.src==="own"?'<button class="ghost" data-a="pdel">삭제</button>':""}</div>`},
-padd:()=>{const f=S.pf,pn=S.pp.map(p=>`<option value="${esc(p.name)}">`).join("");return `<div class="cmp"><button class="link" data-a="toP">← 뒤로</button><h1>경기 추가</h1><button class="ghost" data-a="phPers" style="margin:0 0 8px">사진으로 입력</button>날짜<input id="pdt" type="date" value="${f.date}">대회·경기 이름<input id="plb" maxlength="20" placeholder="예: 부산오픈" value="${esc(f.label)}">
+padd:()=>{const f=S.pf,pn=S.pp.map(p=>`<option value="${esc(p.name)}">`).join("");return `<div class="cmp"><button class="link bk" data-a="toP"><span class="ar">←</span> 뒤로</button><h1>경기 추가</h1><button class="ghost" data-a="phPers" style="margin:0 0 8px">사진으로 입력</button>날짜<input id="pdt" type="date" value="${f.date}">대회·경기 이름<input id="plb" maxlength="20" placeholder="예: 부산오픈" value="${esc(f.label)}">
 <datalist id="pl">${pn}</datalist><div class="gt"><div><div class="sub">팀 1</div><input disabled value="${esc(S.profile.name)}"><input id="pn1" list="pl" maxlength="20" placeholder="파트너" value="${esc(f.n[0])}"></div><div><div class="sub">팀 2</div><input id="pn2" list="pl" maxlength="20" placeholder="상대 1" value="${esc(f.n[1])}"><input id="pn3" list="pl" maxlength="20" placeholder="상대 2" value="${esc(f.n[2])}"></div></div>
 <div class="sub" style="margin-top:4px">점수</div><div class="row" style="gap:10px;justify-content:center"><input class="big" id="psa" type="number" inputmode="numeric" value="${f.a}"><b>:</b><input class="big" id="psb" type="number" inputmode="numeric" value="${f.b}"></div><div class="bar"><button data-a="psave">저장</button></div></div>`},
 };
@@ -398,7 +406,7 @@ toJoin(){if(joined()>=MAX_JOIN)return pop(`클럽은 최대 ${MAX_JOIN}개까지
 club(el){S.cur=S.clubs.find(c=>c.id===el.dataset.id);S.tab="today";S.parts=[];if(S.cur.status==="closed")return go("closed");go("clubHome");load()},
 toClub(){go("clubHome");load()},
 tab(el){S.tab=el.dataset.k;if(S.tab==="settings")S.perm=Object.fromEntries(PERM.map(([k])=>[k,pm(k)]));if(S.tab==="settings")S.soff=[...(S.cur.statsOff||[])];if(S.tab==="settings")S.form={...S.form,te:S.cur.tierEnabled?"1":"0",mvt:(S.cur.memberView||{}).tier||"all",mvp:(S.cur.memberView||{}).pos||"all",np:S.cur.noPlayEnabled===false?"0":"1",days:[...(S.cur.regularDays||[])]};render();load()},
-toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||((S.mem.find(x=>x.uid===S.user.uid)||{}).defaultPosition)||"either",play:m?.noPlay?"no":"play",st:m?.start||c.regularStartTime||"13:00",et:m?.end||c.regularEndTime||"16:00"};go("attend")},
+toAttend(){const m=S.parts.find(p=>p.uid===S.user.uid),c=S.cur;S.form={...S.form,pos:m?.position||((S.mem.find(x=>x.uid===S.user.uid)||{}).defaultPosition)||"either",play:m?.noPlay?"no":"play",st:m?.start||eff(c).start,et:m?.end||eff(c).end};go("attend")},
 mdt(el){S.mdt=el.dataset.id;S.still=1;render();S.still=0},
 sd(el){S.sd=el.dataset.id;S.still=1;render();S.still=0},
 mclose(el,ev){S.mdt=null;S.sd=null;S.still=1;render();S.still=0},
@@ -478,17 +486,30 @@ async linkOff(){const c=S.cur,off=S.mem.find(x=>mid(x)===S.ms),uid=$("#lk").valu
    for(let i=0;i<pd.length;i+=400){const b=writeBatch(db);pd.slice(i,i+400).forEach(d=>b.update(d.ref,{uid,mk:null,name:real.displayName}));await b.commit()}
    const u={};if(off.tierId!=null&&real.tierId==null)u.tierId=off.tierId;if(off.defaultPosition&&off.defaultPosition!=="either"&&(!real.defaultPosition||real.defaultPosition==="either"))u.defaultPosition=off.defaultPosition;
    if(Object.keys(u).length)await updateDoc(doc(db,"clubMembers",`${c.id}_${uid}`),u);await deleteDoc(doc(db,"clubMembers",`${c.id}_${off.oid}`));S.ms=null;load()}catch(e){pop("연동하지 못했습니다. 일부만 바뀌었을 수 있어요. 다시 시도해 주세요.")}},
-peopen(el){const p=S.parts.find(x=>x._id===el.dataset.id),c=S.cur;S.pe={id:p._id,start:p.start||c.regularStartTime||"13:00",end:p.end||c.regularEndTime||"16:00",pos:p.position||"either",play:p.noPlay?"no":"play"};S.still=1;render();S.still=0},
+peopen(el){const p=S.parts.find(x=>x._id===el.dataset.id),c=S.cur;S.pe={id:p._id,start:p.start||eff(c).start,end:p.end||eff(c).end,pos:p.position||"either",play:p.noPlay?"no":"play"};S.still=1;render();S.still=0},
 pex(){S.pe=null;S.still=1;render();S.still=0},
 async peSave(){const e=S.pe,st=$("#es").value,en=$("#ee").value;if(!st||!en||st>=en)return pop("시작과 종료 시간을 확인해 주세요.");
   const no=e.play==="no"&&S.cur.noPlayEnabled!==false;try{await setDoc(doc(db,"sessionParticipants",e.id),{start:st,end:en,position:no?"either":e.pos,noPlay:no,status:"in",updatedAt:serverTimestamp()},{merge:true});S.pe=null;load()}catch(x){pop("저장하지 못했습니다.")}},
 async peOut(){const e=S.pe,p=S.parts.find(x=>x._id===e.id);if(!await ask(`${p.name}님의 참석을 취소할까요?`,"취소하기","닫기"))return;
   try{if(p.uid&&!p.guest)await setDoc(doc(db,"sessionParticipants",e.id),{status:"out",updatedAt:serverTimestamp()},{merge:true});else await deleteDoc(doc(db,"sessionParticipants",e.id));S.pe=null;load()}catch(x){pop("처리하지 못했습니다.")}},
 async quickAdd(el){const m=S.mem.find(x=>x.oid===el.dataset.id),c=S.cur,d=ymd(nextMeeting(c).date);
-  try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${m.oid}`),{clubId:c.id,date:d,uid:null,mk:"o:"+m.oid,name:m.displayName,guest:false,status:"in",start:c.regularStartTime||"13:00",end:c.regularEndTime||"16:00",position:m.defaultPosition||"either",noPlay:false,responseSource:"admin",updatedAt:serverTimestamp()});load()}catch(e){pop("추가하지 못했습니다.")}},
+  try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${m.oid}`),{clubId:c.id,date:d,uid:null,mk:"o:"+m.oid,name:m.displayName,guest:false,status:"in",start:eff(c).start,end:eff(c).end,position:m.defaultPosition||"either",noPlay:false,responseSource:"admin",updatedAt:serverTimestamp()});load()}catch(e){pop("추가하지 못했습니다.")}},
 lkAll(){S.form.lkall=!S.form.lkall;S.still=1;render();S.still=0},
 pnav(el){const d=+el.dataset.d,per=S.form.per;let {y,m}=anch();if(per==="month")m+=d;else if(per==="quarter")m+=3*d;else y+=d;while(m>12){m-=12;y++}while(m<1){m+=12;y--}S.form.py=y;S.form.pm=m;S.still=1;render();S.still=0},
 async saveMV(){const v={memberView:{tier:S.form.mvt||"all",pos:S.form.mvp||"all"}};try{await updateDoc(doc(db,"clubs",S.cur.id),v);Object.assign(S.cur,v);pop("저장했습니다.")}catch(e){pop("저장하지 못했습니다.")}},
+toMtg(){const c=S.cur,m=nextMeeting(c),e=eff(c),d=m?m.date:new Date();S.mf={date:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,st:e.start,et:e.end,cc:e.courts,had:!!m};go("mtgEdit")},
+async saveMtg(){const c=S.cur,m=nextMeeting(c),date=$("#mdt").value,st=$("#mst").value,et=$("#met").value,cc=parseInt($("#mcc").value);
+  if(!date||!st||!et||st>=et||!(cc>=1&&cc<=12))return pop("날짜, 시간, 코트 수를 확인해 주세요.");const nk=date.replace(/-/g,""),ck=m?ymd(m.date):null,ov0=c.mtgOverride;
+  if(nk<ymd(new Date()))return pop("지난 날짜로는 바꿀 수 없어요.");
+  try{if(ck&&nk!==ck){const gq=await getDocs(query(collection(db,"games"),where("clubId","==",c.id),where("date","==",ck)));if(!gq.empty)return pop("이미 경기 결과가 입력된 모임은 날짜를 바꿀 수 없어요.");
+    const pq=await getDocs(query(collection(db,"sessionParticipants"),where("clubId","==",c.id),where("date","==",ck)));
+    for(const d of pq.docs){const suf=d.id.slice((c.id+"_"+ck+"_").length);await setDoc(doc(db,"sessionParticipants",`${c.id}_${nk}_${suf}`),{...d.data(),date:nk});await deleteDoc(d.ref)}
+    const sd=await getDoc(doc(db,"sessions",`${c.id}_${ck}`));if(sd.exists()){await setDoc(doc(db,"sessions",`${c.id}_${nk}`),{...sd.data(),date:nk});await deleteDoc(sd.ref)}}
+   const from=ov0?ov0.from:(m&&(c.regularDays||[]).includes(m.date.getDay())?ck:null),ov={from:from||null,date:nk,start:st,end:et,courts:cc,off:false},had=!!S.sess;
+   await updateDoc(doc(db,"clubs",c.id),{mtgOverride:ov});c.mtgOverride=ov;A.toClub();if(had)pop("확정된 대진이 있어요. 시간이나 코트 수가 바뀌었다면 대진을 다시 만들어 주세요.")}catch(e){pop("저장하지 못했습니다.")}},
+async cancelMtg(){const c=S.cur,m=nextMeeting(c);if(!m)return;if(!await ask("이번 모임을 취소할까요?\n참석 기록은 그대로 남아요.","모임 취소","닫기"))return;
+  const ck=ymd(m.date),o=c.mtgOverride,ov={from:(o&&o.date===ck?o.from:ck)||null,date:null,off:true};try{await updateDoc(doc(db,"clubs",c.id),{mtgOverride:ov});c.mtgOverride=ov;A.toClub()}catch(e){pop("처리하지 못했습니다.")}},
+async resetMtg(){try{await updateDoc(doc(db,"clubs",S.cur.id),{mtgOverride:null});S.cur.mtgOverride=null;A.toClub()}catch(e){pop("처리하지 못했습니다.")}},
 async savePerm(){try{await updateDoc(doc(db,"clubs",S.cur.id),{permissions:S.perm});S.cur.permissions=JSON.parse(JSON.stringify(S.perm));pop("저장했습니다.")}catch(e){pop("저장하지 못했습니다.")}},
 async setWriter(){const v=$("#dw").value,c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawWriterId:v},{merge:true});A.toClub()}catch(e){pop("지정하지 못했습니다.")}},
 msheet(el){S.ms=el.dataset.id;S.still=1;render();S.still=0},
@@ -525,7 +546,7 @@ addPair(){const a=$("#pa").value,b=$("#pb").value;if(!a||!b||a===b)return pop("�
 delPair(el){S.dr.pairs.splice(+el.dataset.id,1);render()},
 gen(){S.dr.mode=S.form.dmode||"pos";S.dr.tier=S.cur.tierEnabled?(S.form.dtier||"none"):"none";if(S.parts.filter(p=>p.status==="in"&&!p.noPlay).length<4)return pop("경기 참여 인원이 4명 이상 필요합니다.");S.sel=null;S.dr.plan=buildDraw(S.parts,S.cur,S.dr);go("preview")},
 async confirm(){const c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawMode:S.dr.mode,rounds:S.dr.plan.rounds,status:"confirmed",createdBy:S.user.uid,updatedAt:serverTimestamp()},{merge:true});S.dr=null;S.mdt=null;A.toClub()}catch(e){pop("확정하지 못했습니다. Firestore 규칙이 게시되었는지 확인해 주세요.")}},
-toGuest(){S.form={...S.form,pos:"either",st:S.cur.regularStartTime||"13:00",et:S.cur.regularEndTime||"16:00"};go("guest")},
+toGuest(){S.form={...S.form,pos:"either",st:eff(S.cur).start,et:eff(S.cur).end};go("guest")},
 async saveAttend(el){const c=S.cur,m=nextMeeting(c),d=ymd(m.date),inn=el.dataset.s==="in";
   try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${S.user.uid}`),{clubId:c.id,date:d,uid:S.user.uid,name:S.profile.name,status:el.dataset.s,start:inn?$("#st").value:"",end:inn?$("#et").value:"",position:inn&&S.form.play==="no"?"either":S.form.pos,noPlay:inn&&S.form.play==="no"&&c.noPlayEnabled!==false,guest:false,responseSource:"member",updatedAt:serverTimestamp()});A.toClub()}catch(e){pop("저장하지 못했습니다. 다시 시도해 주세요.")}},
 async addGuest(){const n=$("#gn").value.trim();if(!n)return pop("이름을 입력해 주세요.");const c=S.cur,d=ymd(nextMeeting(c).date),m=S.mem.find(x=>x.displayName===n);
@@ -574,6 +595,12 @@ document.addEventListener("click",e=>{
   const dy=e.target.closest("[data-d]");if(dy){const n=+dy.dataset.d,a=S.form.days;S.form.days=a.includes(n)?a.filter(x=>x!==n):[...a,n];dy.classList.toggle("on");return}
   const seg=e.target.closest(".seg div[data-v]");if(seg){const vals=[...document.querySelectorAll("#app [id]")].filter(x=>"value" in x).map(x=>[x.id,x.value]);S.form[seg.parentNode.dataset.k]=seg.dataset.v;render();vals.forEach(([i,v])=>{const x=document.getElementById(i);if(x)x.value=v});return}
   const el=e.target.closest("[data-a]");if(el&&(el.dataset.a==="mclose"||el.dataset.a==="msx"||el.dataset.a==="pex")&&el.classList.contains("sh")&&e.target.closest("[data-keep]"))return;if(el&&A[el.dataset.a])A[el.dataset.a](el)});
+history.replaceState({r:1},"");
+const BACK={clubs:()=>go("mode"),personal:()=>go("mode"),clubHome:()=>openClubs(),create:()=>openClubs(),join:()=>openClubs(),closed:()=>openClubs(),attend:()=>A.toClub(),guest:()=>A.toClub(),draw:()=>A.toClub(),gedit:()=>A.toClub(),offAdd:()=>A.toClub(),mtgEdit:()=>A.toClub(),closeClub:()=>A.toClub(),preview:()=>go("draw"),photo:()=>A.phBack(),pdet:()=>A.toP(),padd:()=>A.toP()};
+window.addEventListener("popstate",()=>{
+  if(S.mdt||S.sd||S.ms||S.pe||(S.ph&&S.ph.zoom)){S.mdt=S.sd=S.ms=S.pe=null;if(S.ph)S.ph.zoom=0;S.still=1;render();S.still=0}
+  else{const f=BACK[S.screen];if(f)f()}
+  if(!ROOT.includes(S.screen)&&!(history.state&&history.state.r===2))history.pushState({r:2},"")});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js");
 </script>
 </body>
