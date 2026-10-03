@@ -8,3 +8,4 @@ export const firebaseConfig = {
   measurementId: "G-M6V86KZ9F6"
 };
    export const appCheckKey = "복사한_키_ID";
+ export const devEmail = "leeeh12101@gmail.com";
