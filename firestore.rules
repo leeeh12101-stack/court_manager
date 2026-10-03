@@ -30,10 +30,11 @@ service cloud.firestore {
           && (resource.data.primaryAdminId == me()
               || (request.resource.data.get('status', 'open') == 'open' && request.resource.data.primaryAdminId == resource.data.primaryAdminId)))
         || (isAdmin(c) && resource.data.primaryAdminId == me() && resource.data.get('status', 'open') == 'closed' && request.resource.data.get('status', 'open') == 'open')
-        || (resource.data.get('status', 'open') == 'open' && can(c, 'schedule', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['regularDays','regularStartTime','regularEndTime','regularCourtCount','roundInterval','noPlayEnabled']))
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'schedule', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['regularDays','regularStartTime','regularEndTime','regularCourtCount','roundInterval','noPlayEnabled','mode','qrule']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'tiers', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tierEnabled','tiers']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'stats', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statsOff']))
-        || (resource.data.get('status', 'open') == 'open' && can(c, 'meeting', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mtgOverride']));
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'meeting', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mtgOverride']))
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'notice', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notice']));
       allow delete: if closedPrimary(c);
     }
 
@@ -107,7 +108,9 @@ service cloud.firestore {
 
     match /games/{g} {
       allow read: if isActive(resource.data.clubId);
-      allow create, update: if can(request.resource.data.clubId, 'result', 'staff');
+      allow create: if can(request.resource.data.clubId, 'result', 'staff')
+        || (isActive(request.resource.data.clubId) && request.resource.data.get('source', '') == 'queue' && me() in request.resource.data.pk);
+      allow update: if can(request.resource.data.clubId, 'result', 'staff');
       allow delete: if can(resource.data.clubId, 'result', 'staff') || closedPrimary(resource.data.clubId);
     }
 
@@ -122,6 +125,11 @@ service cloud.firestore {
       allow get: if authed() && isActive(u.split('_')[0]);
       allow create, update: if authed() && u == request.resource.data.clubId + '_' + request.resource.data.date
         && can(request.resource.data.clubId, 'draw', 'staff') && request.resource.data.count <= 1;
+    }
+
+    match /queues/{qd} {
+      allow read: if isActive(qd.split('_')[0]);
+      allow create, update: if isActive(request.resource.data.clubId) && qd == request.resource.data.clubId + '_' + request.resource.data.date;
     }
 
     match /personalGames/{g} {
