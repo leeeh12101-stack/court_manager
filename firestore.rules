@@ -18,6 +18,8 @@ service cloud.firestore {
       let d = get(/databases/$(db)/documents/clubs/$(c)).data;
       return authed() && d.get('status', 'open') == 'closed' && d.primaryAdminId == me() && request.time > d.closedAt + duration.value(90, 'd');
     }
+    // 개발자(받은 의견 보기): 아래 이메일을 내 구글 이메일로 바꿔 주세요
+    function isDev() { return authed() && request.auth.token.email == 'leeeh12101@gmail.com' && request.auth.token.email_verified == true; }
     function isAdminAfter(c) { return authed() && getAfter(/databases/$(db)/documents/clubMembers/$(c + '_' + me())).data.role == 'admin'; }
 
     match /users/{u} { allow read, write: if authed() && me() == u; }
@@ -130,6 +132,12 @@ service cloud.firestore {
     match /queues/{qd} {
       allow read: if isActive(qd.split('_')[0]);
       allow create, update: if isActive(request.resource.data.clubId) && qd == request.resource.data.clubId + '_' + request.resource.data.date;
+    }
+
+    match /feedback/{f} {
+      allow create: if authed() && request.resource.data.uid == me() && request.resource.data.text is string && request.resource.data.text.size() <= 2000 && request.resource.data.status == 'new';
+      allow read: if authed() && (resource.data.uid == me() || isDev());
+      allow update: if isDev();
     }
 
     match /personalGames/{g} {
