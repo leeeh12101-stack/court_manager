@@ -52,3 +52,13 @@ export function meetingsAhead(c,now,days=60){const td=ymd(now),SC=(c&&c.sched)||
  return [...out.values()].filter(m=>m.dk>=td).sort((a,b)=>a.dk<b.dk?-1:1).map(m=>({...m,today:m.dk===td,monthly:isMonthly(c,m.dk)}))}
 // 개인 기록의 모임 종류 자동 채우기
 export function kindOf(c,dk){if(isMonthly(c,dk))return"월례대회";const e=((c&&c.sched)||{})[dk];if(e&&!e.off&&!isRegDay(c,new Date(+dk.slice(0,4),+dk.slice(4,6)-1,+dk.slice(6))))return"";return isRegDay(c,new Date(+dk.slice(0,4),+dk.slice(4,6)-1,+dk.slice(6)))?"정기모임":""}
+// 개인 기록(own)과 클럽 동기화 기록(club)의 겹침 찾기: sure=날짜·사람·점수 같음, maybe=날짜 같고 사람 대부분 같음
+export function findDups(pg,keep=[]){const nm=x=>xn(x||""),ppl=g=>({pa:(g.t1||[]).slice(1).map(p=>nm(p.n)).sort().join(","),op:(g.t2||[]).map(p=>nm(p.n)).sort().join(",")}),
+ all=g=>[...(g.t1||[]).slice(1),...(g.t2||[])].map(p=>nm(p.n)),sc=g=>g.scoreA!=null?g.scoreA+":"+g.scoreB:"r"+(g.res||""),
+ own=pg.filter(g=>g.src==="own"&&!keep.includes(g.docId)),club=pg.filter(g=>g.src==="club"),used=new Set(),sure=[],maybe=[];
+ for(const o of own){const po=ppl(o);let hit=null,kind="";
+  for(const c of club){if(used.has(c.clubGameId)||c.date!==o.date)continue;const pc=ppl(c);
+   if(po.pa===pc.pa&&po.op===pc.op){hit=c;kind=sc(o)===sc(c)?"sure":"maybe";break}
+   const a=all(o),b=all(c),same=a.filter(x=>b.includes(x)).length;if(a.length>=2&&same>=a.length-1&&!hit){hit=c;kind="maybe"}}
+  if(hit){used.add(hit.clubGameId);(kind==="sure"?sure:maybe).push([o,hit])}}
+ return{sure,maybe}}
