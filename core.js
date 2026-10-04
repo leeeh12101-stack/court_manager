@@ -44,3 +44,11 @@ export function nthDow(d,week,dow){if(d.getDay()!==+dow)return false;const dim=n
 export function isRegDay(c,d){const t=(c&&c.schedType)||"weekly";if(t==="none")return false;if(t==="monthly"){const M=c.schedM||{};return !!+M.week&&nthDow(d,M.week,M.dow??6)}return ((c&&c.regularDays)||[]).includes(d.getDay())}
 // 정기 일정이 정해져 있는지(비정기는 정한 것으로 봄)
 export function schedSet(c){const t=(c&&c.schedType)||"weekly";return t==="none"||(t==="monthly"?!!+((c.schedM||{}).week):((c&&c.regularDays)||[]).length>0)}
+// 앞으로의 모임 목록: 정기 규칙 + 날짜별 일정(sched: 추가 모임·변경·취소) + 예전 방식의 다음 모임 수정(mtgOverride)
+export function meetingsAhead(c,now,days=60){const td=ymd(now),SC=(c&&c.sched)||{},ov=(c&&c.mtgOverride)||null,out=new Map(),D=k=>new Date(+k.slice(0,4),+k.slice(4,6)-1,+k.slice(6));
+ for(let i=0;i<days;i++){const x=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);if(isRegDay(c,x)){const k=ymd(x);out.set(k,{dk:k,date:x,kind:"reg"})}}
+ for(const [k,e] of Object.entries(SC)){if(!e||k<td)continue;if(e.off){out.delete(k);continue}const cur=out.get(k);out.set(k,{...(cur||{}),...e,dk:k,date:D(k),kind:cur?"reg":"extra"})}
+ if(ov){if(ov.from)out.delete(ov.from);if(!ov.off&&ov.date&&ov.date>=td){const k=ov.date,cur=out.get(k),x=D(k);out.set(k,{...(cur||{}),dk:k,date:x,kind:cur?cur.kind:(isRegDay(c,x)?"reg":"extra"),start:ov.start,end:ov.end,courts:ov.courts,memo:ov.memo||"",mode:ov.mode,qrule:ov.qrule})}}
+ return [...out.values()].filter(m=>m.dk>=td).sort((a,b)=>a.dk<b.dk?-1:1).map(m=>({...m,today:m.dk===td,monthly:isMonthly(c,m.dk)}))}
+// 개인 기록의 모임 종류 자동 채우기
+export function kindOf(c,dk){if(isMonthly(c,dk))return"월례대회";const e=((c&&c.sched)||{})[dk];if(e&&!e.off&&!isRegDay(c,new Date(+dk.slice(0,4),+dk.slice(4,6)-1,+dk.slice(6))))return"";return isRegDay(c,new Date(+dk.slice(0,4),+dk.slice(4,6)-1,+dk.slice(6)))?"정기모임":""}
