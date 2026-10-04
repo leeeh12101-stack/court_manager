@@ -2,7 +2,7 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut,deleteUser,reauthenticateWithPopup} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc as _setDoc,collection,query,where,getDocs,writeBatch as _writeBatch,serverTimestamp,limit,onSnapshot,runTransaction,Timestamp,updateDoc as _updateDoc,deleteDoc as _deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js";
-import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
+import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken as getACToken} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
 import {firebaseConfig} from "./firebase-config.js";
 const pvHold=()=>{pop("미리보기 중에는 저장되지 않아요. 위쪽 띠의 '끝내기'를 누르면 원래 화면으로 돌아가요.");return new Promise(()=>{})};
 const setDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_setDoc(...a)),updateDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_updateDoc(...a)),deleteDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_deleteDoc(...a)),writeBatch=d=>{const b=_writeBatch(d);if(S.pv)b.commit=pvHold;else{const c0=b.commit.bind(b);b.commit=()=>{S.memAt=0;return c0()}}return b};
@@ -12,7 +12,7 @@ import {CAT,CATN,CT,DOW,KPRE,MT,POS,PSL,STG,XHDR,XN,XO,XSYN,XV,clean,dayDiff,det
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
 const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",q:null,qsel:null,qend:null,qarr:false,pv:null,dp:null,exp:null,pmo:null,pe:null,soff:[],ms:null,ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
-let auth,db,app;const AI_MODEL="gemini-3.5-flash";
+let auth,db,app,acI=null;const AI_MODEL="gemini-3.5-flash";
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
@@ -29,7 +29,7 @@ const dlab=d=>`${+d.slice(4,6)}월 ${+d.slice(6)}일 (${DOW[new Date(+d.slice(0,
 const ROOT=["login","name","mode"];
 const go=async(screen,extra={})=>{npHide();Object.assign(S,extra,{screen});if(screen!=="clubHome")qUnsub();if(!ROOT.includes(screen)&&!(history.state&&history.state.r===2))history.pushState({r:2},"");if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
 
-try{ app=initializeApp(firebaseConfig);if(CFG.appCheckKey)try{initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
+try{ app=initializeApp(firebaseConfig);acI=null;if(CFG.appCheckKey)try{acI=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
 if(auth) {const jc=new URLSearchParams(location.search).get("join");if(jc){try{sessionStorage.setItem("cm_join",jc.toUpperCase())}catch(e){}history.replaceState(null,"",location.pathname)}}
 async function joinPending(){let jc=null;try{jc=sessionStorage.getItem("cm_join")}catch(e){}if(!jc)return false;try{sessionStorage.removeItem("cm_join")}catch(e){}
  try{const d=await getDoc(doc(db,"inviteCodes",jc));if(!d.exists()){pop("초대 링크가 올바르지 않아요. 초대코드를 다시 확인해 주세요.");return false}const cid=d.data().clubId,cs=await getDoc(doc(db,"clubs",cid)),nm=cs.exists()?cs.data().name:"클럽";
@@ -239,7 +239,7 @@ settings:()=>{const sy=S.profile.sync||{},sec=(k,t,body,def,extra)=>`<details cl
  return `${idxCard()}${sec("pme","내 정보",me,false)}${sec("psync","클럽 동기화",sync,true)}${sec("popt","선택지 관리",opt,false)}${sec("pxl","엑셀 가져오기 · 내보내기",xl,false)}${sec("prec","기록 관리",rec,false,'<span class="qm" data-a="help" data-h="resync" style="margin-left:auto;margin-right:10px">?</span>')}${S.omrg?mrgSheet():""}<button class="link" data-a="fbOpen" style="display:block;margin:16px auto 0">의견 보내기</button>`}};
 const shrink=f=>new Promise((ok,no)=>{const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL("image/jpeg",.85).split(",")[1])};im.onerror=no;im.src=u});
 const cropBox=(src,b)=>new Promise(ok=>{const im=new Image();im.onload=()=>{try{const [y0,x0,y1,x1]=b.map(Number);if(b.length!==4||[y0,x0,y1,x1].some(isNaN)||y1<=y0||x1<=x0)return ok("");const pd=25,W=im.width,H=im.height,sx=Math.max(0,(x0-pd)/1000*W),sy=Math.max(0,(y0-pd)/1000*H),sw=Math.min(W-sx,(x1-x0+2*pd)/1000*W),sh=Math.min(H-sy,(y1-y0+2*pd)/1000*H),c=document.createElement("canvas"),k=Math.min(1,900/sw);c.width=Math.max(1,sw*k);c.height=Math.max(1,sh*k);c.getContext("2d").drawImage(im,sx,sy,sw,sh,0,0,c.width,c.height);ok(c.toDataURL("image/jpeg",.8))}catch(e){ok("")}};im.onerror=()=>ok("");im.src=src});
-const gen=async(m,p)=>{for(let i=0;;i++){try{return await m.generateContent(p)}catch(e){if(i>=2||!/500|503|high demand|overload|unavailable/i.test(String(e.message||e)))throw e;if(S.ph){S.ph.msg=`AI 서버가 붐벼서 다시 시도하는 중이에요 (${i+1}/2)`;S.still=1;render();S.still=0}await new Promise(r=>setTimeout(r,2500*(i+1)))}}};
+const gen=async(m,p,ac0)=>{for(let i=0;;i++){try{return await m.generateContent(p)}catch(e){if(!ac0&&acI&&/app.?check/i.test(String(e.message||e))){let code="";try{await getACToken(acI,true)}catch(x){code=x.code||String(x.message||x).slice(0,80)}if(!code)return gen(m,p,true);toast(`App Check 확인 실패 · ${code}`);console.warn("AppCheck",code);throw e}if(i>=2||!/500|503|high demand|overload|unavailable/i.test(String(e.message||e)))throw e;if(S.ph){S.ph.msg=`AI 서버가 붐벼서 다시 시도하는 중이에요 (${i+1}/2)`;S.still=1;render();S.still=0}await new Promise(r=>setTimeout(r,2500*(i+1)))}}};
 const useCnt=id=>getDoc(doc(db,"aiUsage",id)).then(x=>x.exists()?x.data().count:0).catch(()=>0);
 const phSnap=()=>{const P=S.ph;if(P.step!=="review")return;P.date=$("#phd").value;P.games=P.games.map((g,i)=>({...g,t1:[0,1].map(j=>$(`#h${i}${j}`).value),t2:[2,3].map(j=>$(`#h${i}${j}`).value),a:$(`#h${i}a`).value,b:$(`#h${i}b`).value}))};
 function msSheet(){const m=S.mem.find(x=>mid(x)===S.ms);if(!m)return"";const adm=S.cur.role==="admin",ad=S.mem.filter(x=>x.role==="admin").length,self=m.uid===S.user.uid,off=!m.uid,tiers=S.cur.tiers||["A","B","C","D"];
