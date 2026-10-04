@@ -11,7 +11,7 @@ import {CAT,CATN,CT,DOW,KPRE,MT,POS,PSL,STG,XHDR,XN,XO,XSYN,XV,clean,dayDiff,det
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
-const S={user:null,profile:null,screen:"login",clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",q:null,qsel:null,qend:null,qarr:false,pv:null,dp:null,exp:null,pmo:null,pe:null,soff:[],ms:null,ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
+const S={user:null,profile:null,screen:"boot",clubsReady:false,clubs:[],found:[],form:{vis:"public",join:"open",pos:"either",play:"play",np:"1",days:[]},cur:null,tab:"today",q:null,qsel:null,qend:null,qarr:false,pv:null,dp:null,exp:null,pmo:null,pe:null,soff:[],ms:null,ph:null,pg:[],pp:[],pclubs:[],ptab:"home",pq:"",pd:null,sd:null,games:[],ap:[],ge:null,sel:null,mdt:null,still:0,dr:null,sess:null,parts:[],mem:[],apps:[]};
 let auth,db,app,acI=null;const AI_MODEL="gemini-3.5-flash";
 
 function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
@@ -26,7 +26,7 @@ function npShow(t){npT=t;const np=$("#np"),r=t.getBoundingClientRect(),H=9*37+14
 function npHide(){const np=document.getElementById("np");if(np)np.style.display="none";npT=null}
 const HELP={mode:"회차제: 정해진 시간마다 회차를 나눠, 미리 짠 대진표대로 진행해요.\n\n순번제: 대진표 없이 코트가 빌 때마다 대기 순서대로 4명이 들어가요. 도착 체크한 순서로 정해져요.\n\n결과만 기록: 대진은 모임에서 직접 하고, 끝난 경기 결과만 앱에 기록해요.",backup:"클럽 기록을 엑셀 파일로 보관해요. 실수나 예상치 못한 사고에 대비해 한 달에 한 번 내려받아 두는 걸 추천해요.",resync:"앱에 저장해 둔 기록을 지우고, 최신 기록을 다시 받아와요."};
 const dlab=d=>`${+d.slice(4,6)}월 ${+d.slice(6)}일 (${DOW[new Date(+d.slice(0,4),+d.slice(4,6)-1,+d.slice(6)).getDay()]})`;
-const ROOT=["login","name","mode"];
+const ROOT=["boot","login","name","mode"];
 const go=async(screen,extra={})=>{npHide();Object.assign(S,extra,{screen});if(screen!=="clubHome")qUnsub();if(!ROOT.includes(screen)&&!(history.state&&history.state.r===2))history.pushState({r:2},"");if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
 
 try{ app=initializeApp(firebaseConfig);acI=null;if(CFG.appCheckKey)try{acI=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
@@ -45,12 +45,12 @@ onAuthStateChanged(auth,async u=>{
 });
 
 function pvEnd(){if(S.pv&&S.cur){S.cur.role=S.cur.realRole||S.cur.role;delete S.cur.realRole}S.pv=null}
-async function openClubs(){pvEnd();S.memAt=0;
+async function openClubs(){pvEnd();S.memAt=0;S.clubsReady=false;
   await go("clubs");
   const ms=await getDocs(query(collection(db,"clubMembers"),where("uid","==",S.user.uid),where("status","==","active")));
   const list=[];
   for(const m of ms.docs){const c=await getDoc(doc(db,"clubs",m.data().clubId)); if(c.exists())list.push({id:c.id,role:m.data().role,...c.data()})}
-  S.clubs=list; render();
+  S.clubs=list;S.clubsReady=true; render();
 }
 async function memQ(id,q){if(S.memId===id&&S.memAt&&Date.now()-S.memAt<120000)return S.mem;const r=await q("clubMembers",["clubId",id],["status","active"]);S.memId=id;S.memAt=Date.now();return r}
 async function load(){const c=S.cur,id=c.id,q=(n,...w)=>getDocs(query(collection(db,n),...w.map(([f,v])=>where(f,"==",v)))).then(r=>r.docs.map(d=>({...d.data(),_id:d.id})).filter(x=>!x.deleted));
@@ -454,6 +454,7 @@ const bkCard=()=>{const c=S.cur;if(c.role!=="admin")return"";const last=c.lastBa
  return od?`<div class="card row" style="background:#FFF8E6;box-shadow:none;border:1px solid #F0D9A0;padding:12px 14px"><div><b>${last?"마지막 백업이 30일 지났어요":"아직 백업한 적이 없어요"}</b> <span class="qm" data-a="help" data-h="backup">?</span><div class="sub">클럽 기록을 엑셀 파일로 보관해 두세요</div></div><button class="sm" data-a="clubBackup">내려받기</button></div>`
   :`<details class="card sd" data-sec="bk" ${so("bk")} style="padding:12px 14px"><summary><b>데이터 백업</b><span class="qm" data-a="help" data-h="backup" style="margin-left:auto;margin-right:10px">?</span></summary><div class="row"><span class="sub">마지막 백업 · ${new Date(last).toLocaleDateString("ko-KR")}</span><button class="sm ghost" data-a="clubBackup">내려받기</button></div></details>`};
 const V={
+boot:()=>`<div class="mid center"><img class="logo" src="icon-192.png" alt=""><div class="spin" style="margin-top:20px"></div></div>`,
 bulk:()=>{const B=S.bulk,cand=(B.names||[]).filter(n=>!B.off.includes(n)&&!S.mem.some(m=>m.displayName===n));return `<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>명단으로 회원 추가</h1><div class="sub" style="margin:-2px 0 10px">이름을 줄바꿈이나 쉼표로 구분해 붙여넣거나, 명단 사진으로 불러오세요. 앱에 가입하지 않은 회원으로 추가되고, 나중에 같은 이름으로 가입하면 기록이 이어져요.</div>
 <textarea id="bkt" rows="6" placeholder="김민지, 이수진, 박서연&#10;최지현"></textarea><div class="row" style="gap:8px;margin:8px 0 12px"><button class="ghost" data-a="bulkParse" style="margin:0">명단 정리</button><button class="ghost" data-a="pick1" data-i="bkimg" style="margin:0">사진으로 불러오기</button></div><input type="file" id="bkimg" accept="image/*" style="display:none">
 ${B.busy?`<div class="card center" style="padding:18px"><div class="spin"></div><div class="sub">${B.busy}</div></div>`:""}
@@ -517,7 +518,8 @@ mode:()=>`<h1>안녕하세요, ${esc(S.profile.name)}님</h1><p class="hi">오�
 <div class="card tap" data-a="modePersonal" style="padding:22px 18px"><b style="font-size:18px">개인</b><div class="sub">내 경기 기록과 메모</div></div>
 <div class="list" style="margin-top:14px"><div class="li tap" data-a="editName"><span class="nm" style="font-weight:500">내 이름</span><span class="sub">${esc(S.profile.name)}</span><span class="sub" style="margin-left:8px">›</span></div><div class="li tap" data-a="fbOpen"><span class="nm" style="font-weight:500">의견 보내기</span><span class="sub">›</span></div>${isDev()?'<div class="li tap" data-a="fbAdminOpen"><span class="nm" style="font-weight:500;color:var(--main)">받은 의견</span><span class="sub">›</span></div>':""}<div class="li tap" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div><div class="row" style="justify-content:center;gap:16px;margin-top:10px"><span class="sub tap" data-a="privacy">개인정보처리방침</span><span class="sub tap" data-a="delAcct">계정 삭제</span></div>
 <div class="ver" style="margin-top:auto;padding:16px 0 calc(12px + env(safe-area-inset-bottom))">테스트 버전 ${APPV}</div>`,
-clubs:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드 변경</button></div>
+clubs:()=>S.clubsReady?V.clubs0():V.boot(),
+clubs0:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드 변경</button></div>
 <p class="hi">가입 ${joined()}/${MAX_JOIN} · 생성 ${created()}/${MAX_CREATE}</p>
 ${S.clubs.filter(c=>c.status!=="closed").map(c=>`<div class="card tap row" data-a="club" data-id="${c.id}"><div class="av">${esc([...c.name][0])}</div><div class="grow"><b>${esc(c.name)}</b><div class="sub">${esc(c.meetingLocation||"장소 미정")}</div></div>${c.role==="admin"?'<span class="pill">관리자</span>':""}</div>`).join("")||'<div class="card center" style="padding:32px 16px"><b>아직 클럽이 없어요</b><div class="sub">클럽을 만들거나 초대코드로 가입해 보세요.</div></div>'}
 ${S.clubs.some(c=>c.status==="closed")?`<div class="sub" style="margin:10px 2px 4px">폐쇄된 클럽</div>${S.clubs.filter(c=>c.status==="closed").map(c=>`<div class="card tap row" data-a="club" data-id="${c.id}" style="opacity:.6"><div class="av">${esc([...c.name][0])}</div><div class="grow"><b>${esc(c.name)}</b></div><span class="pill">폐쇄</span></div>`).join("")}`:""}
