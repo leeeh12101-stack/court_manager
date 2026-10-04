@@ -18,7 +18,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1004-1",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1004-2",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -917,6 +917,10 @@ async delAcct(){const u=S.user.uid;
 async acDiag(){const out=[`키: ${CFG.appCheckKey?String(CFG.appCheckKey).slice(0,6)+"…("+String(CFG.appCheckKey).length+"자)":"없음"}`,`주소: ${location.host}`,`reCAPTCHA: ${window.grecaptcha&&window.grecaptcha.enterprise?"로드됨":"로드 안 됨"}`];
   if(S.acErr)out.push(`첫 오류: ${S.acErr}`);
   if(!acI)out.push("App Check 초기화 안 됨");else try{const r=await getACToken(acI,true),tk=String((r&&r.token)||"");out.push(tk.length>200?`새 토큰: 정상(${tk.length}자)`:`새 토큰: 가짜 ${(()=>{try{return atob(tk).slice(0,60)}catch(e){return tk.slice(0,40)}})()}`)}catch(e){out.push(`새 토큰 오류: ${(e&&e.code)||""} ${String((e&&e.message)||e).slice(0,300)}`)}
+  try{const fc=CFG.firebaseConfig||{},rt=await new Promise((ok,no)=>{const g=window.grecaptcha&&window.grecaptcha.enterprise;if(!g)return no(new Error("reCAPTCHA 없음"));g.ready(()=>g.execute(CFG.appCheckKey,{action:"fire_app_check"}).then(ok,no))});
+   out.push(`reCAPTCHA 토큰: ${rt?String(rt).length+"자":"없음"}`);
+   const r=await fetch(`https://content-firebaseappcheck.googleapis.com/v1/projects/${fc.projectId}/apps/${fc.appId}:exchangeRecaptchaEnterpriseToken?key=${fc.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({recaptcha_enterprise_token:rt})}),t=await r.text();
+   let msg=t;try{const j=JSON.parse(t);msg=j.error?`${j.error.status||""} ${j.error.message||""}`:(j.token?"정상 발급":t)}catch(e){}out.push(`서버 응답: ${r.status} ${String(msg).slice(0,400)}`)}catch(e){out.push(`직접 확인 실패: ${String((e&&e.message)||e).slice(0,200)}`)}
   pop(out.join("\n"))},
 async savePerm(){try{await updateDoc(doc(db,"clubs",S.cur.id),{permissions:S.perm});S.cur.permissions=JSON.parse(JSON.stringify(S.perm));toast("저장했어요")}catch(e){pop("저장하지 못했습니다.")}},
 async setWriter(){const v=$("#dw").value,c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawWriterId:v},{merge:true});A.toClub()}catch(e){pop("지정하지 못했습니다.")}},
