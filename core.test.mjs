@@ -33,13 +33,35 @@ eq("열 인식: 앱 내보내기 양식",
 eq("열 인식: 예전 양식(구분)",
   cols(["날짜", "구분", "클럽/대회명", "모임 유형/대회 등급", "코트면", "경기형태", "당일 경기차수", "내 포지션", "파트너", "상대 포", "상대 백", "스코어", "승패", "메모"]),
   ["date", "cat", "label", "kind", "court", "mtype", "order", "pos", "partner", "opf", "opb", "score", "res", "note"]);
-eq("열 인식: 점수 두 칸", cols(["일자", "상대1", "상대2", "내 점수", "상대 점수"]), ["date", "opp", "opp", "sa", "sb"]);
+eq("열 인식: 점수 두 칸", cols(["일자", "상대1", "상대2", "내 점수", "상대 점수"]), ["date", "o1", "o2", "sa", "sb"]);
+eq("열 인식: 새 공통 양식", cols(C.XHDR), ["date", "cat", "label", "kind", "court", "mtype", "order", "pos", "partner", "pg", "o1", "o1p", "o1g", "o2", "o2p", "o2g", "score", "res", "note", ""]);
 eq("열 인식: 저장된 내 양식이 우선", C.detectCols(["비고"], { "비고": "extra" }), ["extra"]);
 eq("제목 줄 찾기(위에 제목 행)", C.findHeader([["2026 내 기록"], [], ["날짜", "파트너", "상대", "스코어"], ["2026-09-01", "a", "b", "6-4"]]), 2);
 
 // ---------- 값 인식
 for (const [d, raw, want] of [["cat", "클럽", "club"], ["cat", "교류전", "friendly"], ["court", "앙투카", "clay"], ["court", "인조잔디", "turf"], ["mtype", "혼합복식", "mixed"], ["mtype", "여복", "womens"], ["pos", "듀스", "fore"], ["pos", "백", "back"], ["res", "W", "w"], ["res", "패", "l"], ["court", "모름", undefined]])
   eq(`값 인식 ${d}:${raw}`, C.xvalDef(d, raw), want);
+
+for (const [raw, want] of [["남", "m"], ["여자", "f"], ["M", "m"], ["female", "f"], ["모름", undefined]]) eq(`성별 인식 ${raw}`, C.xvalDef("g", raw), want);
+
+// ---------- 월례대회 자동 규칙
+const club = { monthly: { on: true, week: 5, dow: 6 } }; // 매월 마지막 주 토요일
+eq("월례: 2026-10-31(마지막 토)", C.isMonthly(club, "20261031"), true);
+eq("월례: 2026-10-24(넷째 토)", C.isMonthly(club, "20261024"), false);
+eq("월례: 2026-10-30(금)", C.isMonthly(club, "20261030"), false);
+const club2 = { monthly: { on: true, week: 2, dow: 0 }, mdays: { "20261011": false, "20261018": true } }; // 둘째 일요일
+eq("월례: 둘째 일요일 규칙", C.isMonthly({ monthly: club2.monthly }, "20261011"), true);
+eq("월례: 날짜 지정 해제가 규칙보다 우선", C.isMonthly(club2, "20261011"), false);
+eq("월례: 날짜 지정이 규칙보다 우선", C.isMonthly(club2, "20261018"), true);
+eq("월례: 사용 안 함", C.isMonthly({ monthly: { on: false, week: 2, dow: 0 } }, "20261011"), false);
+eq("월례: 수동만(규칙 없음)", C.isMonthly({ monthly: { on: true, week: 0, dow: 0 } }, "20261011"), false);
+
+// ---------- 명단 붙여넣기
+eq("명단: 쉼표·줄바꿈", C.parseNames("김민지, 이수진\n박서연"), ["김민지", "이수진", "박서연"]);
+eq("명단: 띄어쓰기로 나열", C.parseNames("김민지 이수진 박서연"), ["김민지", "이수진", "박서연"]);
+eq("명단: 번호·괄호·이모지 정리", C.parseNames("1. 김민지(방장)\n2) 이수진 🎾\n[총무] 박서연"), ["김민지", "이수진", "박서연"]);
+eq("명단: 중복 제거", C.parseNames("김민지\n김민지, 이수진"), ["김민지", "이수진"]);
+eq("명단: 영문 이름 유지", C.parseNames("John Kim, 최지현"), ["John Kim", "최지현"]);
 
 // ---------- 순번제 팀 나누기
 const P = (k, p) => ({ k, n: k, p });
