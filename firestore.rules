@@ -74,6 +74,7 @@ service cloud.firestore {
       allow update: if authed() && (
         isAdmin(resource.data.clubId)
         || (can(resource.data.clubId, 'tiers', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tierId']))
+        || (can(resource.data.clubId, 'members', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gender']))
         || (can(resource.data.clubId, 'members', 'admin') && resource.data.status == 'withdrawn' && request.resource.data.role == 'member' && request.resource.data.status == 'active')
         || (resource.data.uid == me() && request.resource.data.uid == me() && request.resource.data.clubId == resource.data.clubId && (
              (resource.data.status == 'active' && request.resource.data.role == resource.data.role && request.resource.data.get('tierId', null) == resource.data.get('tierId', null))

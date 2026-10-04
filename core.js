@@ -35,3 +35,6 @@ export function isMonthly(c,dk){const o=(c&&c.mdays||{})[dk];if(o!==undefined)re
 // 붙여넣은 명단에서 이름만 골라내기
 export function parseNames(t){const out=[];String(t||"").split(/[\n,，、;·\t|/]+/).forEach(s=>{s=s.replace(/\([^)]*\)|\[[^\]]*\]|<[^>]*>/g," ").replace(/^\s*\d+\s*[.)\-:]?\s*/,"").replace(/[^\p{L}\s]/gu," ").replace(/\s+/g," ").trim();if(!s)return;
   (/^([가-힣]{2,4}\s)+[가-힣]{2,4}$/.test(s)?s.split(" "):[s]).forEach(n=>{n=n.trim();if(n&&n.length<=20&&!out.includes(n))out.push(n)})});return out}
+// 선수 성별로 경기형태 정하기: 한 명이라도 모르면 "doubles"
+export function mtOfP(t1,t2){if((t1||[]).length<2)return"single";const a=[...t1,...t2].map(p=>p&&p.g);if(a.length<4||a.some(x=>x!=="m"&&x!=="f"))return"doubles";const nm=a.filter(x=>x==="m").length;
+ if(nm===4)return"mens";if(nm===0)return"womens";if(t1.filter(p=>p.g==="m").length===1&&t2.filter(p=>p.g==="m").length===1)return"mixed";return"doubles"}
