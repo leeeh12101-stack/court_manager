@@ -89,6 +89,18 @@ eq("모임 종류: 정기", C.kindOf(wk, "20261010"), "정기모임");
 eq("모임 종류: 월례대회", C.kindOf({ ...wk, mdays: { "20261010": true } }, "20261010"), "월례대회");
 eq("모임 종류: 추가 모임은 비움", C.kindOf({ ...wk, sched: { "20261014": {} } }, "20261014"), "");
 
+// ---------- 개인·클럽 기록 겹침
+const pl = n => ({ n });
+const own = (id, d, pa, op, a, b) => ({ src: "own", docId: id, date: d, t1: [pl("나"), pl(pa)], t2: op.map(pl), scoreA: a, scoreB: b });
+const clb = (id, d, pa, op, a, b) => ({ src: "club", clubGameId: id, date: d, t1: [pl("나"), pl(pa)], t2: op.map(pl), scoreA: a, scoreB: b });
+const PG = [own("o1", "20260920", "손윤지", ["김민지", "박서연"], 6, 4), clb("g1", "20260920", "손 윤지", ["박서연", "김민지"], 6, 4),
+  own("o2", "20260920", "이수진", ["최지현", "정하늘"], 6, 3), clb("g2", "20260920", "이수진", ["최지현", "정하늘"], 4, 6),
+  own("o3", "20260921", "A", ["B", "C"], 6, 1), clb("g3", "20260921", "A", ["B", "X"], 6, 1), own("o4", "20260922", "A", ["B", "C"], 6, 0)];
+let DP = C.findDups(PG);
+eq("겹침: 확정(띄어쓰기·순서 무시)", DP.sure.map(([o, c]) => o.docId + "=" + c.clubGameId), ["o1=g1"]);
+eq("겹침: 점수 다름·한 명 다름은 비슷한 경기", DP.maybe.map(([o, c]) => o.docId + "=" + c.clubGameId), ["o2=g2", "o3=g3"]);
+eq("겹침: 둘 다 두기로 고른 건 제외", C.findDups(PG, ["o1"]).sure.length, 0);
+
 // ---------- 명단 붙여넣기
 eq("명단: 쉼표·줄바꿈", C.parseNames("김민지, 이수진\n박서연"), ["김민지", "이수진", "박서연"]);
 eq("명단: 띄어쓰기로 나열", C.parseNames("김민지 이수진 박서연"), ["김민지", "이수진", "박서연"]);
