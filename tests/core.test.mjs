@@ -68,6 +68,27 @@ eq("일정 설정됨: 비정기", C.schedSet({ schedType: "none" }), true);
 eq("일정 설정 안 됨: 매주 요일 없음", C.schedSet({ regularDays: [] }), false);
 eq("일정 설정 안 됨: 매월 주 미지정", C.schedSet({ schedType: "monthly", schedM: { week: 0 } }), false);
 
+// ---------- 앞으로의 모임 목록
+const NOW = new Date(2026, 9, 5); // 2026-10-05 (월)
+const wk = { regularDays: [6] }; // 매주 토
+let M = C.meetingsAhead(wk, NOW, 21);
+eq("일정: 매주 토요일 3번", M.map(m => m.dk), ["20261010", "20261017", "20261024"]);
+M = C.meetingsAhead({ ...wk, sched: { "20261014": { title: "추가", start: "19:00" }, "20261017": { off: true } } }, NOW, 21);
+eq("일정: 추가 모임 들어가고 취소한 날 빠짐", M.map(m => m.dk + ":" + m.kind), ["20261010:reg", "20261014:extra", "20261024:reg"]);
+M = C.meetingsAhead({ ...wk, sched: { "20261010": { start: "10:00", memo: "시간 변경" } } }, NOW, 7);
+eq("일정: 정기 날 시간만 변경", [M[0].kind, M[0].start, M[0].memo], ["reg", "10:00", "시간 변경"]);
+M = C.meetingsAhead({ ...wk, mtgOverride: { from: "20261010", date: "20261011", start: "09:00" } }, NOW, 9);
+eq("일정: 예전 방식 날짜 이동 호환", M.map(m => m.dk + ":" + (m.start || "")), ["20261011:09:00"]);
+M = C.meetingsAhead({ ...wk, mtgOverride: { from: "20261010", off: true } }, NOW, 9);
+eq("일정: 예전 방식 취소 호환", M.length, 0);
+M = C.meetingsAhead({ ...wk, monthly: { on: true, week: 5, dow: 6 } }, NOW, 30);
+eq("일정: 월례대회 표시(마지막 토)", M.filter(m => m.monthly).map(m => m.dk), ["20261031"]);
+M = C.meetingsAhead({ schedType: "none", sched: { "20261020": { title: "번개" }, "20260930": { title: "지난" } } }, NOW, 30);
+eq("일정: 비정기는 추가 모임만, 지난 일정 제외", M.map(m => m.dk), ["20261020"]);
+eq("모임 종류: 정기", C.kindOf(wk, "20261010"), "정기모임");
+eq("모임 종류: 월례대회", C.kindOf({ ...wk, mdays: { "20261010": true } }, "20261010"), "월례대회");
+eq("모임 종류: 추가 모임은 비움", C.kindOf({ ...wk, sched: { "20261014": {} } }, "20261014"), "");
+
 // ---------- 명단 붙여넣기
 eq("명단: 쉼표·줄바꿈", C.parseNames("김민지, 이수진\n박서연"), ["김민지", "이수진", "박서연"]);
 eq("명단: 띄어쓰기로 나열", C.parseNames("김민지 이수진 박서연"), ["김민지", "이수진", "박서연"]);
