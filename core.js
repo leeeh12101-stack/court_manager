@@ -38,3 +38,9 @@ export function parseNames(t){const out=[];String(t||"").split(/[\n,，、;·\t|
 // 선수 성별로 경기형태 정하기: 한 명이라도 모르면 "doubles"
 export function mtOfP(t1,t2){if((t1||[]).length<2)return"single";const a=[...t1,...t2].map(p=>p&&p.g);if(a.length<4||a.some(x=>x!=="m"&&x!=="f"))return"doubles";const nm=a.filter(x=>x==="m").length;
  if(nm===4)return"mens";if(nm===0)return"womens";if(t1.filter(p=>p.g==="m").length===1&&t2.filter(p=>p.g==="m").length===1)return"mixed";return"doubles"}
+// 매월 n번째 주(5=마지막 주) 요일인지
+export function nthDow(d,week,dow){if(d.getDay()!==+dow)return false;const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();return +week===5?d.getDate()+7>dim:Math.ceil(d.getDate()/7)===+week}
+// 정기 모임 날인지: 매주(요일들) / 매월(n번째 주 요일) / 비정기(없음)
+export function isRegDay(c,d){const t=(c&&c.schedType)||"weekly";if(t==="none")return false;if(t==="monthly"){const M=c.schedM||{};return !!+M.week&&nthDow(d,M.week,M.dow??6)}return ((c&&c.regularDays)||[]).includes(d.getDay())}
+// 정기 일정이 정해져 있는지(비정기는 정한 것으로 봄)
+export function schedSet(c){const t=(c&&c.schedType)||"weekly";return t==="none"||(t==="monthly"?!!+((c.schedM||{}).week):((c&&c.regularDays)||[]).length>0)}
