@@ -56,6 +56,18 @@ eq("월례: 날짜 지정이 규칙보다 우선", C.isMonthly(club2, "20261018"
 eq("월례: 사용 안 함", C.isMonthly({ monthly: { on: false, week: 2, dow: 0 } }, "20261011"), false);
 eq("월례: 수동만(규칙 없음)", C.isMonthly({ monthly: { on: true, week: 0, dow: 0 } }, "20261011"), false);
 
+// ---------- 정기 일정 방식
+const D = (y, m, d) => new Date(y, m - 1, d);
+eq("매주: 토요일", C.isRegDay({ regularDays: [6] }, D(2026, 10, 10)), true);
+eq("매주: 일요일 아님", C.isRegDay({ regularDays: [6] }, D(2026, 10, 11)), false);
+eq("매월: 둘째 토요일", C.isRegDay({ schedType: "monthly", schedM: { week: 2, dow: 6 } }, D(2026, 10, 10)), true);
+eq("매월: 첫째 토요일은 아님", C.isRegDay({ schedType: "monthly", schedM: { week: 2, dow: 6 } }, D(2026, 10, 3)), false);
+eq("매월: 마지막 일요일", C.isRegDay({ schedType: "monthly", schedM: { week: 5, dow: 0 } }, D(2026, 10, 25)), true);
+eq("비정기: 요일이 있어도 정기 날 아님", C.isRegDay({ schedType: "none", regularDays: [6] }, D(2026, 10, 10)), false);
+eq("일정 설정됨: 비정기", C.schedSet({ schedType: "none" }), true);
+eq("일정 설정 안 됨: 매주 요일 없음", C.schedSet({ regularDays: [] }), false);
+eq("일정 설정 안 됨: 매월 주 미지정", C.schedSet({ schedType: "monthly", schedM: { week: 0 } }), false);
+
 // ---------- 명단 붙여넣기
 eq("명단: 쉼표·줄바꿈", C.parseNames("김민지, 이수진\n박서연"), ["김민지", "이수진", "박서연"]);
 eq("명단: 띄어쓰기로 나열", C.parseNames("김민지 이수진 박서연"), ["김민지", "이수진", "박서연"]);
