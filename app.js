@@ -2,7 +2,7 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut,deleteUser,reauthenticateWithPopup} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc as _setDoc,collection,query,where,getDocs,writeBatch as _writeBatch,serverTimestamp,limit,onSnapshot,runTransaction,Timestamp,updateDoc as _updateDoc,deleteDoc as _deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js";
-import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken as getACToken} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
+import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken as getACToken,onTokenChanged as onACChange} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
 import {firebaseConfig} from "./firebase-config.js";
 const pvHold=()=>{pop("미리보기 중에는 저장되지 않아요. 위쪽 띠의 '끝내기'를 누르면 원래 화면으로 돌아가요.");return new Promise(()=>{})};
 const setDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_setDoc(...a)),updateDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_updateDoc(...a)),deleteDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_deleteDoc(...a)),writeBatch=d=>{const b=_writeBatch(d);if(S.pv)b.commit=pvHold;else{const c0=b.commit.bind(b);b.commit=()=>{S.memAt=0;return c0()}}return b};
@@ -29,7 +29,7 @@ const dlab=d=>`${+d.slice(4,6)}월 ${+d.slice(6)}일 (${DOW[new Date(+d.slice(0,
 const ROOT=["boot","login","name","mode"];
 const go=async(screen,extra={})=>{npHide();Object.assign(S,extra,{screen});if(screen!=="clubHome")qUnsub();if(!ROOT.includes(screen)&&!(history.state&&history.state.r===2))history.pushState({r:2},"");if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
 
-try{ app=initializeApp(firebaseConfig);acI=null;if(CFG.appCheckKey)try{acI=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
+try{ app=initializeApp(firebaseConfig);acI=null;if(CFG.appCheckKey)try{acI=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true});onACChange(acI,()=>{S.acErr=""},e=>{S.acErr=((e&&e.code)||"")+" "+String((e&&e.message)||e).slice(0,300)})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
 if(auth) {const jc=new URLSearchParams(location.search).get("join");if(jc){try{sessionStorage.setItem("cm_join",jc.toUpperCase())}catch(e){}history.replaceState(null,"",location.pathname)}}
 async function joinPending(){let jc=null;try{jc=sessionStorage.getItem("cm_join")}catch(e){}if(!jc)return false;try{sessionStorage.removeItem("cm_join")}catch(e){}
  try{const d=await getDoc(doc(db,"inviteCodes",jc));if(!d.exists()){pop("초대 링크가 올바르지 않아요. 초대코드를 다시 확인해 주세요.");return false}const cid=d.data().clubId,cs=await getDoc(doc(db,"clubs",cid)),nm=cs.exists()?cs.data().name:"클럽";
@@ -516,7 +516,7 @@ name:()=>`<h1>이름 설정</h1><div class="card"><div class="sub">Google 이름
 <input id="nm" value="${esc(S.profile.name)}" maxlength="20"><div class="bar"><button data-a="saveName">시작하기</button></div>`,
 mode:()=>`<h1>안녕하세요, ${esc(S.profile.name)}님</h1><p class="hi">오늘은 어떤 모드로 시작할까요?</p><div class="card hero tap" data-a="modeClub" style="padding:22px 18px"><b style="font-size:18px">클럽</b><div class="sub">모임, 대진, 경기 결과</div></div>
 <div class="card tap" data-a="modePersonal" style="padding:22px 18px"><b style="font-size:18px">개인</b><div class="sub">내 경기 기록과 메모</div></div>
-<div class="list" style="margin-top:14px"><div class="li tap" data-a="editName"><span class="nm" style="font-weight:500">내 이름</span><span class="sub">${esc(S.profile.name)}</span><span class="sub" style="margin-left:8px">›</span></div><div class="li tap" data-a="fbOpen"><span class="nm" style="font-weight:500">의견 보내기</span><span class="sub">›</span></div>${isDev()?'<div class="li tap" data-a="fbAdminOpen"><span class="nm" style="font-weight:500;color:var(--main)">받은 의견</span><span class="sub">›</span></div>':""}<div class="li tap" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div><div class="row" style="justify-content:center;gap:16px;margin-top:10px"><span class="sub tap" data-a="privacy">개인정보처리방침</span><span class="sub tap" data-a="delAcct">계정 삭제</span></div>
+<div class="list" style="margin-top:14px"><div class="li tap" data-a="editName"><span class="nm" style="font-weight:500">내 이름</span><span class="sub">${esc(S.profile.name)}</span><span class="sub" style="margin-left:8px">›</span></div><div class="li tap" data-a="fbOpen"><span class="nm" style="font-weight:500">의견 보내기</span><span class="sub">›</span></div>${isDev()?'<div class="li tap" data-a="acDiag"><span class="nm" style="font-weight:500;color:var(--main)">App Check 진단</span><span class="sub">›</span></div>':""}${isDev()?'<div class="li tap" data-a="fbAdminOpen"><span class="nm" style="font-weight:500;color:var(--main)">받은 의견</span><span class="sub">›</span></div>':""}<div class="li tap" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div><div class="row" style="justify-content:center;gap:16px;margin-top:10px"><span class="sub tap" data-a="privacy">개인정보처리방침</span><span class="sub tap" data-a="delAcct">계정 삭제</span></div>
 <div class="ver" style="margin-top:auto;padding:16px 0 calc(12px + env(safe-area-inset-bottom))">테스트 버전 ${APPV}</div>`,
 clubs:()=>S.clubsReady?V.clubs0():V.boot(),
 clubs0:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드 변경</button></div>
@@ -914,6 +914,10 @@ async delAcct(){const u=S.user.uid;
    for(const d of ms)await updateDoc(d.ref,{status:"withdrawn",withdrawnAt:serverTimestamp(),displayName:"탈퇴한 회원",photoURL:""}).catch(()=>{});
    await deleteDoc(doc(db,"users",u));await IDB.clear();try{localStorage.clear();sessionStorage.clear()}catch(e){}
    await deleteUser(auth.currentUser);pop("계정을 삭제했어요. 그동안 이용해 주셔서 고마워요.")}catch(e){pop("계정을 삭제하지 못했어요. 잠시 후 다시 시도하거나 개인정보처리방침의 이메일로 요청해 주세요.")}},
+async acDiag(){const out=[`키: ${CFG.appCheckKey?String(CFG.appCheckKey).slice(0,6)+"…("+String(CFG.appCheckKey).length+"자)":"없음"}`,`주소: ${location.host}`,`reCAPTCHA: ${window.grecaptcha&&window.grecaptcha.enterprise?"로드됨":"로드 안 됨"}`];
+  if(S.acErr)out.push(`첫 오류: ${S.acErr}`);
+  if(!acI)out.push("App Check 초기화 안 됨");else try{const r=await getACToken(acI,true),tk=String((r&&r.token)||"");out.push(tk.length>200?`새 토큰: 정상(${tk.length}자)`:`새 토큰: 가짜 ${(()=>{try{return atob(tk).slice(0,60)}catch(e){return tk.slice(0,40)}})()}`)}catch(e){out.push(`새 토큰 오류: ${(e&&e.code)||""} ${String((e&&e.message)||e).slice(0,300)}`)}
+  pop(out.join("\n"))},
 async savePerm(){try{await updateDoc(doc(db,"clubs",S.cur.id),{permissions:S.perm});S.cur.permissions=JSON.parse(JSON.stringify(S.perm));toast("저장했어요")}catch(e){pop("저장하지 못했습니다.")}},
 async setWriter(){const v=$("#dw").value,c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawWriterId:v},{merge:true});A.toClub()}catch(e){pop("지정하지 못했습니다.")}},
 msheet(el){S.ms=el.dataset.id;S.still=1;render();S.still=0},
