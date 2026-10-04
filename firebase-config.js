@@ -7,5 +7,5 @@ export const firebaseConfig = {
   appId: "1:530145478667:web:cb0587c039a986ba6d5f0e",
   measurementId: "G-M6V86KZ9F6"
 };
-   export const appCheckKey = "6Lc09tktAAAAAFlK0_3Tp4Njfc6xwP032SuJzpZZ";
+   export const appCheckKey = "6LdOOd4tAAAAAHgXP9ZnUbnaPz1kbjLXpe9EciYF";
  export const devEmail = "leeeh12101@gmail.com";
