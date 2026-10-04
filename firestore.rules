@@ -138,6 +138,7 @@ service cloud.firestore {
       allow create: if authed() && request.resource.data.uid == me() && request.resource.data.text is string && request.resource.data.text.size() <= 2000 && request.resource.data.status == 'new';
       allow read: if authed() && (resource.data.uid == me() || isDev());
       allow update: if isDev();
+      allow delete: if authed() && resource.data.uid == me();
     }
 
     match /personalGames/{g} {

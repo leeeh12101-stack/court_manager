@@ -1,5 +1,5 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut,deleteUser,reauthenticateWithPopup} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc as _setDoc,collection,query,where,getDocs,writeBatch as _writeBatch,serverTimestamp,limit,onSnapshot,runTransaction,Timestamp,updateDoc as _updateDoc,deleteDoc as _deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js";
 import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
@@ -509,13 +509,13 @@ gedit:()=>{const g=S.ge,dd=g.date.replace(/-/g,""),att=S.ap.filter(p=>p.status==
 <datalist id="ml">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist><div class="gt v"><div><div class="pr" style="align-items:flex-end"><div class="pc"><span class="sub">팀 1</span></div><span class="pill pp hd">포지션</span></div>${pr(0)}${pr(1)}</div><div class="vsc">vs</div><div><div class="pr" style="align-items:flex-end"><div class="pc"><span class="sub">팀 2</span></div><span class="pill pp hd">포지션</span></div>${pr(2)}${pr(3)}</div></div>
 <div class="sub" style="margin-top:8px">점수</div><div class="row" style="gap:10px;justify-content:center"><input class="big" id="sa" type="number" readonly inputmode="numeric" min="0" max="99" value="${g.a}"><b>:</b><input class="big" id="sb" type="number" readonly inputmode="numeric" min="0" max="99" value="${g.b}"></div>
 <div class="bar"><button data-a="saveGame">저장</button>${g.exist?'<button class="ghost" data-a="delGame">삭제</button>':""}</div></div>`},
-login:()=>`<div class="mid center"><img class="logo" src="icon-192.png" alt=""><h1>Court Manager</h1><p class="hi">테니스 클럽 운영과 내 경기 기록</p><div class="ver">테스트 버전 ${APPV}</div></div><div class="bar"><button data-a="login">Google로 시작</button></div>`,
+login:()=>`<div class="mid center"><img class="logo" src="icon-192.png" alt=""><h1>Court Manager</h1><p class="hi">테니스 클럽 운영과 내 경기 기록</p><div class="ver">테스트 버전 ${APPV}</div><span class="sub tap" data-a="privacy" style="display:block;text-align:center;margin-top:6px;font-size:12px">개인정보처리방침</span></div><div class="bar"><button data-a="login">Google로 시작</button></div>`,
 name:()=>`<h1>이름 설정</h1><div class="card"><div class="sub">Google 이름</div><b>${esc(S.profile.name||"(없음)")}</b></div>
 <p class="sub">경기 기록이 누구 것인지 알아보기 쉽도록 실명 사용을 권장합니다. 나중에 바꿀 수 있습니다.</p>
 <input id="nm" value="${esc(S.profile.name)}" maxlength="20"><div class="bar"><button data-a="saveName">시작하기</button></div>`,
 mode:()=>`<h1>안녕하세요, ${esc(S.profile.name)}님</h1><p class="hi">오늘은 어떤 모드로 시작할까요?</p><div class="card hero tap" data-a="modeClub" style="padding:22px 18px"><b style="font-size:18px">클럽</b><div class="sub">모임, 대진, 경기 결과</div></div>
 <div class="card tap" data-a="modePersonal" style="padding:22px 18px"><b style="font-size:18px">개인</b><div class="sub">내 경기 기록과 메모</div></div>
-<div class="list" style="margin-top:14px"><div class="li tap" data-a="editName"><span class="nm" style="font-weight:500">내 이름</span><span class="sub">${esc(S.profile.name)}</span><span class="sub" style="margin-left:8px">›</span></div><div class="li tap" data-a="fbOpen"><span class="nm" style="font-weight:500">의견 보내기</span><span class="sub">›</span></div>${isDev()?'<div class="li tap" data-a="fbAdminOpen"><span class="nm" style="font-weight:500;color:var(--main)">받은 의견</span><span class="sub">›</span></div>':""}<div class="li tap" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div>
+<div class="list" style="margin-top:14px"><div class="li tap" data-a="editName"><span class="nm" style="font-weight:500">내 이름</span><span class="sub">${esc(S.profile.name)}</span><span class="sub" style="margin-left:8px">›</span></div><div class="li tap" data-a="fbOpen"><span class="nm" style="font-weight:500">의견 보내기</span><span class="sub">›</span></div>${isDev()?'<div class="li tap" data-a="fbAdminOpen"><span class="nm" style="font-weight:500;color:var(--main)">받은 의견</span><span class="sub">›</span></div>':""}<div class="li tap" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div><div class="row" style="justify-content:center;gap:16px;margin-top:10px"><span class="sub tap" data-a="privacy">개인정보처리방침</span><span class="sub tap" data-a="delAcct">계정 삭제</span></div>
 <div class="ver" style="margin-top:auto;padding:16px 0 calc(12px + env(safe-area-inset-bottom))">테스트 버전 ${APPV}</div>`,
 clubs:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드 변경</button></div>
 <p class="hi">가입 ${joined()}/${MAX_JOIN} · 생성 ${created()}/${MAX_CREATE}</p>
@@ -897,6 +897,21 @@ async invQR(){const code=S.invCode;if(!code)return pop("초대코드를 불러�
   try{if(!window.QRious)await new Promise((ok,no)=>{const t=document.createElement("script");t.src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js";t.onload=ok;t.onerror=no;document.head.appendChild(t)});
    S.qr=new window.QRious({value:`${location.origin}${location.pathname}?join=${code}`,size:480,level:"M"}).toDataURL();keepR()}catch(e){pop("QR을 만들지 못했어요. 인터넷 연결을 확인해 주세요.")}},
 qrx(){S.qr=null;keepR()},
+privacy(){window.open("privacy.html","_blank")},
+async delAcct(){const u=S.user.uid;
+  if(!await ask("계정을 삭제할까요?\n개인 기록, 사람 메모, 보낸 의견이 모두 지워지고 가입한 클럽에서 탈퇴돼요. 되돌릴 수 없어요.","계속","취소"))return;
+  const t=await askText("확인을 위해 '삭제'라고 입력해 주세요","");if((t||"").trim()!=="삭제")return pop("입력이 달라서 취소했어요.");
+  try{const ms=(await getDocs(query(collection(db,"clubMembers"),where("uid","==",u),where("status","==","active")))).docs;
+   for(const d of ms){const m=d.data(),cs=await getDoc(doc(db,"clubs",m.clubId)),c=cs.exists()?cs.data():null;if(!c||c.status==="closed")continue;
+    if(c.primaryAdminId===u)return pop(`'${c.name}' 클럽의 대표 관리자예요. 대표를 다른 관리자에게 넘기거나 클럽을 폐쇄한 뒤 계정을 삭제할 수 있어요.`);
+    if(m.role==="admin"){const ad=await getDocs(query(collection(db,"clubMembers"),where("clubId","==",m.clubId),where("status","==","active"),where("role","==","admin")));if(ad.size<2)return pop(`'${c.name}' 클럽의 마지막 관리자예요. 다른 회원을 관리자로 지정한 뒤 계정을 삭제할 수 있어요.`)}}
+   try{await reauthenticateWithPopup(auth.currentUser,new GoogleAuthProvider())}catch(e){return pop("본인 확인을 위해 구글 로그인이 한 번 더 필요해요. 팝업 차단을 해제하고 다시 시도해 주세요.")}
+   toast("계정을 삭제하는 중이에요");
+   for(const n of ["personalGames","personalPeople"]){const ds=(await getDocs(query(collection(db,n),where("ownerUid","==",u)))).docs;for(let i=0;i<ds.length;i+=400){const b=writeBatch(db);ds.slice(i,i+400).forEach(x=>b.delete(x.ref));await b.commit()}}
+   const fb=(await getDocs(query(collection(db,"feedback"),where("uid","==",u)))).docs;for(const x of fb)await deleteDoc(x.ref).catch(()=>{});
+   for(const d of ms)await updateDoc(d.ref,{status:"withdrawn",withdrawnAt:serverTimestamp(),displayName:"탈퇴한 회원",photoURL:""}).catch(()=>{});
+   await deleteDoc(doc(db,"users",u));await IDB.clear();try{localStorage.clear();sessionStorage.clear()}catch(e){}
+   await deleteUser(auth.currentUser);pop("계정을 삭제했어요. 그동안 이용해 주셔서 고마워요.")}catch(e){pop("계정을 삭제하지 못했어요. 잠시 후 다시 시도하거나 개인정보처리방침의 이메일로 요청해 주세요.")}},
 async savePerm(){try{await updateDoc(doc(db,"clubs",S.cur.id),{permissions:S.perm});S.cur.permissions=JSON.parse(JSON.stringify(S.perm));toast("저장했어요")}catch(e){pop("저장하지 못했습니다.")}},
 async setWriter(){const v=$("#dw").value,c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawWriterId:v},{merge:true});A.toClub()}catch(e){pop("지정하지 못했습니다.")}},
 msheet(el){S.ms=el.dataset.id;S.still=1;render();S.still=0},

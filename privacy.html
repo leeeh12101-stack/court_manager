@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개인정보처리방침 · Court Manager</title>
+<style>
+body{margin:0;background:#F6F7F5;color:#202522;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+main{max-width:720px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:24px;color:#174A43;margin:0 0 4px}h2{font-size:17px;color:#174A43;margin:28px 0 8px}
+.sub{color:#747A76;font-size:13px}table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;font-size:14px}
+td,th{border-bottom:1px solid #E3E6E3;padding:9px 10px;text-align:left;vertical-align:top}th{background:#EEF2EF;width:30%}
+.box{background:#fff;border:1px solid #E3E6E3;border-radius:12px;padding:12px 16px}a{color:#174A43}
+</style>
+</head>
+<body><main>
+<h1>개인정보처리방침</h1>
+<div class="sub">Court Manager · 시행일 2026년 10월 4일</div>
+
+<p>Court Manager(이하 "앱")는 테니스 클럽 운영과 개인 경기 기록을 돕는 서비스입니다. 앱은 서비스 제공에 꼭 필요한 정보만 처리하며, 이 방침은 어떤 정보를 왜, 얼마나 보관하는지 설명합니다.</p>
+
+<h2>1. 처리하는 정보</h2>
+<table>
+<tr><th>계정 정보</th><td>구글 로그인 시 받는 이름, 이메일 주소, 프로필 사진 주소, 계정 식별값</td></tr>
+<tr><th>프로필</th><td>앱에서 정한 이름, 성별(선택), 복식 선호 포지션(선택), 앱 설정</td></tr>
+<tr><th>클럽 정보</th><td>가입한 클럽, 클럽 활동명, 역할, 선호 포지션, Tier, 참석 응답과 도착 체크, 대진과 경기 결과</td></tr>
+<tr><th>개인 기록</th><td>직접 입력하거나 엑셀로 가져온 경기 기록, 함께 경기한 사람의 이름과 메모</td></tr>
+<tr><th>사진</th><td>"사진으로 입력" 기능을 쓸 때 고른 사진(경기 결과, 대진표, 회원 명단)</td></tr>
+<tr><th>의견</th><td>"의견 보내기"로 보낸 내용, 보낸 화면, 앱 버전, 기기 종류</td></tr>
+<tr><th>이용 기록</th><td>사진 인식 기능의 날짜별 이용 횟수</td></tr>
+</table>
+<p class="sub">클럽 관리자는 앱에 가입하지 않은 회원(오프라인 회원)의 이름과 선호 포지션을 클럽 명단에 등록할 수 있습니다. 이 정보는 해당 클럽의 운영 기록으로만 쓰입니다.</p>
+
+<h2>2. 이용 목적</h2>
+<p>로그인과 본인 확인, 클럽 운영(참석, 대진, 경기 결과, 통계), 개인 경기 기록과 통계, 사진 속 글자 인식, 오류 확인과 서비스 개선, 부정 이용 방지에 사용합니다. 광고나 마케팅에는 사용하지 않습니다.</p>
+
+<h2>3. 사진 처리</h2>
+<p>사진으로 입력할 때 고른 사진은 글자를 읽기 위해 Google의 AI 서비스(Firebase AI Logic, Gemini)로 전송됩니다. 앱은 사진 원본을 서버에 저장하지 않으며, 인식된 이름과 점수만 사용자가 확인한 뒤 저장됩니다. 최근 인식 결과는 다시 불러올 수 있도록 사용자의 기기에만 보관됩니다.</p>
+
+<h2>4. 처리를 맡기는 곳</h2>
+<table>
+<tr><th>Google (Firebase)</th><td>로그인(Authentication), 데이터 저장(Cloud Firestore), 사진 인식(AI Logic), 부정 이용 방지(App Check, reCAPTCHA)</td></tr>
+<tr><th>GitHub Pages</th><td>앱 화면 파일 제공</td></tr>
+</table>
+<p class="sub">데이터는 Google의 클라우드 서버(해외 포함)에 저장될 수 있으며, 각 회사의 개인정보 보호 기준에 따라 처리됩니다.</p>
+
+<h2>5. 보관 기간</h2>
+<p>계정을 삭제할 때까지 보관합니다. 클럽이 폐쇄되면 클럽 데이터는 90일간 보관된 뒤 대표 관리자가 완전히 삭제할 수 있습니다. 앱은 기록을 빠르게 보여주기 위해 사용자의 기기에도 사본을 저장하며, 이는 앱 데이터를 지우거나 계정을 삭제하면 함께 지워집니다.</p>
+
+<h2>6. 공유되는 범위</h2>
+<p>같은 클럽 회원끼리는 클럽 명단, 참석 응답, 대진, 경기 결과, 통계가 보입니다(Tier와 선호 포지션은 클럽 설정에 따라 다름). 개인 기록, 사람 메모, 보낸 의견은 본인만 볼 수 있습니다. 법령에 따른 요청이 있는 경우를 제외하고 제3자에게 제공하지 않습니다.</p>
+
+<h2 id="delete">7. 계정과 데이터 삭제</h2>
+<div class="box">
+<p><b>앱에서 삭제</b>: 모드 선택 화면 아래의 <b>계정 삭제</b>를 누르면 개인 기록, 사람 메모, 보낸 의견, 프로필이 삭제되고 가입한 모든 클럽에서 탈퇴됩니다. 클럽 명단의 이름은 "탈퇴한 회원"으로 바뀝니다.</p>
+<p><b>이메일로 요청</b>: 앱을 쓸 수 없는 경우 아래 이메일로 로그인에 쓴 구글 이메일 주소와 함께 삭제를 요청하시면 확인 후 처리합니다.</p>
+<p class="sub" style="margin:0">클럽의 경기 결과와 대진은 다른 회원의 기록이기도 해서 클럽 운영 기록으로 남을 수 있습니다. 경기 기록 속 이름 삭제를 원하시면 해당 클럽 관리자나 아래 이메일로 요청해 주세요. 대표 관리자는 대표를 넘기거나 클럽을 폐쇄한 뒤 계정을 삭제할 수 있습니다.</p>
+</div>
+
+<h2>8. 이용자의 권리</h2>
+<p>언제든지 자신의 정보를 열람, 수정, 삭제할 수 있습니다. 개인 기록은 개인 설정의 <b>내 기록 내보내기</b>로 엑셀 파일로 받을 수 있습니다.</p>
+
+<h2>9. 만 14세 미만</h2>
+<p>앱은 만 14세 미만 아동을 대상으로 하지 않으며, 만 14세 미만은 가입하지 않도록 안내합니다.</p>
+
+<h2>10. 안전성 확보</h2>
+<p>데이터 접근은 Firebase 보안 규칙으로 본인과 같은 클럽 회원으로 제한하며, 앱 외부의 요청은 App Check로 차단합니다. 통신은 모두 암호화(HTTPS)됩니다.</p>
+
+<h2>11. 문의</h2>
+<p>개인정보 관련 문의와 삭제 요청: <a href="mailto:leeeh12101@gmail.com">leeeh12101@gmail.com</a></p>
+
+<h2>12. 변경</h2>
+<p>이 방침이 바뀌면 앱과 이 페이지에 시행일과 함께 알립니다.</p>
+</main></body>
+</html>
