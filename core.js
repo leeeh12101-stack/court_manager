@@ -1,0 +1,28 @@
+// Court Manager 순수 계산 모음 — 화면·Firebase와 무관해서 자동 테스트가 가능한 부분
+export const CAT=[["club","클럽"],["tour","대회"],["friendly","친선"],["etc","기타"]],CATN={club:"클럽",tour:"대회",friendly:"친선",etc:"기타"},MT={single:"단식",mens:"남복",womens:"여복",mixed:"혼복",doubles:"복식"},CT={clay:"클레이",turf:"인조잔디",hard:"하드"},KPRE={club:["정기모임","월례대회"],tour:[],friendly:[],etc:[]};
+export const STG=["예선 1","예선 2","32강","16강","8강","4강","결승"];
+export const dayDiff=(a,b)=>Math.abs((new Date(+b.slice(0,4),+b.slice(4,6)-1,+b.slice(6))-new Date(+a.slice(0,4),+a.slice(4,6)-1,+a.slice(6)))/864e5);
+export const POS={fore:"포",back:"백",either:"포or백"},DOW="일월화수목금토";
+export const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+export const XSYN=[["date",/^(날짜|일자|date|경기일)/],["opf",/상대.*포|상대포/],["opb",/상대.*백|상대백/],["sa",/^(내점수|득점|우리점수)/],["sb",/^(상대점수|실점)/],["pos",/포지션|사이드|position/],["order",/차수|순서|order/],["mtype",/형태|종목|type/],["court",/코트|surface/],["cat",/^(구분|분류|category|경기유형)/],["kind",/유형|등급|레벨|종류|부서|level/],["label",/클럽|대회|모임명|장소|club/],["partner",/파트너|짝|partner/],["opp",/상대/],["score",/스코어|점수|score/],["res",/승패|결과|result/],["note",/메모|비고|코멘트|note/]];
+export const XV={cat:[[/클럽|정기|번개|월례/,"club"],[/대회|오픈|tour/,"tour"],[/친선|교류|friend/,"friendly"],[/기타|etc/,"etc"]],court:[[/하드|hard/i,"hard"],[/클레이|앙투카|흙|clay/i,"clay"],[/인조|잔디|카펫|turf|grass/i,"turf"],[/^[-–]?$/,""]],mtype:[[/단식|single/i,"single"],[/남복|남자/,"mens"],[/여복|여자/,"womens"],[/혼복|혼합|mix/i,"mixed"],[/복식|double/i,"doubles"]],pos:[[/^(포|f|fore|듀스|deuce)/i,"fore"],[/^(백|b|back|애드|ad)/i,"back"],[/^[-–]?$/,"either"]],res:[[/^(승|w|win|o|○)/i,"w"],[/^(패|l|lose|loss|x|×)/i,"l"],[/^(무|d|draw|△)/i,"d"]]};
+export const XO={cat:CAT,court:[["","–"],["clay","클레이"],["turf","인조잔디"],["hard","하드"]],mtype:Object.entries(MT),pos:[["fore","포"],["back","백"],["either","–"]],res:[["w","승"],["l","패"],["d","무"]]},XN={cat:"경기 유형",court:"코트",mtype:"경기형태",pos:"내 포지션",res:"승패"};
+export const xn=h=>String(h||"").replace(/[\s_\/()·.\-]/g,"").toLowerCase();
+export const xStage=v=>{v=String(v).trim();const t=[[/^(sf|semi)|준결승|(^|\D)4강/i,"4강"],[/^(f|final)$|(^|[^준])결승/i,"결승"],[/^(qf|quarter)|(^|\D)8강/i,"8강"],[/^r?16$|(^|\D)16강/i,"16강"],[/^r?32$|(^|\D)32강/i,"32강"],[/예선\s*1|^q1$/i,"예선 1"],[/예선\s*2|^q2$/i,"예선 2"]].find(([re])=>re.test(v));return t?t[1]:v};
+export const xDate=v=>{v=String(v).trim();let m,y,mo,d,ny=0;if(/^\d{5}$/.test(v)){const t=new Date(Date.UTC(1899,11,30)+(+v)*864e5);y=t.getUTCFullYear();mo=t.getUTCMonth()+1;d=t.getUTCDate()}
+ else if(m=v.match(/^(\d{2,4})\s*[-.\/년]\s*(\d{1,2})\s*[-.\/월]\s*(\d{1,2})/)){y=+m[1];if(y<100)y+=2000;mo=+m[2];d=+m[3]}else if(m=v.match(/^(\d{1,2})\s*[-.\/월]\s*(\d{1,2})/)){y=new Date().getFullYear();mo=+m[1];d=+m[2];ny=1}else return null;
+ if(mo<1||mo>12||d<1||d>31)return null;return{d:`${y}${String(mo).padStart(2,"0")}${String(d).padStart(2,"0")}`,ny}};
+export const hsh=t=>{let h=0;for(const ch of t)h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)},clean=d=>{const x={...d};for(const k in x)if(x[k]&&typeof x[k].toMillis==="function")x[k]=x[k].toMillis();return x};
+export const ymdD=d=>d?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6)}`:"",PSL=p=>p==="fore"?"포":p==="back"?"백":"",tsD=x=>x&&x.toDate?x.toDate().toLocaleDateString("ko-KR"):x?new Date(x).toLocaleDateString("ko-KR"):"";
+export const xvalDef=(d,raw)=>{raw=String(raw).trim();const r=(XV[d]||[]).find(([re])=>re.test(raw));return r?r[1]:undefined};
+export function findHeader(rows){let hi=0,best=-1;rows.slice(0,10).forEach((r,i)=>{const sc=r.filter(h=>XSYN.some(([,re])=>re.test(xn(h)))).length;if(sc>best){best=sc;hi=i}});return hi}
+export function detectCols(hdrs,saved={}){const used=new Set();return hdrs.map(h=>{const n=xn(h);if(!n)return"";let f=saved[n];if(f===undefined){const m=XSYN.find(([fd,re])=>re.test(n)&&(fd==="opp"||!used.has(fd)));f=m?m[0]:""}if(f&&f!=="opp"&&f!=="extra"){if(used.has(f))f="";else used.add(f)}return f})}
+export function pickTeams(four,pc,oc,tl,tierOn){const [a,b,c,d]=four,K=(x,y)=>x<y?x+"|"+y:y+"|"+x,
+ sc=([A,B])=>{let v=(pc[K(A[0].k,A[1].k)]||0)*10+(pc[K(B[0].k,B[1].k)]||0)*10;A.forEach(p=>B.forEach(q=>v+=(oc[K(p.k,q.k)]||0)*4));[A,B].forEach(t=>{if(t[0].p===t[1].p&&t[0].p!=="either")v+=8});if(tierOn)v+=Math.abs(tl(A[0])+tl(A[1])-tl(B[0])-tl(B[1]))*5;return v};
+ return[[[a,b],[c,d]],[[a,c],[b,d]],[[a,d],[b,c]]].sort((x1,x2)=>sc(x1)-sc(x2))[0]}
+export function mergeDocs(c,list,rep,keep){if(rep)c.docs={};list.forEach(r=>{const x=clean(r);if(x.deleted||(keep&&!keep(x)))delete c.docs[x._id];else c.docs[x._id]=x;c.last=Math.max(c.last,typeof x.updatedAt==="number"?x.updatedAt:0)});return c}
+export function tourResults(gs,pres){const t=gs.filter(g=>g.cat==="tour"&&g.label).sort((a,b)=>a.date.localeCompare(b.date)),cl=[];t.forEach(g=>{const c=cl.find(x=>x.label===g.label&&dayDiff(x.last,g.date)<=3);if(c){c.gs.push(g);c.last=g.date}else cl.push({label:g.label,first:g.date,last:g.date,gs:[g]})});
+ const rk=s=>{const i=STG.indexOf(s);return i<0?-1:i},NX={"32강":"16강","16강":"8강","8강":"4강","4강":"결승"};
+ return cl.reverse().map(c=>{const z=[...c.gs].sort((a,b)=>rk(a.stage)-rk(b.stage)||a.date.localeCompare(b.date)),L=z[z.length-1],r=pres(L),st=L.stage||"",k=c.gs.find(g=>g.kind);let result,tone;
+  if(st==="결승"){result=r==="w"?"우승":"준우승";tone=r==="w"?"gold":"tint"}else if(!st){result=`${c.gs.length}경기`;tone="gray"}else if(st.startsWith("예선")){result=r==="l"?"예선":"예선 통과";tone="gray"}else if(r==="l"){result=st;tone="gray"}else{result=NX[st]==="결승"?"결승 진출":(NX[st]||st);tone="tint"}
+  return{label:c.label,first:c.first,kind:k?k.kind:"",result,tone}})}
