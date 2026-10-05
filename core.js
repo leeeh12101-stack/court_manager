@@ -62,3 +62,5 @@ export function findDups(pg,keep=[]){const nm=x=>xn(x||""),ppl=g=>({pa:(g.t1||[]
    const a=all(o),b=all(c),same=a.filter(x=>b.includes(x)).length;if(a.length>=2&&same>=a.length-1&&!hit){hit=c;kind="maybe"}}
   if(hit){used.add(hit.clubGameId);(kind==="sure"?sure:maybe).push([o,hit])}}
  return{sure,maybe}}
+// 오늘 모임의 단계: before(모임 전) / during(진행 중) / after(종료 후). 오늘이 아니면 before
+export function mPhase(m,start,end,now){if(!m||!m.today)return"before";if(m.ended)return"after";const t=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");return t<start?"before":t<end?"during":"after"}
