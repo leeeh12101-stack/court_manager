@@ -101,6 +101,14 @@ eq("겹침: 확정(띄어쓰기·순서 무시)", DP.sure.map(([o, c]) => o.docI
 eq("겹침: 점수 다름·한 명 다름은 비슷한 경기", DP.maybe.map(([o, c]) => o.docId + "=" + c.clubGameId), ["o2=g2", "o3=g3"]);
 eq("겹침: 둘 다 두기로 고른 건 제외", C.findDups(PG, ["o1"]).sure.length, 0);
 
+// ---------- 오늘 모임 단계
+const T0 = (h, mi) => new Date(2026, 9, 5, h, mi);
+eq("단계: 시작 전", C.mPhase({ today: true }, "13:00", "16:00", T0(12, 59)), "before");
+eq("단계: 진행 중", C.mPhase({ today: true }, "13:00", "16:00", T0(13, 0)), "during");
+eq("단계: 종료 후", C.mPhase({ today: true }, "13:00", "16:00", T0(16, 0)), "after");
+eq("단계: 일찍 종료", C.mPhase({ today: true, ended: true }, "13:00", "16:00", T0(14, 0)), "after");
+eq("단계: 오늘이 아니면 모임 전", C.mPhase({ today: false }, "13:00", "16:00", T0(20, 0)), "before");
+
 // ---------- 명단 붙여넣기
 eq("명단: 쉼표·줄바꿈", C.parseNames("김민지, 이수진\n박서연"), ["김민지", "이수진", "박서연"]);
 eq("명단: 띄어쓰기로 나열", C.parseNames("김민지 이수진 박서연"), ["김민지", "이수진", "박서연"]);
