@@ -64,3 +64,8 @@ export function findDups(pg,keep=[]){const nm=x=>xn(x||""),ppl=g=>({pa:(g.t1||[]
  return{sure,maybe}}
 // 오늘 모임의 단계: before(모임 전) / during(진행 중) / after(종료 후). 오늘이 아니면 before
 export function mPhase(m,start,end,now){if(!m||!m.today)return"before";if(m.ended)return"after";const t=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");return t<start?"before":t<end?"during":"after"}
+// 명단에 없는 이름과 비슷한 회원 이름 찾기(띄어쓰기·대소문자 무시, 한 글자 차이, 끝부분 일치). 후보가 둘 이상 비슷하면 빈 값
+const lev=(a,b)=>{const d=Array.from({length:a.length+1},(_,i)=>[i,...Array(b.length).fill(0)]);for(let j=1;j<=b.length;j++)d[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length]};
+export function simName(n,names){const a=xn(n);if(!a)return"";const ex=names.filter(m=>xn(m)===a&&m!==n);if(ex.length===1)return ex[0];if(ex.length>1)return"";
+ const sc=names.filter(m=>m!==n).map(m=>{const b=xn(m);let d=lev(a,b);if(Math.min(a.length,b.length)>=2&&(b.endsWith(a)||a.endsWith(b)))d=Math.min(d,1);return[m,d,b.length]}).filter(([,d,l])=>d<=1&&l>=2&&a.length>=2);
+ return sc.length===1?sc[0][0]:""}
