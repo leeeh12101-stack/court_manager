@@ -32,11 +32,12 @@ service cloud.firestore {
           && (resource.data.primaryAdminId == me()
               || (request.resource.data.get('status', 'open') == 'open' && request.resource.data.primaryAdminId == resource.data.primaryAdminId)))
         || (isAdmin(c) && resource.data.primaryAdminId == me() && resource.data.get('status', 'open') == 'closed' && request.resource.data.get('status', 'open') == 'open')
-        || (resource.data.get('status', 'open') == 'open' && can(c, 'schedule', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['regularDays','regularStartTime','regularEndTime','regularCourtCount','roundInterval','noPlayEnabled','mode','qrule','monthly']))
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'schedule', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['regularDays','regularStartTime','regularEndTime','regularCourtCount','roundInterval','noPlayEnabled','mode','qrule','monthly','schedType','schedM']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'tiers', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tierEnabled','tiers']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'stats', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statsOff']))
-        || (resource.data.get('status', 'open') == 'open' && can(c, 'meeting', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mtgOverride','mdays']))
-        || (resource.data.get('status', 'open') == 'open' && can(c, 'notice', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notice']));
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'meeting', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mtgOverride','mdays','sched']))
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'notice', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notice']))
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'result', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gOk']));
       allow delete: if closedPrimary(c);
     }
 
