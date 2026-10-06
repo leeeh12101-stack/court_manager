@@ -74,3 +74,9 @@ export function groupRounds(gs){const isQ=g=>g.source==="queue"||/_q\d+$/.test(g
  for(const g of gs||[]){if(isQ(g))Q.push(g);else if(+g.round>0){const n=+g.round;if(!R.has(n))R.set(n,[]);R.get(n).push(g)}else X.push(g)}
  const out=[...R.keys()].sort((a,b)=>a-b).map(n=>({k:"r",n,gs:R.get(n).sort((a,b)=>(a.court||0)-(b.court||0))}));
  if(Q.length)out.push({k:"q",n:0,gs:Q.sort((a,b)=>(a.round||0)-(b.round||0))});if(X.length)out.push({k:"x",n:0,gs:X});return out}
+// 여러 경기 이름 겹침: self=한 경기 안 중복(경기 번호), cross=여러 경기에 들어간 사람, old=이미 저장된 경기(saved)에 있는 사람. 띄어쓰기·대소문자 무시
+export function dupNames(gs,saved=[]){const self=[],seen=new Map(),old=[];
+ (gs||[]).forEach((nm,i)=>{const ks=nm.map(n=>xn(n)).filter(Boolean);if(new Set(ks).size<ks.length)self.push(i);[...new Set(ks)].forEach(k=>{if(!seen.has(k))seen.set(k,{n:String(nm.find(x=>xn(x)===k)).trim(),gi:[]});seen.get(k).gi.push(i)})});
+ const cross=[...seen.values()].filter(v=>v.gi.length>1);
+ (saved||[]).forEach(s=>(s.nm||[]).forEach(n=>{const k=xn(n);if(k&&seen.has(k)&&!old.some(o=>o.k===k))old.push({k,n:seen.get(k).n,court:s.court||0})}));
+ return{self,cross,old:old.map(({n,court})=>({n,court}))}}
