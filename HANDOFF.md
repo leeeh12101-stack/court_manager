@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > 새 대화를 시작할 때 이 문서와 **최신 파일(`index.html`, `app.js`, `app.css`, `core.js`, `sw.js`, `firestore.rules`, `tests/` 폴더)**을 함께 올려 주세요.
-> 기준 시점: 2026-10-06 · **BUILD `1006-3`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-07 · **BUILD `1007-2`** · 버전 표기 `v0.1`
 
 ---
 
@@ -25,14 +25,14 @@
 | `firestore.rules` | 보안 규칙. 바꾸면 콘솔에 **게시** 필요 |
 | `sw.js` | 서비스 워커 `cm-v4`: 네트워크 우선, 3초 응답 없으면 저장본 |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
-| `tests/core.test.mjs` | core.js 테스트 119개 |
+| `tests/core.test.mjs` | core.js 테스트 132개 |
 | `tests/check.py` | **점검 한 번에 돌리기** |
 
 ## 3. 작업 규칙 (꼭 지킬 것)
 
 1. **수정 후 항상** `python3 tests/check.py` 실행 → `✅ 모두 통과` 확인 후 전달.
    - 문법 / core 테스트 / 정의되지 않은 이름(TypeScript) / 버튼 연결·**이름표 겹침**·화면·뒤로가기
-2. **BUILD 번호를 매번 올리기**: `app.js`의 `BUILD="MMDD-n"`. 모드 선택 화면 맨 아래 `테스트 버전 v0.1 · 1006-3`로 보여서, 사용자가 새 파일이 실행 중인지 확인함.
+2. **BUILD 번호를 매번 올리기**: `app.js`의 `BUILD="MMDD-n"`. 모드 선택 화면 맨 아래 `테스트 버전 v0.1 · 1007-2`로 보여서, 사용자가 새 파일이 실행 중인지 확인함.
 3. **core.js에 export를 추가하면** `app.js` 첫머리의 `import {…} from "./core.js"` 목록을 다시 만들기:
    `node -e 'import("./core.js").then(m=>{const k=Object.keys(m).sort(),fs=require("fs");let a=fs.readFileSync("app.js","utf8");a=a.replace(/import \{[^}]*\} from "\.\/core\.js";/,"import {"+k.join(",")+"} from \"./core.js\";");fs.writeFileSync("app.js",a)})'`
 4. **이름표(data-*) 겹침 주의**: 클릭 처리에서 특별 분기하는 속성 `np ep pn ps pt lk nt sk st2 pr xv pk fl sc pm pu r d`는 **새 요소에 쓰지 말 것**(과거 3번 버그). 날짜는 `data-dk`, 접는 칸은 `data-sec`를 씀.
@@ -51,6 +51,9 @@
 - 경기 `round`: 대진=회차, 순번제=경기 순서, 직접·사진=0 또는 입력 화면에서 고른 회차. 대진 칸에서 온 경기는 회차 고정, 순번제는 회차 칸 숨김. 수정해도 `source` 유지.
 - 경기 추가(새 입력)는 같은 날짜·회차로 **경기 카드 여러 개**(코트 선택, 최대 max(6, 코트 수)) → writeBatch 한 번에 저장. 입력 칸 id는 `gn{카드}_{자리}`, `sa{카드}`/`sb{카드}`, `gc{카드}`.
 - 이름 겹침 `dupNames`(core.js) + `dupOK`(app.js): 같은 회차 여러 경기=막기, 같은 날·같은 회차 저장된 경기=묻기, 회차 없음=직접 입력만 묻기(사진은 건너뜀). 사진 입력(클럽)도 회차 고르기.
+- 통계·회원 상세·페어는 `gNorm()`(이름→회원 키 `ck` 적용)으로 계산. 게스트 키(`g:이름`)로 저장됐지만 지금 회원 이름과 같은 경기는 경기 탭 '회원과 연결 안 된 경기' 카드 → `gLink`로 t1·t2·pk를 회원 키로 일괄 수정.
+- **배지**(저장 안 하고 계산): core `badges()`·`pTable()`·`topK()`(동률: 값→승→패 적은→득실, 완전 동률 공동). 일별=최다승(월례대회 날 표시), 월·분기·연=출석왕·최다 경기·최다승·승률왕(최소 5/10/20경기)·연승왕·베스트 페어(최소 3/5/10). 꺼 둔 통계 항목은 배지 없음. 통계 1위 옆 표시(진행 중 기간은 '현재 1위'), 회원 상세 '받은 배지'(끝난 기간만, 연·분기는 개별, 월·일은 개수로 묶음, 5개 넘으면 +n, 전체 보기), 오늘 탭 결과 요약에 오늘의 최다승. app은 `allBadges()`(메모)·`bdBlock(k)`.
+- **순위 공개** `clubs.rankShow{m:all|top|hide,n}`: 회원은 상위 n명만/하위 n명 가림(1위는 항상), 내 순위는 맨 아래 한 줄. 통계 권한자는 전체. 규칙의 stats 권한 항목에 `rankShow` 추가.
 - 클럽 경기 저장 시 `pk`(참여 선수 키 배열), `mtype`, 선수별 성별 `g`, `gx:1`.
 - 이름 → 회원 연결: 경기 저장 시 활동명과 **정확히 같으면** 회원 키, 아니면 게스트 `g:이름`. 통계(`canon`)는 **띄어쓰기 차이는 같은 회원**으로 봄. 경기 입력 칸에 `게스트` 표시, 저장 시 비슷한 이름 확인(`simName`), 경기 탭 점선 표시와 정리 화면(`gfix`).
 - 사진 AI: `gemini-3.5-flash-lite` 먼저 → 빈 결과·붐빔·한도·모델 없음이면 `gemini-3.5-flash`. 한도 초과 시 재시도 안 함. 화면 아래 경과 시간 표시(`#aist`). 이미지 1280px·품질 0.8. 사용 제한: 계정 하루 2회, 클럽 하루 5회(+대진 사진 클럽 하루 1회).
@@ -59,7 +62,7 @@
 
 컬렉션: `users, clubs, clubMembers, clubPrivate, inviteCodes, clubApplications, sessions, sessionParticipants, games, personalGames, personalPeople, aiUsage, aiDrawUsage, queues, feedback`
 
-**clubs 주요 필드**: `mode`(round/queue/record), `qrule`, `schedType`(weekly/monthly/none), `schedM{week,dow}`, `regularDays`, 시간·코트, `noPlayEnabled`, `monthly{on,week,dow}`(월례대회 자동, 매주 클럽만), `mdays{yyyymmdd:bool}`, **`sched{yyyymmdd:{start,end,courts,title,memo,deadline,off,closed,ended}}`**(추가 모임·날짜별 변경·취소·응답 마감·모임 종료), `mtgOverride`(예전 방식, 호환 유지), `genderMode`(m/f/mixed), `memberView{tier,pos,gender}`, `tierEnabled`, `tiers`, `permissions`, `notice`, `gOk`(게스트로 인정한 이름), `lastBackupAt`, `visibility`, `joinMethod`.
+**clubs 주요 필드**: `rankShow`, `mode`(round/queue/record), `qrule`, `schedType`(weekly/monthly/none), `schedM{week,dow}`, `regularDays`, 시간·코트, `noPlayEnabled`, `monthly{on,week,dow}`(월례대회 자동, 매주 클럽만), `mdays{yyyymmdd:bool}`, **`sched{yyyymmdd:{start,end,courts,title,memo,deadline,off,closed,ended}}`**(추가 모임·날짜별 변경·취소·응답 마감·모임 종료), `mtgOverride`(예전 방식, 호환 유지), `genderMode`(m/f/mixed), `memberView{tier,pos,gender}`, `tierEnabled`, `tiers`, `permissions`, `notice`, `gOk`(게스트로 인정한 이름), `lastBackupAt`, `visibility`, `joinMethod`.
 **clubMembers**: `displayName, role, status, defaultPosition, tierId, gender, uid 또는 oid(미가입)`.
 **users**: `name, gender, dpos, sync, syncAsked, opts, hide, xlmap, imports, dupKeep`.
 **personalGames**: 직접 기록 + 클럽 경기 덧붙임(id `${uid}_${gameId}`: kind·court·mtype·note).

@@ -182,5 +182,34 @@ eq("회차: 순번제 순서는 회차가 아님(경기 순서대로)", RG.map(x
 eq("회차: 회차 정보 없으면 한 묶음", C.groupRounds([GR("a", 0, 0), GR("b", undefined, 0)]).map(x => x.k), ["x"]);
 eq("회차: 빈 목록", C.groupRounds([]), []);
 
+// ---------- 여러 경기 이름 겹침
+let DN = C.dupNames([["김민지", "이수진", "박서연", "최지현"], ["김 민지", "A", "B", "C"], ["D", "E", "D", "F"]]);
+eq("겹침: 한 경기 안 중복", DN.self, [2]);
+eq("겹침: 여러 경기에 같은 사람(띄어쓰기 무시)", DN.cross.map(c => c.n + ":" + c.gi.join(",")), ["김민지:0,1"]);
+DN = C.dupNames([["김민지", "이수진", "박서연", "최지현"]], [{ nm: ["이수진", "X", "Y", "Z"], court: 2 }, { nm: ["이수진", "P", "Q", "R"], court: 3 }]);
+eq("겹침: 이미 저장된 경기(한 번만)", DN.old, [{ n: "이수진", court: 2 }]);
+eq("겹침: 없음", C.dupNames([["a", "b", "c", "d"], ["e", "f", "g", "h"]]), { self: [], cross: [], old: [] });
+
+// ---------- 배지
+const BG = (date, round, court, a, b, A, B) => ({ date, round, court, t1: A.map(k => ({ k, n: k })), t2: B.map(k => ({ k, n: k })), scoreA: a, scoreB: b });
+const BGS = [BG("20260905", 1, 1, 6, 2, ["a", "b"], ["c", "d"]), BG("20260905", 2, 1, 6, 3, ["a", "c"], ["b", "d"]), BG("20260905", 3, 1, 2, 6, ["a", "d"], ["b", "c"]),
+  BG("20260912", 1, 1, 6, 4, ["b", "c"], ["a", "g:손님"]), BG("20260912", 2, 1, 6, 0, ["b", "d"], ["a", "c"])];
+let TB = C.pTable(BGS.filter(g => g.date === "20260905"));
+eq("성적표: a 2승1패, 득실 +3", [TB.P.a.w, TB.P.a.l, TB.P.a.df], [2, 1, 3]);
+eq("성적표: 게스트 제외·페어", [Object.keys(C.pTable(BGS).P).sort(), C.pTable(BGS).PR["a|b"].g], [["a", "b", "c", "d"], 1]);
+eq("1위: 동률이면 승→패→득실로", C.topK([{ k: "x", x: 3, w: 3, l: 1, df: 5 }, { k: "y", x: 3, w: 3, l: 1, df: 8 }]).map(r => r.k), ["y"]);
+eq("1위: 완전 동률은 공동", C.topK([{ k: "x", x: 2 }, { k: "y", x: 2 }, { k: "z", x: 1 }]).map(r => r.k), ["x", "y"]);
+eq("1위: 0이면 없음", C.topK([{ k: "x", x: 0 }]), []);
+let BD = C.badges(BGS, [{ k: "a", date: "20260905" }, { k: "a", date: "20260912" }, { k: "b", date: "20260905" }], { isMon: d => d === "20260912" });
+const bf = (t, per, pk) => BD.filter(b => b.t === t && b.per === per && b.pk === pk).map(b => b.k).sort();
+eq("배지: 9/5 최다승(a·b 2승1패, 득실 +5인 b)", bf("mw", "d", "20260905"), ["b"]);
+eq("배지: 9/12 최다승(월례 표시)", [bf("mw", "d", "20260912"), BD.find(b => b.pk === "20260912").mon], [["b"], true]);
+eq("배지: 9월 출석왕", bf("att", "m", "202609"), ["a"]);
+eq("배지: 9월 최다승 b(4승)", bf("mw", "m", "202609"), ["b"]);
+eq("배지: 승률왕(5경기 이상 중 b 4승1패)", bf("win", "m", "202609"), ["b"]);
+eq("배지: 5경기 미만은 승률왕 제외", C.badges(BGS.slice(0, 3)).some(b => b.t === "win"), false);
+eq("배지: 분기·연 키", [C.perKey("q", "20260905"), C.perKey("y", "20260905")], ["2026Q3", "2026"]);
+eq("배지: 꺼 둔 항목은 없음", C.badges(BGS, [], { off: ["mw"] }).some(b => b.t === "mw"), false);
+
 console.log(`\n${fail ? "❌" : "✅"} 통과 ${pass} · 실패 ${fail}`);
 if (fail) process.exit(1);

@@ -80,3 +80,26 @@ export function dupNames(gs,saved=[]){const self=[],seen=new Map(),old=[];
  const cross=[...seen.values()].filter(v=>v.gi.length>1);
  (saved||[]).forEach(s=>(s.nm||[]).forEach(n=>{const k=xn(n);if(k&&seen.has(k)&&!old.some(o=>o.k===k))old.push({k,n:seen.get(k).n,court:s.court||0})}));
  return{self,cross,old:old.map(({n,court})=>({n,court}))}}
+// 선수·페어 성적표(날짜·회차·코트 순으로 연승 계산). 게스트(g:)는 제외, 점수 없는 경기 제외
+export function pTable(gs){const P={},PR={};
+ [...(gs||[])].sort((a,b)=>a.date.localeCompare(b.date)||(a.round||0)-(b.round||0)||(a.court||0)-(b.court||0)).forEach(g=>{if(g.scoreA==null||g.scoreB==null)return;const r=g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0;
+  [[g.t1,1,g.scoreA-g.scoreB],[g.t2,2,g.scoreB-g.scoreA]].forEach(([tm,sd,df])=>{const res=r===0?"d":r===sd?"w":"l",mem=(tm||[]).filter(p=>p&&p.k&&!p.k.startsWith("g:"));
+   mem.forEach(p=>{const o=P[p.k]=P[p.k]||{k:p.k,n:p.n,g:0,w:0,d:0,l:0,df:0,cur:0,max:0};o.g++;o[res]++;o.df+=df;if(res==="w"){o.cur++;o.max=Math.max(o.max,o.cur)}else o.cur=0});
+   if(mem.length===2){const s=[...mem].sort((a,b)=>a.k<b.k?-1:1),k=s.map(p=>p.k).join("|"),o=PR[k]=PR[k]||{key:k,ks:s.map(p=>p.k),ns:s.map(p=>p.n),g:0,w:0,d:0,l:0,df:0};o.g++;o[res]++;o.df+=df}})});
+ return{P,PR}}
+// 순위 비교: 값(x) → 승 많은 → 패 적은 → 득실차
+export const rankCmp=(a,b)=>(b.x-a.x)||((b.w||0)-(a.w||0))||((a.l||0)-(b.l||0))||((b.df||0)-(a.df||0));
+// 1위(동률이면 공동). 값이 0 이하면 없음
+export function topK(rows){const s=[...(rows||[])].sort(rankCmp);if(!s.length||!(s[0].x>0))return[];return s.filter(r=>rankCmp(r,s[0])===0)}
+export const rate=o=>o.w+o.l?o.w/(o.w+o.l):0;
+export const BMIN={win:{m:5,q:10,y:20},pr:{m:3,q:5,y:10}};
+export const perKey=(per,d)=>per==="d"?d:per==="m"?d.slice(0,6):per==="q"?d.slice(0,4)+"Q"+Math.ceil(+d.slice(4,6)/3):d.slice(0,4);
+// 배지 목록: 일별=최다승, 월·분기·연=출석왕·최다 경기·최다승·승률왕·연승왕·베스트 페어. att=[{k,date}]
+export function badges(gs,att=[],o={}){const off=o.off||[],out=[],grp=(L,f)=>{const G={};L.forEach(x=>{const k=f(x.date);(G[k]=G[k]||[]).push(x)});return G};
+ if(!off.includes("mw"))for(const [dk,L] of Object.entries(grp(gs||[],d=>d))){topK(Object.values(pTable(L).P).map(p=>({...p,x:p.w}))).forEach(r=>out.push({k:r.k,t:"mw",per:"d",pk:dk,mon:!!(o.isMon&&o.isMon(dk))}))}
+ for(const per of ["m","q","y"]){const GG=grp(gs||[],d=>perKey(per,d)),GA=grp(att||[],d=>perKey(per,d));
+  for(const pk of new Set([...Object.keys(GG),...Object.keys(GA)])){const {P,PR}=pTable(GG[pk]||[]),V=Object.values(P),add=(t,rows)=>{if(!off.includes(t))topK(rows).forEach(r=>out.push({k:r.k,t,per,pk}))};
+   const ac={};(GA[pk]||[]).forEach(a=>ac[a.k]=(ac[a.k]||0)+1);add("att",Object.entries(ac).map(([k,c])=>({k,x:c})));
+   add("gm",V.map(p=>({...p,x:p.g})));add("mw",V.map(p=>({...p,x:p.w})));add("win",V.filter(p=>p.g>=BMIN.win[per]).map(p=>({...p,x:rate(p)})));add("st",V.map(p=>({...p,x:p.max})));
+   if(!off.includes("pr"))topK(Object.values(PR).filter(p=>p.g>=BMIN.pr[per]).map(p=>({...p,x:rate(p)}))).forEach(r=>r.ks.forEach((k,i)=>out.push({k,t:"pr",per,pk,with:r.ks[1-i]})))}}
+ return out}
