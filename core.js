@@ -69,3 +69,8 @@ const lev=(a,b)=>{const d=Array.from({length:a.length+1},(_,i)=>[i,...Array(b.le
 export function simName(n,names){const a=xn(n);if(!a)return"";const ex=names.filter(m=>xn(m)===a&&m!==n);if(ex.length===1)return ex[0];if(ex.length>1)return"";
  const sc=names.filter(m=>m!==n).map(m=>{const b=xn(m);let d=lev(a,b);if(Math.min(a.length,b.length)>=2&&(b.endsWith(a)||a.endsWith(b)))d=Math.min(d,1);return[m,d,b.length]}).filter(([,d,l])=>d<=1&&l>=2&&a.length>=2);
  return sc.length===1?sc[0][0]:""}
+// 하루 경기 기록을 회차별로 묶기: r=대진 회차(1회차부터, 코트순) / q=순번제(경기 순서) / x=회차 없음(기타)
+export function groupRounds(gs){const isQ=g=>g.source==="queue"||/_q\d+$/.test(g.id||""),R=new Map(),Q=[],X=[];
+ for(const g of gs||[]){if(isQ(g))Q.push(g);else if(+g.round>0){const n=+g.round;if(!R.has(n))R.set(n,[]);R.get(n).push(g)}else X.push(g)}
+ const out=[...R.keys()].sort((a,b)=>a-b).map(n=>({k:"r",n,gs:R.get(n).sort((a,b)=>(a.court||0)-(b.court||0))}));
+ if(Q.length)out.push({k:"q",n:0,gs:Q.sort((a,b)=>(a.round||0)-(b.round||0))});if(X.length)out.push({k:"x",n:0,gs:X});return out}
