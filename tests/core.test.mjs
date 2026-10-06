@@ -173,5 +173,14 @@ eq("대회 성적", R.map(r => `${r.label}:${r.result}`), ["A오픈:예선", "C�
 const days = new Set(Array.from({ length: 40 }, (_, i) => 15 + C.hsh(`uid${i}_cg_club${i * 7}`) % 30));
 eq("갱신 날짜 분산(40개 키 → 10일 이상에 흩어짐)", days.size >= 10, true);
 
+// ---------- 기록 회차 묶기
+const GR = (id, round, court, source) => ({ id, round, court, source });
+let RG = C.groupRounds([GR("a", 2, 1), GR("b", 1, 2), GR("c", 1, 1), GR("d", 0, 0, "photo"), GR("e", 2, 2, "draw")]);
+eq("회차: 1회차부터, 회차 안은 코트순, 회차 없음은 기타로", RG.map(x => x.k + x.n + ":" + x.gs.map(g => g.id).join("")), ["r1:cb", "r2:ae", "x0:d"]);
+RG = C.groupRounds([GR("k_20261004_q3", 3, 1, "queue"), GR("k_20261004_q1", 1, 2, "queue")]);
+eq("회차: 순번제 순서는 회차가 아님(경기 순서대로)", RG.map(x => x.k + ":" + x.gs.map(g => g.round).join(",")), ["q:1,3"]);
+eq("회차: 회차 정보 없으면 한 묶음", C.groupRounds([GR("a", 0, 0), GR("b", undefined, 0)]).map(x => x.k), ["x"]);
+eq("회차: 빈 목록", C.groupRounds([]), []);
+
 console.log(`\n${fail ? "❌" : "✅"} 통과 ${pass} · 실패 ${fail}`);
 if (fail) process.exit(1);
