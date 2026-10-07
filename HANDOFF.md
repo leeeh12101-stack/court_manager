@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > 새 대화를 시작할 때 이 문서와 **최신 파일(`index.html`, `app.js`, `app.css`, `core.js`, `sw.js`, `firestore.rules`, `tests/` 폴더)**을 함께 올려 주세요.
-> 기준 시점: 2026-10-08 · **BUILD `1008-1`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-08 · **BUILD `1008-2`** · 버전 표기 `v0.1`
 
 ---
 
@@ -25,14 +25,14 @@
 | `firestore.rules` | 보안 규칙. 바꾸면 콘솔에 **게시** 필요 |
 | `sw.js` | 서비스 워커 `cm-v4`: 네트워크 우선, 3초 응답 없으면 저장본 |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
-| `tests/core.test.mjs` | core.js 테스트 137개 |
+| `tests/core.test.mjs` | core.js 테스트 138개 |
 | `tests/check.py` | **점검 한 번에 돌리기** |
 
 ## 3. 작업 규칙 (꼭 지킬 것)
 
 1. **수정 후 항상** `python3 tests/check.py` 실행 → `✅ 모두 통과` 확인 후 전달.
    - 문법 / core 테스트 / 정의되지 않은 이름(TypeScript) / 버튼 연결·**이름표 겹침**·화면·뒤로가기
-2. **BUILD 번호를 매번 올리기**: `app.js`의 `BUILD="MMDD-n"`. 모드 선택 화면 맨 아래 `테스트 버전 v0.1 · 1008-1`로 보여서, 사용자가 새 파일이 실행 중인지 확인함.
+2. **BUILD 번호를 매번 올리기**: `app.js`의 `BUILD="MMDD-n"`. 모드 선택 화면 맨 아래 `테스트 버전 v0.1 · 1008-2`로 보여서, 사용자가 새 파일이 실행 중인지 확인함.
 3. **core.js에 export를 추가하면** `app.js` 첫머리의 `import {…} from "./core.js"` 목록을 다시 만들기:
    `node -e 'import("./core.js").then(m=>{const k=Object.keys(m).sort(),fs=require("fs");let a=fs.readFileSync("app.js","utf8");a=a.replace(/import \{[^}]*\} from "\.\/core\.js";/,"import {"+k.join(",")+"} from \"./core.js\";");fs.writeFileSync("app.js",a)})'`
 4. **이름표(data-*) 겹침 주의**: 클릭 처리에서 특별 분기하는 속성 `np ep pn ps pt lk nt sk st2 pr xv pk fl sc pm pu r d`는 **새 요소에 쓰지 말 것**(과거 3번 버그). 날짜는 `data-dk`, 접는 칸은 `data-sec`를 씀.
@@ -59,6 +59,9 @@
 - 회원 탭 이름 → 누구나 전적 창(`msd`, 전체 기간, `S.sdAll`). 관리자·Tier 권한·본인은 창 안 '회원 관리' → 기존 회원 창(`msheet`). 회원 탭도 경기·출석 기록을 불러옴.
 - **연타 방지**: 클릭 처리에서 비동기 동작은 끝날 때까지 같은 동작 무시(`BUSY`, 버튼 비활성, 30초 안전 해제). 아래 창(.sh)은 안쪽(`data-keep`)을 누르면 닫히지 않음(모든 창 공통).
 - **같은 경기 확인**: core `sameGame()`(날짜·사람·점수, 띄어쓰기·순서 무시), 개인·클럽 새 경기 저장 시 묻기. 개인 홈에 `exactDups()`로 여러 번 저장된 경기 정리 카드(`xdupFix`, 그대로 두기는 `users.dupKeep`).
+- **로딩 규칙**: 첫 데이터 전에는 빈 상태 문구 대신 로딩 원. 클럽은 탭 첫 방문 시 `S.cready=false`(`S.tvis`), 개인은 `S.pready`(pLoad 끝에 1, `A.pReload`).
+- **아래 창 그리는 위치**: 전적 창(`sSheet`)은 clubHome, 상대 카드(`pmSheet`)는 personal 화면 맨 아래에서 그림(탭과 무관).
+- 개인: 홈 최근 5경기, 상대 카드(만난 경기 수·파트너/상대 따로·최근 경기·포지션별 접기·메모, 이름 띄어쓰기 무시), 경기 탭 보기 방식 `pgv`(전체/날짜별/클럽·대회별, core `groupLabel`).
 - 클럽 경기 저장 시 `pk`(참여 선수 키 배열), `mtype`, 선수별 성별 `g`, `gx:1`.
 - 이름 → 회원 연결: 경기 저장 시 활동명과 **정확히 같으면** 회원 키, 아니면 게스트 `g:이름`. 통계(`canon`)는 **띄어쓰기 차이는 같은 회원**으로 봄. 경기 입력 칸에 `게스트` 표시, 저장 시 비슷한 이름 확인(`simName`), 경기 탭 점선 표시와 정리 화면(`gfix`).
 - 사진 AI: `gemini-3.5-flash-lite` 먼저 → 빈 결과·붐빔·한도·모델 없음이면 `gemini-3.5-flash`. 한도 초과 시 재시도 안 함. 화면 아래 경과 시간 표시(`#aist`). 이미지 1280px·품질 0.8. 사용 제한: 계정 하루 2회, 클럽 하루 5회(+대진 사진 클럽 하루 1회).

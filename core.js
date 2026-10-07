@@ -110,3 +110,8 @@ export function sameGame(a,b,me){if(!a||!b||a.date!==b.date)return false;const s
 // 개인 기록 안에서 똑같이 여러 번 저장된 경기 묶음(직접 입력한 것만). keep=그대로 두기로 한 docId
 export function exactDups(pg,keep=[]){const own=(pg||[]).filter(g=>g.src==="own"&&!keep.includes(g.docId)),out=[],used=new Set();
  own.forEach((g,i)=>{if(used.has(i))return;const grp=[g];own.forEach((h,j)=>{if(j>i&&!used.has(j)&&sameGame(g,h,1)){grp.push(h);used.add(j)}});if(grp.length>1)out.push(grp)});return out}
+// 개인 경기 클럽·대회별 묶기: 대회는 같은 이름이라도 3일 넘게 떨어지면 다른 대회, 나머지는 이름(없으면 '기타')별. 최근 순
+export function groupLabel(gs){const out=[];
+ [...(gs||[])].filter(g=>g.cat==="tour"&&g.label).sort((a,b)=>a.date.localeCompare(b.date)).forEach(g=>{const c=out.find(x=>x.tour&&x.label===g.label&&dayDiff(x.last,g.date)<=3);if(c){c.gs.push(g);c.last=g.date}else out.push({tour:1,label:g.label,first:g.date,last:g.date,gs:[g]})});
+ (gs||[]).filter(g=>!(g.cat==="tour"&&g.label)).forEach(g=>{const l=g.label||"기타";let c=out.find(x=>!x.tour&&x.label===l);if(!c){c={tour:0,label:l,first:g.date,last:g.date,gs:[]};out.push(c)}c.gs.push(g);if(g.date<c.first)c.first=g.date;if(g.date>c.last)c.last=g.date});
+ out.forEach(c=>{c.key=(c.tour?"t:"+c.first+":":"l:")+c.label;c.gs.sort((a,b)=>b.date.localeCompare(a.date)||(b.order||0)-(a.order||0))});return out.sort((a,b)=>b.last.localeCompare(a.last))}
