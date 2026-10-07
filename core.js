@@ -103,3 +103,10 @@ export function badges(gs,att=[],o={}){const off=o.off||[],out=[],grp=(L,f)=>{co
    add("gm",V.map(p=>({...p,x:p.g})));add("mw",V.map(p=>({...p,x:p.w})));add("win",V.filter(p=>p.g>=BMIN.win[per]).map(p=>({...p,x:rate(p)})));add("st",V.map(p=>({...p,x:p.max})));
    if(!off.includes("pr"))topK(Object.values(PR).filter(p=>p.g>=BMIN.pr[per]).map(p=>({...p,x:rate(p)}))).forEach(r=>r.ks.forEach((k,i)=>out.push({k,t:"pr",per,pk,with:r.ks[1-i]})))}}
  return out}
+// 같은 경기인지: 날짜·사람(띄어쓰기·순서 무시)·점수가 같으면. 개인 기록(t1[0]=나)은 me=true, 클럽 기록은 팀 순서가 바뀌어도 같은 경기로 봄
+export function sameGame(a,b,me){if(!a||!b||a.date!==b.date)return false;const side=t=>(t||[]).map(p=>xn(p&&p.n||"")).sort().join(","),A1=side(me?(a.t1||[]).slice(1):a.t1),A2=side(a.t2),B1=side(me?(b.t1||[]).slice(1):b.t1),B2=side(b.t2);
+ const sc=(g,f)=>g.scoreA!=null?(f?g.scoreB+":"+g.scoreA:g.scoreA+":"+g.scoreB):"r"+(g.res||"");
+ if(A1===B1&&A2===B2)return sc(a)===sc(b);return !me&&A1===B2&&A2===B1&&sc(a)===sc(b,1)}
+// 개인 기록 안에서 똑같이 여러 번 저장된 경기 묶음(직접 입력한 것만). keep=그대로 두기로 한 docId
+export function exactDups(pg,keep=[]){const own=(pg||[]).filter(g=>g.src==="own"&&!keep.includes(g.docId)),out=[],used=new Set();
+ own.forEach((g,i)=>{if(used.has(i))return;const grp=[g];own.forEach((h,j)=>{if(j>i&&!used.has(j)&&sameGame(g,h,1)){grp.push(h);used.add(j)}});if(grp.length>1)out.push(grp)});return out}
