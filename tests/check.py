@@ -14,7 +14,10 @@ def run(cmd):
 
 # 1. 문법
 for f in ["app.js", "core.js", "sw.js"]:
-    c, o = run(["node", "--check", f])
+    # .js 그대로는 ES 모듈 문법 오류를 놓칠 수 있어 .mjs 사본으로 검사
+    tmp = os.path.join(tempfile.mkdtemp(), os.path.basename(f) + (".mjs" if f != "sw.js" else ""))
+    shutil.copy(f, tmp)
+    c, o = run(["node", "--check", tmp])
     print(f"[문법] {f}: {'OK' if c == 0 else o}")
     ok &= c == 0
 
@@ -36,7 +39,7 @@ if tsc:
                "files": ["app.js", "core.js"]}, open(os.path.join(d, "tsconfig.json"), "w"))
     cmd = ["node", tsc, "-p", os.path.join(d, "tsconfig.json")] if tsc.endswith(".js") else [tsc, "-p", os.path.join(d, "tsconfig.json")]
     _, o = run(cmd)
-    errs = [l for l in o.splitlines() if re.search(r"TS(2304|2552|2451|2300)", l)]
+    errs = [l for l in o.splitlines() if re.search(r"TS(2304|2552|2451|2300|1\d{3})\b", l)]
     print(f"[이름] 정의되지 않은 이름·중복 선언: {len(errs)}건", *errs[:10], sep="\n  ")
     ok &= not errs
 else:
