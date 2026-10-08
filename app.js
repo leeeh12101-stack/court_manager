@@ -18,7 +18,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1009-4",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1009-5",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -182,7 +182,8 @@ function mSheet(){const k=S.mdt,rs=S.screen==="preview"?S.dr.plan.rounds:S.sess.
 ${rows||'<div class="sub">이번 대진에 경기가 없어요</div>'}<div class="k">파트너</div><div class="ch">${ch(pa)}</div><div class="k">상대</div><div class="ch">${ch(op)}</div></div></div>`}
 const statReset=all=>{const f=S.form;if(all){delete f.pman;delete f.mtf}if(!f.pman){delete f.py;delete f.pm;delete f.pdd}};
 const autoDay=ds=>{if(S.form.py||(S.form.per||"day")!=="day")return;const td=ymd(new Date()),c=ds.filter(x=>x&&x<=td).sort().pop();if(c&&c!==td){S.form.py=+c.slice(0,4);S.form.pm=+c.slice(4,6);S.form.pdd=+c.slice(6)}};
-const statDates=()=>(S.screen==="personal"?S.pg.map(g=>g.date):[...S.games.map(g=>g.date),...S.ap.filter(p=>p.status==="in").map(p=>p.date)]).filter(Boolean);
+const apHeld=p=>{const td=ymd(new Date()),n=new Date();return !!p.arrivedAt||p.date<td||(p.date===td&&n.getHours()*60+n.getMinutes()>=tmin(eff(S.cur).start))};
+const statDates=()=>{const td=ymd(new Date());return (S.screen==="personal"?S.pg.map(g=>g.date):[...S.games.map(g=>g.date),...S.ap.filter(p=>p.status==="in"&&apHeld(p)).map(p=>p.date)]).filter(d=>d&&d<=td)};
 function pkSheet(){const per=S.form.per||"day",ds=statDates(),D=new Set(ds),M=[...new Set(ds.map(d=>d.slice(0,6)))].sort(),Y=[...new Set(ds.map(d=>d.slice(0,4)))].sort(),P=S.pk,{y:ay,m:am,dd:ad}=anch(),sel=String(ay)+String(am).padStart(2,"0")+String(ad).padStart(2,"0");
  const nav=(lab,prev,next)=>`<div class="row" style="margin-bottom:6px"><span class="nv" data-a="pkNav" data-dir="-1" style="${prev?"":"opacity:.3"}">‹</span><b class="tap" data-a="pkYears" style="font-size:16px">${lab} <span style="font-size:11px;color:var(--sub)">▾</span></b><span class="nv" data-a="pkNav" data-dir="1" style="${next?"":"opacity:.3"}">›</span></div><div class="sub center" style="min-height:18px;margin-bottom:6px">${P.hint===-1&&!prev?"이전 기록이 없어요":P.hint===1&&!next?"이후 기록이 없어요":""}</div>`;
  let body="";const ys=String(P.y);
@@ -330,8 +331,11 @@ function myCard(m){const c=S.cur,u=S.user.uid,mine=S.parts.find(p=>p.uid===u),e=
    else body=`<div style="min-width:0"><div style="font-size:14px"><b>이번 회차 휴식</b></div><div class="sub" style="font-size:14px">다음 경기 ${nx.n}회차 · ${cLab(mg(nx))}</div></div>`}
   if(body)fg=`<div class="row" style="margin-top:8px;align-items:flex-end">${body}<button class="sm ghost" data-a="mdt" data-id="${u}" style="flex:none">내 대진</button></div>`}
  const yes1=mine.status==="in";return `<div class="card" style="padding:12px 14px;box-shadow:none;background:${yes1?"var(--tint)":"#EEF0EE"}"><div class="row"><div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b style="font-size:16px;color:${yes1?"var(--main)":"var(--sub)"}">${yes1?"✓ 참석":"✕ 불참"}</b><span class="sub" style="margin-left:8px">${dl}${yes1?" · "+txt:""}</span></div>${respBlock(m)?"":'<button class="sm ghost" data-a="toAttend">변경</button>'}</div>${fg}${sh}</div>`}
+const onbChk=c=>{S.onbG=S.onbG||{};if(c.id in S.onbG)return;S.onbG[c.id]=0;const done=v=>{S.onbG[c.id]=v;if(v===1)try{localStorage.setItem("cm_onb3_"+c.id,"1")}catch(e){}if(S.screen==="clubHome"&&S.tab==="today"&&S.cur&&S.cur.id===c.id)keepR()};
+ getDocs(query(collection(db,"games"),where("clubId","==",c.id),limit(5))).then(r=>done(r.docs.some(d=>!d.data().deleted)?1:-1)).catch(()=>done(-1))};
 const onbCard=()=>{const c=S.cur;if(c.role!=="admin")return"";const ls=k=>{try{return localStorage.getItem(k)==="1"}catch(e){return false}};if(ls("cm_onb_"+c.id))return"";
- const s1=schedSet(c)||!!c.mtgOverride,s2=S.mem.length>1,s3=!!S.sess||ls("cm_onb3_"+c.id)||eff(c).mode!=="round";if(s1&&s2&&s3)return"";
+ const s1=schedSet(c)||!!c.mtgOverride,s2=S.mem.length>1,s3=!!S.sess||ls("cm_onb3_"+c.id)||eff(c).mode!=="round"||(S.games||[]).some(g=>g.clubId===c.id)||(S.onbG||{})[c.id]===1;if(s1&&s2&&s3)return"";
+ if(!s3){onbChk(c);if((S.onbG||{})[c.id]!==-1)return""}
  const st=(ok,t,act)=>`<div class="li" style="min-height:42px"><span style="width:22px;color:${ok?"var(--main)":"var(--sub)"};font-weight:700">${ok?"✓":"○"}</span><span class="nm" style="font-weight:500;${ok?"color:var(--sub);text-decoration:line-through":""}">${t}</span>${ok?"":act}</div>`;
  return `<div class="card" style="padding:12px 14px"><div class="row"><b>클럽 시작하기</b><button class="link" data-a="onbX">닫기</button></div><div class="list" style="box-shadow:none;margin:6px 0 0">${st(s1,"정기 모임 요일 정하기",'<button class="sm ghost" data-a="goSet" data-k="sched">설정</button>')}${st(s2,"회원 모으기",'<button class="sm ghost" data-a="addMenu">회원 추가</button>')}${st(s3,"첫 대진 만들기",!s1?"":S.mem.length>=4?'<button class="sm ghost" data-a="toDraw">대진</button>':'<span class="sub" style="font-size:12px">회원 4명부터</span>')}</div></div>`};
 const scChips=()=>`<div class="tgrid" style="grid-template-columns:repeat(4,1fr);margin:8px 0 2px">${["6:0","6:1","6:2","6:3","6:4","7:5","7:6"].map(x=>`<span data-sc="${x}">${x}</span>`).join("")}<span data-sc="swap">⇄ 바꾸기</span></div>`;
@@ -428,7 +432,7 @@ function unkGroups(){const G={};(S.games||[]).forEach(g=>{if(g.deleted)return;[.
 function lnkCard(){const n=can("result")&&!S.pv?lnkL().length:0;return n?`<div class="card row" style="background:#FFF8E6;box-shadow:none;border:1px solid #F0D9A0;padding:12px 14px"><div><b>회원과 연결 안 된 경기 ${n}개</b> <span class="qm" data-a="help" data-h="glink">?</span><div class="sub">게스트로 저장됐지만 지금은 회원 이름과 같아요</div></div><button class="sm" data-a="gLink">연결하기</button></div>`:""}
 function gxBar(){const U=unkGroups();if(!U.length)return"";const n=new Set(U.flatMap(x=>x.ids)).size;return `<div class="sub" style="margin:0 2px 8px">점선 이름은 명단에 없는 이름이에요 · 회원 통계에서 빠져요</div>${can("result")?`<div class="card row tap" data-a="gfixOpen" style="background:#FFF8E6;box-shadow:none;border:1px solid #F0D9A0;padding:12px 14px"><b>명단에 없는 이름이 들어간 경기 ${n}개</b><span class="sub">확인 ›</span></div>`:""}`}
 const T={
-stats:()=>{autoDay([...S.games.map(g=>g.date),...S.ap.filter(p=>p.status==="in").map(p=>p.date)]);const f=S.form,per=f.per||"day",sk=f.stat||"win",now=new Date(),y=String(now.getFullYear()),mo=now.getMonth()+1,
+stats:()=>{autoDay(statDates());const f=S.form,per=f.per||"day",sk=f.stat||"win",now=new Date(),y=String(now.getFullYear()),mo=now.getMonth()+1,
  inP=d=>inPer(d)&&mtOk(d),
  nm=k=>(S.mem.find(m=>mkey(m)===k)||{}).displayName,P={},PR={},A={};
  const TB=pTable(gNorm().filter(g=>inP(g.date)));Object.values(TB.P).forEach(o=>{o.n=nm(o.k)||o.n;P[o.k]=o});Object.values(TB.PR).forEach(o=>{o.n=o.ks.map((k,i)=>nm(k)||o.ns[i]).join(" · ");PR[o.key]=o});
@@ -929,7 +933,7 @@ async peOut(){const e=S.pe,p=S.parts.find(x=>x._id===e.id);if(!await ask(`${p.na
 async quickAdd(el){const m=S.mem.find(x=>x.oid===el.dataset.id),c=S.cur,d=ymd(nextMeeting(c).date);
   try{await setDoc(doc(db,"sessionParticipants",`${c.id}_${d}_${m.oid}`),{clubId:c.id,date:d,uid:null,mk:"o:"+m.oid,name:m.displayName,guest:false,status:"in",start:eff(c).start,end:eff(c).end,position:m.defaultPosition||"either",noPlay:false,responseSource:"admin",updatedAt:serverTimestamp()});load()}catch(e){pop("추가하지 못했습니다.")}},
 lkAll(){S.form.lkall=!S.form.lkall;S.still=1;render();S.still=0},
-pnav(el){S.form.pman=1;const d=+el.dataset.dir,per=S.form.per||"day",{y,m,dd}=anch(),ds=(S.screen==="personal"?S.pg.map(g=>g.date):[...S.games.map(g=>g.date),...S.ap.filter(p=>p.status==="in").map(p=>p.date)]).filter(Boolean),
+pnav(el){S.form.pman=1;const d=+el.dataset.dir,per=S.form.per||"day",{y,m,dd}=anch(),ds=statDates(),
   pk=x=>per==="day"?x:per==="month"?x.slice(0,6):per==="quarter"?x.slice(0,4)+Math.ceil(+x.slice(4,6)/3):x.slice(0,4),cur=pk(String(y)+String(m).padStart(2,"0")+String(dd).padStart(2,"0")),ks=[...new Set(ds.map(pk))].sort(),t=d<0?ks.filter(k=>k<cur).pop():ks.find(k=>k>cur);
   if(!t)return pop(d<0?"이전 기록이 없어요.":"이후 기록이 없어요.");
   S.form.py=+t.slice(0,4);S.form.pm=per==="day"||per==="month"?+t.slice(4,6):per==="quarter"?(+t.slice(4)-1)*3+1:1;S.form.pdd=per==="day"?+t.slice(6):1;S.form.pman=1;S.still=1;render();S.still=0},
