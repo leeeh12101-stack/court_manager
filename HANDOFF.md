@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > 새 대화를 시작할 때 이 문서와 **최신 파일(`index.html`, `app.js`, `app.css`, `core.js`, `sw.js`, `firestore.rules`, `tests/` 폴더)**을 함께 올려 주세요.
-> 기준 시점: 2026-10-09 · **BUILD `1009-3`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-09 · **BUILD `1009-4`** · 버전 표기 `v0.1`
 
 ---
 
@@ -27,12 +27,14 @@
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
 | `tests/core.test.mjs` | core.js 테스트 138개 |
 | `tests/check.py` | **점검 한 번에 돌리기** |
+| `tests/smoke/` | **화면 점검**(가짜 Firebase로 앱을 띄워 클릭, 9가지 상황): `python3 tests/smoke/smoke.py` (Playwright 필요) |
 
 ## 3. 작업 규칙 (꼭 지킬 것)
 
 1. **수정 후 항상** `python3 tests/check.py` 실행(문법 검사는 .mjs 사본으로 해야 app.js 오류를 잡음 — 1009-1에서 수정) → `✅ 모두 통과` 확인 후 전달.
    - 문법 / core 테스트 / 정의되지 않은 이름(TypeScript) / 버튼 연결·**이름표 겹침**·화면·뒤로가기
-2. **BUILD 번호를 매번 올리기**: `app.js`의 `BUILD="MMDD-n"`. 모드 선택 화면 맨 아래 `테스트 버전 v0.1 · 1009-3`로 보여서, 사용자가 새 파일이 실행 중인지 확인함.
+1-1. 화면을 바꿨으면 `python3 tests/smoke/smoke.py`도 실행 → `✅ 화면 점검` 확인(실행 중 오류는 check.py로 못 잡음. 1009-3의 `key` 변수 충돌이 그 예)
+2. **BUILD 번호를 매번 올리기**: `app.js`의 `BUILD="MMDD-n"`. 모드 선택 화면 맨 아래 `테스트 버전 v0.1 · 1009-4`로 보여서, 사용자가 새 파일이 실행 중인지 확인함.
 3. **core.js에 export를 추가하면** `app.js` 첫머리의 `import {…} from "./core.js"` 목록을 다시 만들기:
    `node -e 'import("./core.js").then(m=>{const k=Object.keys(m).sort(),fs=require("fs");let a=fs.readFileSync("app.js","utf8");a=a.replace(/import \{[^}]*\} from "\.\/core\.js";/,"import {"+k.join(",")+"} from \"./core.js\";");fs.writeFileSync("app.js",a)})'`
 4. **이름표(data-*) 겹침 주의**: 클릭 처리에서 특별 분기하는 속성 `np ep pn ps pt lk nt sk st2 pr xv pk fl sc pm pu r d`는 **새 요소에 쓰지 말 것**(과거 3번 버그). 날짜는 `data-dk`, 접는 칸은 `data-sec`를 씀.

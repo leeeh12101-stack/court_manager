@@ -18,7 +18,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1009-3",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1009-4",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -411,8 +411,8 @@ function newsItems(){const P=S.profile;if(!P||S.pv||S.newsX||(+P.newsSeen||0)>=N
  return NEWS.slice(+P.newsSeen||0).flat().filter(([w])=>w==="all"||(w==="personal"?S.screen==="personal":cm&&(w==="club"||can(w))))}
 function newsSheet(){const L=newsItems();return L.length?`<div class="sh" data-a="newsOk"><div data-keep="1"><div class="row"><h3>새로 생긴 기능</h3><button class="link" data-a="newsOk">닫기</button></div>${L.map(([,t,d])=>`<div class="gl" style="display:block"><b>${esc(t)}</b><div class="sub">${esc(d)}</div></div>`).join("")}<button data-a="newsOk" style="margin-top:14px">확인</button></div></div>`:""}
 const BDN={att:"출석왕",gm:"최다 경기",mw:"최다승",win:"승률왕",st:"연승왕",pr:"베스트 페어"},BPER={day:"d",month:"m",quarter:"q",year:"y"};
-function allBadges(){const c=S.cur,gs=S.games||[],ap=S.ap||[],key=[c.id,gs.length,gs.reduce((m,g)=>Math.max(m,+g.updatedAt||0),0),ap.length,S.mem.length,(c.statsOff||[]).join()].join(":");
- if(!S._bd||S._bd.key!==key)S._bd={key,list:badges(gNorm(),ap.filter(p=>p.status==="in"&&!p.guest&&!key(p).startsWith("g:")).map(p=>({k:key(p),date:p.date})),{off:c.statsOff||[],isMon:d=>isMonthly(c,d)})};return S._bd.list}
+function allBadges(){const c=S.cur,gs=S.games||[],ap=S.ap||[],ckey=[c.id,gs.length,gs.reduce((m,g)=>Math.max(m,+g.updatedAt||0),0),ap.length,S.mem.length,(c.statsOff||[]).join()].join(":");
+ if(!S._bd||S._bd.key!==ckey)S._bd={key:ckey,list:badges(gNorm(),ap.filter(p=>p.status==="in"&&!p.guest&&!key(p).startsWith("g:")).map(p=>({k:key(p),date:p.date})),{off:c.statsOff||[],isMon:d=>isMonthly(c,d)})};return S._bd.list}
 const bdDone=b=>{const td=ymd(new Date());return b.pk<perKey(b.per,td)},bdEnd=b=>b.per==="d"?b.pk:b.per==="m"?b.pk+"31":b.per==="q"?b.pk.slice(0,4)+String(+b.pk.slice(5)*3).padStart(2,"0")+"31":b.pk+"1231";
 const bdLab=b=>{const cy=String(new Date().getFullYear()),y=b.pk.slice(0,4),yy=y!==cy?y+"년 ":"",nm=b.t==="mw"&&b.mon?"월례대회 최다승":BDN[b.t];
  return (b.per==="d"?`${yy}${+b.pk.slice(4,6)}/${+b.pk.slice(6)}`:b.per==="m"?`${yy}${+b.pk.slice(4)}월`:b.per==="q"?`${yy}${b.pk.slice(5)}분기`:`${y}년`)+" "+nm};
