@@ -32,7 +32,7 @@ service cloud.firestore {
           && (resource.data.primaryAdminId == me()
               || (request.resource.data.get('status', 'open') == 'open' && request.resource.data.primaryAdminId == resource.data.primaryAdminId)))
         || (isAdmin(c) && resource.data.primaryAdminId == me() && resource.data.get('status', 'open') == 'closed' && request.resource.data.get('status', 'open') == 'open')
-        || (resource.data.get('status', 'open') == 'open' && can(c, 'schedule', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['regularDays','regularStartTime','regularEndTime','regularCourtCount','roundInterval','noPlayEnabled','mode','qrule','monthly','schedType','schedM']))
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'schedule', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['regularDays','regularStartTime','regularEndTime','regularCourtCount','roundInterval','noPlayEnabled','mode','qrule','monthly','schedType','schedM','cnum']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'tiers', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tierEnabled','tiers']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'stats', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statsOff','rankShow']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'meeting', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mtgOverride','mdays','sched']))
@@ -141,6 +141,13 @@ service cloud.firestore {
       allow read: if authed() && (resource.data.uid == me() || isDev());
       allow update: if isDev();
       allow delete: if authed() && resource.data.uid == me();
+    }
+
+    // 게스트 기록 보내기(운영진이 만든 링크, 링크를 가진 로그인 사용자만 열람)
+    match /guestShares/{s} {
+      allow get: if authed();
+      allow create: if authed() && request.resource.data.createdBy == me() && can(request.resource.data.clubId, 'result', 'staff');
+      allow delete: if authed() && resource.data.createdBy == me();
     }
 
     match /personalGames/{g} {
