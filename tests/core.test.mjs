@@ -225,5 +225,16 @@ const LG = (date, cat, label) => ({ date, cat, label });
 const GL = C.groupLabel([LG("20260901", "tour", "A오픈"), LG("20260902", "tour", "A오픈"), LG("20260920", "tour", "A오픈"), LG("20260910", "club", "Club Jade"), LG("20260911", "club", "Club Jade"), LG("20260912", "etc", "")]);
 eq("묶기: 같은 대회도 3일 넘게 떨어지면 따로, 최근 순", GL.map(g => g.label + ":" + g.gs.length), ["A오픈:1", "기타:1", "Club Jade:2", "A오픈:2"]);
 
+// ---------- 지난달 요약
+eq("이전 달: 1월 → 작년 12월", C.prevYm("202601"), "202512");
+eq("이전 달: 10월 → 9월", C.prevYm("202610"), "202609");
+const RC = [{ date: "20260903", r: "w", ppl: ["철수", "영희", "민수"] }, { date: "20260910", r: "l", ppl: ["철 수", "지민"] }, { date: "20260917", r: "w", ppl: ["영희"] }, { date: "20260920", r: "d", ppl: ["철수"] },
+  { date: "20260805", r: "w", ppl: [] }, { date: "20260806", r: "l", ppl: [] }, { date: "20261001", r: "w", ppl: ["x"] }];
+const R9 = C.monthRecap(RC, "202609");
+eq("요약: 경기·승패·승률(무승부 제외)", [R9.g, R9.w, R9.l, R9.d, R9.rate], [4, 2, 1, 1, 67]);
+eq("요약: 지난달보다 승률 변화", R9.diff, 17);
+eq("요약: 가장 많이 만난 사람(띄어쓰기 무시)", R9.top, { n: "철수", g: 3 });
+eq("요약: 경기 없는 달", C.monthRecap(RC, "202607"), { g: 0, w: 0, l: 0, d: 0, rate: null, diff: null, top: null });
+
 console.log(`\n${fail ? "❌" : "✅"} 통과 ${pass} · 실패 ${fail}`);
 if (fail) process.exit(1);

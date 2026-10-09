@@ -115,3 +115,10 @@ export function groupLabel(gs){const out=[];
  [...(gs||[])].filter(g=>g.cat==="tour"&&g.label).sort((a,b)=>a.date.localeCompare(b.date)).forEach(g=>{const c=out.find(x=>x.tour&&x.label===g.label&&dayDiff(x.last,g.date)<=3);if(c){c.gs.push(g);c.last=g.date}else out.push({tour:1,label:g.label,first:g.date,last:g.date,gs:[g]})});
  (gs||[]).filter(g=>!(g.cat==="tour"&&g.label)).forEach(g=>{const l=g.label||"기타";let c=out.find(x=>!x.tour&&x.label===l);if(!c){c={tour:0,label:l,first:g.date,last:g.date,gs:[]};out.push(c)}c.gs.push(g);if(g.date<c.first)c.first=g.date;if(g.date>c.last)c.last=g.date});
  out.forEach(c=>{c.key=(c.tour?"t:"+c.first+":":"l:")+c.label;c.gs.sort((a,b)=>b.date.localeCompare(a.date)||(b.order||0)-(a.order||0))});return out.sort((a,b)=>b.last.localeCompare(a.last))}
+
+// 지난달 요약: rows=[{date:"yyyymmdd",r:"w"|"l"|"d",ppl:[함께 뛴 사람 이름]}], ym="yyyymm"
+export const prevYm=ym=>{let y=+ym.slice(0,4),m=+ym.slice(4,6)-1;if(!m){y--;m=12}return y+String(m).padStart(2,"0")};
+export function monthRecap(rows,ym){const st=m=>{const o={g:0,w:0,l:0,d:0};(rows||[]).forEach(x=>{if(x.date&&x.date.slice(0,6)===m&&o[x.r]!=null){o.g++;o[x.r]++}});o.rate=o.w+o.l?Math.round(o.w/(o.w+o.l)*100):null;return o};
+ const cur=st(ym),prev=st(prevYm(ym)),C={},N={};(rows||[]).forEach(x=>{if(!x.date||x.date.slice(0,6)!==ym)return;(x.ppl||[]).forEach(n=>{const k=xn(n);if(!k)return;C[k]=(C[k]||0)+1;N[k]=N[k]||n})});
+ const top=Object.entries(C).sort((a,b)=>b[1]-a[1]||N[a[0]].localeCompare(N[b[0]]))[0];
+ return{...cur,diff:cur.rate!=null&&prev.rate!=null?cur.rate-prev.rate:null,top:top?{n:N[top[0]],g:top[1]}:null}}
