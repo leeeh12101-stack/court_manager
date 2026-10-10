@@ -146,7 +146,8 @@ service cloud.firestore {
     // 게스트 기록 보내기(운영진이 만든 링크, 링크를 가진 로그인 사용자만 열람)
     match /guestShares/{s} {
       allow get: if authed();
-      allow create: if authed() && request.resource.data.createdBy == me() && can(request.resource.data.clubId, 'result', 'staff');
+      // 개인 모드 공유(kind 'p')는 누구나 자기 이름으로, 클럽 게스트 공유는 결과 권한자만
+      allow create: if authed() && request.resource.data.createdBy == me() && (request.resource.data.get('kind', '') == 'p' || can(request.resource.data.clubId, 'result', 'staff'));
       allow delete: if authed() && resource.data.createdBy == me();
     }
 
