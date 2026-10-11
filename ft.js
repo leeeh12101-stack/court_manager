@@ -41,12 +41,31 @@ export function ftInstall(X) {
   const tags = r => `<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:8px 0"><span class="pill">${POSN[r.pos]}</span><span class="pill">${STYN[r.sty]}</span><span class="pill">커버 ${COVN[r.cov]}</span></div>`;
   const ratio = r => `<div class="ftbar"><span style="width:${r.fore}%">포 ${r.fore}%</span><span style="width:${r.back}%">백 ${r.back}%</span></div><div class="sub center" style="font-size:12px">설문으로 본 상대적 선호</div>`;
 
-  // ---------- 공유 카드(세로 이미지)
+  // ---------- 공유 카드(세로 이미지): 짙은 코트 바닥 + 비스듬한 코트 라인 + 공
+  function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath() }
+  function courtBg(c) {
+    let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    const g = c.createLinearGradient(0, 0, 1080, 1350); g.addColorStop(0, "#22573A"); g.addColorStop(.55, "#1A4A31"); g.addColorStop(1, "#133B26"); c.fillStyle = g; c.fillRect(0, 0, 1080, 1350);
+    for (let i = 0; i < 26000; i++) { c.fillStyle = rnd() < .5 ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.06)"; c.fillRect(rnd() * 1080, rnd() * 1350, 2, 2) } // 바닥 질감
+    c.save(); c.filter = "blur(46px)"; c.fillStyle = "rgba(0,0,0,.3)"; [[-80, 120], [-80, 300]].forEach(([x, y]) => { c.beginPath(); c.moveTo(x, y); c.lineTo(x + 760, y - 260); c.lineTo(x + 800, y - 170); c.lineTo(x + 40, y + 90); c.fill() }); c.restore(); // 빛 그림자
+    const line = (x1, y1, x2, y2, w) => { c.save(); c.lineCap = "butt"; c.strokeStyle = "rgba(232,238,228,.82)"; c.lineWidth = w; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+      c.clip(new Path2D(`M${x1},${y1}L${x2},${y2}`)); const n = Math.hypot(x2 - x1, y2 - y1) * w / 30; for (let i = 0; i < n; i++) { const t = rnd(), o = (rnd() - .5) * w; const nx = -(y2 - y1), ny = x2 - x1, l = Math.hypot(nx, ny); c.fillStyle = "rgba(20,60,35,.25)"; c.fillRect(x1 + (x2 - x1) * t + nx / l * o, y1 + (y2 - y1) * t + ny / l * o, 3, 3) } c.restore() };
+    line(-60, 930, 400, 1420, 26); line(130, 1420, 1140, 1095, 26); line(640, -20, 1140, 235, 22);
+    const bx = 1035, by = 1252, br = 92; c.save(); c.filter = "blur(18px)"; c.fillStyle = "rgba(0,0,0,.45)"; c.beginPath(); c.ellipse(bx - 30, by + 70, br * .95, br * .35, 0, 0, 7); c.fill(); c.restore(); // 공
+    const bg = c.createRadialGradient(bx - 35, by - 40, 10, bx, by, br); bg.addColorStop(0, "#EAF56A"); bg.addColorStop(.7, "#C6DA36"); bg.addColorStop(1, "#93A826"); c.fillStyle = bg; c.beginPath(); c.arc(bx, by, br, 0, 7); c.fill(); c.save(); c.beginPath(); c.arc(bx, by, br, 0, 7); c.clip();
+    c.strokeStyle = "rgba(255,255,240,.85)"; c.lineWidth = 7; c.beginPath(); c.arc(bx - br * 1.15, by, br * .95, -.75, .75); c.stroke(); c.beginPath(); c.arc(bx + br * 1.15, by, br * .95, Math.PI - .75, Math.PI + .75); c.stroke(); c.restore();
+  }
+  function header(c, F) { c.fillStyle = "rgba(236,240,230,.9)"; c.font = `600 30px ${F}`; try { c.letterSpacing = "7px" } catch (e) { } c.fillText("COURT MANAGER", 540, 200); const hw = c.measureText("COURT MANAGER").width / 2 + 34; try { c.letterSpacing = "0px" } catch (e) { }
+    c.strokeStyle = "rgba(236,240,230,.6)"; c.lineWidth = 2; [[540 - hw - 110, 540 - hw], [540 + hw, 540 + hw + 110]].forEach(([a, b]) => { c.beginPath(); c.moveTo(a, 189); c.lineTo(b, 189); c.stroke() }) }
+  function footer(c, F) { c.strokeStyle = "rgba(220,235,190,.5)"; c.lineWidth = 2; [[325, 512], [608, 795]].forEach(([a, b]) => { c.beginPath(); c.moveTo(a, 1110); c.lineTo(b, 1110); c.stroke() });
+    c.fillStyle = "#C6DA36"; c.beginPath(); c.arc(560, 1110, 18, 0, 7); c.fill(); c.strokeStyle = "#1A4A31"; c.lineWidth = 3; c.beginPath(); c.arc(541, 1110, 15, -.8, .8); c.stroke(); c.beginPath(); c.arc(579, 1110, 15, Math.PI - .8, Math.PI + .8); c.stroke();
+    c.fillStyle = "#D6E8A4"; c.font = `500 32px ${F}`; c.fillText("Court Manager · 포백 테스트", 540, 1178) }
+  function pills(c, F, L, y) { c.font = `600 34px ${F}`; const pw = L.map(t => c.measureText(t).width + 64), tw = pw.reduce((a, b) => a + b, 0) + 18 * (L.length - 1); let x = 540 - tw / 2;
+    L.forEach((t, i) => { rrect(c, x, y, pw[i], 64, 32); c.fillStyle = "rgba(10,40,24,.35)"; c.fill(); c.strokeStyle = "rgba(200,230,120,.55)"; c.lineWidth = 2; c.stroke(); c.fillStyle = "#DDEFA8"; c.fillText(t, x + pw[i] / 2, y + 44); x += pw[i] + 18 }) }
   function wrap(c, t, x, y, mw, lh) { let line = "", yy = y; for (const ch of String(t)) { if (c.measureText(line + ch).width > mw && line) { c.fillText(line, x, yy); line = ch; yy += lh } else line += ch } c.fillText(line, x, yy); return yy + lh }
   function card(draw, name) {
     const cv = document.createElement("canvas"); cv.width = 1080; cv.height = 1350; const c = cv.getContext("2d"), F = '"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
-    c.fillStyle = "#174A43"; c.fillRect(0, 0, 1080, 1350); c.textAlign = "center"; draw(c, F);
-    c.fillStyle = "#B8C96B"; c.font = `600 34px ${F}`; c.fillText("Court Manager · 포백 테스트", 540, 1270);
+    courtBg(c); c.textAlign = "center"; header(c, F); draw(c, F); footer(c, F);
     cv.toBlob(async b => { const f = new File([b], name, { type: "image/png" }); try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return } } catch (e) { if (e && e.name === "AbortError") return } S.ftImg = cv.toDataURL("image/png"); rr() }, "image/png");
   }
   const imgSheet = () => S.ftImg ? `<div class="sh" data-a="ftImgX"><div data-keep="1"><div class="row"><h3>카드 이미지</h3><button class="link" data-a="ftImgX">닫기</button></div><img src="${S.ftImg}" alt="공유 카드" style="width:100%;border-radius:12px;margin-top:8px"><div class="sub center" style="margin-top:6px">이미지를 길게 눌러 저장하세요</div></div></div>` : "";
@@ -147,22 +166,26 @@ ${X.isDev() ? `<div class="sub center" id="ftst" style="margin-top:16px">테스�
     ftCard() {
       const r = ftScore(S.ftr.h, S.ftr.a), T = r.type;
       card((c, F) => {
-        c.fillStyle = "#cfe0c0"; c.font = `500 40px ${F}`; c.fillText("내 복식 성향", 540, 250);
-        c.fillStyle = "#fff"; c.font = `800 150px ${F}`; c.fillText(T.n, 540, 430);
-        c.font = `600 48px ${F}`; let y = wrap(c, `"${T.one}"`, 540, 540, 900, 64);
-        c.font = `600 38px ${F}`; c.fillStyle = "#B8C96B"; c.fillText(`${POSN[r.pos]}  ·  ${STYN[r.sty]}  ·  커버 ${COVN[r.cov]}`, 540, y + 50);
-        const bx = 140, bw = 800, by = y + 130, fw = bw * r.fore / 100; c.fillStyle = "#B8C96B"; c.fillRect(bx, by, fw, 70); c.fillStyle = "#2E6B61"; c.fillRect(bx + fw, by, bw - fw, 70);
-        c.font = `700 34px ${F}`; c.fillStyle = "#174A43"; if (r.fore >= 18) c.fillText(`포 ${r.fore}%`, bx + fw / 2, by + 47); c.fillStyle = "#fff"; if (r.back >= 18) c.fillText(`백 ${r.back}%`, bx + fw + (bw - fw) / 2, by + 47);
+        c.fillStyle = "#CFE67A"; c.font = `700 52px ${F}`; c.fillText("내 복식 성향", 540, 310);
+        c.fillStyle = "#F6F4EC"; c.font = `800 ${T.n.length > 3 ? 150 : 176}px ${F}`; c.shadowColor = "rgba(0,0,0,.35)"; c.shadowBlur = 24; c.fillText(T.n, 540, 492); c.shadowBlur = 0;
+        c.font = `700 ${T.one.length > 18 ? 42 : 50}px ${F}`; let y = wrap(c, `“${T.one}”`, 540, 590, 940, 62);
+        pills(c, F, [POSN[r.pos], STYN[r.sty] + "형", "커버 " + COVN[r.cov]], y + 14);
+        const bx = 158, bw = 764, by = y + 124, bh = 82, fw = Math.max(0, Math.min(bw, bw * r.fore / 100));
+        c.save(); rrect(c, bx, by, bw, bh, bh / 2); c.clip(); c.fillStyle = "#2B6650"; c.fillRect(bx, by, bw, bh); c.fillStyle = "#CBE56A"; c.fillRect(bx, by, fw, bh); c.restore();
+        rrect(c, bx, by, bw, bh, bh / 2); c.strokeStyle = "rgba(200,230,120,.5)"; c.lineWidth = 2; c.stroke();
+        c.font = `700 38px ${F}`; c.fillStyle = "#1A3D28"; if (r.fore >= 16) c.fillText(`포 ${r.fore}%`, bx + fw / 2, by + 55); c.fillStyle = "#F6F4EC"; if (r.back >= 16) c.fillText(`백 ${r.back}%`, bx + fw + (bw - fw) / 2, by + 55);
       }, "포백테스트.png")
     },
     ftMCard() {
       const M = S.ftm, m = ftMatch(M.A, M.B), pr = M.pr || [];
       card((c, F) => {
-        c.fillStyle = "#cfe0c0"; c.font = `600 50px ${F}`; c.fillText(`${M.A.n} × ${M.B.n}`, 540, 230);
-        c.fillStyle = "#fff"; c.font = `800 120px ${F}`; c.fillText(m.combo.n, 540, 390);
-        c.font = `600 44px ${F}`; let y = wrap(c, `"${m.combo.one}"`, 540, 480, 900, 60) + 60;
-        c.fillStyle = "#B8C96B"; c.font = `700 42px ${F}`; c.fillText("우리의 약속", 540, y); y += 80; c.textAlign = "left"; c.fillStyle = "#fff"; c.font = `500 38px ${F}`;
-        m.prom.forEach((p, i) => { y = wrap(c, `· ${p.k}: ${pr[i] != null ? p.o[pr[i]] : "아직 안 정함"}`, 120, y, 840, 54) + 16 }); c.textAlign = "center";
+        c.fillStyle = "#CFE67A"; c.font = `700 50px ${F}`; c.fillText(`${M.A.n} × ${M.B.n}`, 540, 310);
+        c.fillStyle = "#F6F4EC"; c.font = `800 136px ${F}`; c.shadowColor = "rgba(0,0,0,.35)"; c.shadowBlur = 24; c.fillText(m.combo.n, 540, 470); c.shadowBlur = 0;
+        c.font = `700 46px ${F}`; let y = wrap(c, `“${m.combo.one}”`, 540, 566, 940, 60) + 10;
+        const top = y, L = m.prom.map((p, i) => [p.k, pr[i] != null ? p.o[pr[i]] : "아직 안 정함"]), bh = 92 + L.length * 64;
+        rrect(c, 150, top, 780, bh, 28); c.fillStyle = "rgba(10,40,24,.38)"; c.fill(); c.strokeStyle = "rgba(200,230,120,.45)"; c.lineWidth = 2; c.stroke();
+        c.fillStyle = "#CFE67A"; c.font = `700 36px ${F}`; c.fillText("우리의 약속", 540, top + 58); c.textAlign = "left";
+        L.forEach(([k, v], i) => { const yy = top + 124 + i * 64; c.fillStyle = "rgba(221,239,168,.85)"; c.font = `600 32px ${F}`; c.fillText(k, 196, yy); c.fillStyle = "#F6F4EC"; c.textAlign = "right"; let fs = 34; c.font = `600 ${fs}px ${F}`; while (c.measureText(v).width > 440 && fs > 24) { fs -= 2; c.font = `600 ${fs}px ${F}` } c.fillText(v, 884, yy); c.textAlign = "left" }); c.textAlign = "center";
       }, "포백궁합.png")
     },
     async ftSave() { await X.login() },
