@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1011-8",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1012-1",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -34,7 +34,7 @@ const hTop=()=>{if(HPRE.includes(S.screen))return;const ua=navigator.userActivat
 const go=async(screen,extra={})=>{npHide();Object.assign(S,extra,{screen});if(screen!=="clubHome")qUnsub();hTop();if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
 
 try{ app=initializeApp(firebaseConfig);acI=null;if(CFG.appCheckKey)try{acI=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true});onACChange(acI,()=>{S.acErr=""},e=>{S.acErr=((e&&e.code)||"")+" "+String((e&&e.message)||e).slice(0,300)})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
-if(auth) {const sp=new URLSearchParams(location.search),jc=sp.get("join"),gsc=sp.get("gs"),ftc=sp.get("ft"),frc=sp.get("fr");if(jc){try{sessionStorage.setItem("cm_join",jc.toUpperCase())}catch(e){}}if(gsc){try{sessionStorage.setItem("cm_gs",gsc.toUpperCase())}catch(e){}}try{if(ftc)sessionStorage.setItem("cm_ft",ftc);if(frc)sessionStorage.setItem("cm_fr",frc)}catch(e){}if(jc||gsc||ftc||frc)history.replaceState(null,"",location.pathname)}
+if(auth) {const sp=new URLSearchParams(location.search),jc=sp.get("join"),gsc=sp.get("gs"),ftc=sp.get("ft"),frc=sp.get("fr"),fcc=sp.get("fc");if(jc){try{sessionStorage.setItem("cm_join",jc.toUpperCase())}catch(e){}}if(gsc){try{sessionStorage.setItem("cm_gs",gsc.toUpperCase())}catch(e){}}try{if(ftc)sessionStorage.setItem("cm_ft",ftc);if(frc)sessionStorage.setItem("cm_fr",frc);if(fcc)sessionStorage.setItem("cm_fc",fcc)}catch(e){}if(jc||gsc||ftc||frc||fcc)history.replaceState(null,"",location.pathname)}
 async function gsPending(){let c=null;try{c=sessionStorage.getItem("cm_gs")}catch(e){}if(!c)return false;try{sessionStorage.removeItem("cm_gs")}catch(e){}
  try{const d=await getDoc(doc(db,"guestShares",c));const x=d.exists()?d.data():null;if(!x||(x.exp||0)<Date.now()){pop("링크가 만료됐거나 올바르지 않아요. 보낸 사람에게 다시 보내 달라고 해 주세요.");return false}
   S.gsx={code:c,...x,sel:x.guests.length===1?x.guests[0].n:null};await pLoad().catch(()=>{});go("gsImp");return true}catch(e){pop("기록을 불러오지 못했어요.");return false}}
@@ -43,11 +43,11 @@ async function joinPending(){let jc=null;try{jc=sessionStorage.getItem("cm_join"
   const me=await getDoc(doc(db,"clubMembers",cid+"_"+S.user.uid)).catch(()=>null);localStorage.setItem("cm_mode","club");if(me&&me.exists()&&me.data().status==="active"){await goClub(cid);return true}
   if(!await ask(`'${nm}' 클럽에 가입할까요?`,"가입하기","취소"))return false;await addMember(cid,{viaCode:jc});await goClub(cid,1);toast(`'${nm}' 클럽에 가입했어요`);return true}catch(e){pop("가입하지 못했어요. 이미 가입한 클럽일 수 있어요.");return false}}
 onAuthStateChanged(auth,async u=>{
-  S.user=u; if(!u){S.profile=null;if(FT.pending()||FT.isFt(S.screen))return;return go("login")}
+  S.user=u; if(!u){S.profile=null;if(FT.isFt(S.screen)||(await FT.pending()))return;go("login");FT.checkInv();return}
   const snap=await getDoc(doc(db,"users",u.uid));
   if(!snap.exists()){S.profile={name:u.displayName||""};return go("name")}
   S.profile=snap.data();FT.sync();
-  if(FT.isFt(S.screen))return render();if(FT.pending())return;
+  if(FT.isFt(S.screen))return render();setTimeout(()=>FT.checkInv(),1500);if(await FT.pending())return;
   if(await joinPending())return;if(await gsPending())return;
   const m=localStorage.getItem("cm_mode"); if(m==="club")return openClubs(); if(m==="personal")return A.modePersonal(); go("mode");
 });
@@ -1406,6 +1406,8 @@ const BACK={gsImp:()=>go("mode"),clubs:()=>go("mode"),personal:()=>go("mode"),cl
 const FT=ftInstall({S,go,render:()=>render(),esc,toast,pop,askText,login:()=>A.login(),home:()=>S.user&&S.profile?go("mode"):go("login"),toP:()=>A.toP(),isDev,
  saveUser:v=>updateDoc(doc(db,"users",S.user.uid),{...v,updatedAt:serverTimestamp()}),
  count:n=>{try{setDoc(doc(db,"ftStats",n),{n:increment(1)},{merge:true}).catch(()=>{})}catch(e){}},
+ ftGet:c=>getDoc(doc(db,"ftShares",c)).then(d=>d.exists()?d.data():null),ftNew:(c,v)=>setDoc(doc(db,"ftShares",c),v),ftSetB:(c,B)=>updateDoc(doc(db,"ftShares",c),{B,bAt:Date.now()}),
+ ftMine:()=>getDocs(query(collection(db,"ftShares"),where("owner","==",S.user.uid))).then(r=>r.docs.map(d=>({code:d.id,...d.data()}))),
  realRec:()=>{if(!S.user||!S.profile)return{st:"nologin"};if(!S.pready&&!S._ftPg){S._ftPg=1;pLoad().catch(()=>{}).finally(()=>{S._ftPg=2;if(FT.isFt(S.screen))render()})}if(!S.pready&&S._ftPg!==2)return{st:"loading"};
   const z={fore:{g:0,w:0,l:0,d:0},back:{g:0,w:0,l:0,d:0}};(S.pg||[]).forEach(g=>{if(!g.t1||g.t1.length<2)return;const p=g.t1[0].p;if(p!=="fore"&&p!=="back")return;const r=pres(g);z[p].g++;z[p][r]++});return{st:"ok",...z}},
  devStats:()=>{if(!isDev())return;Promise.all(["done","inv","invDone"].map(n=>getDoc(doc(db,"ftStats",n)).then(d=>d.exists()?d.data().n||0:0).catch(()=>"?"))).then(([a,b,c])=>{const e=$("#ftst");if(e)e.textContent=`테스트 통계: 완료 ${a} · 초대 링크 ${b} · 초대받아 완료 ${c}`})}});

@@ -158,6 +158,19 @@ service cloud.firestore {
       allow update: if request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == resource.data.n + 1;
     }
 
+    // 포백 테스트 궁합: 짧은 코드로 초대(A)를 보관, 파트너가 결과(B)를 한 번만 채움. 30일 만료
+    match /ftShares/{c} {
+      allow get: if true;
+      allow list: if authed() && resource.data.owner == me();
+      allow create: if request.resource.data.keys().hasOnly(['A', 'owner', 'at', 'exp'])
+        && (request.resource.data.owner == '' || (authed() && request.resource.data.owner == me()))
+        && request.resource.data.exp is number && request.resource.data.exp < request.time.toMillis() + 2764800000;
+      allow update: if !('B' in resource.data) && resource.data.exp > request.time.toMillis()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['B', 'bAt'])
+        && request.resource.data.B.keys().hasOnly(['n', 'h', 'a']);
+      allow delete: if authed() && resource.data.owner == me();
+    }
+
     match /personalGames/{g} {
       allow create: if authed() && request.resource.data.ownerUid == me();
       allow read, update, delete: if authed() && resource.data.ownerUid == me();
