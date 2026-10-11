@@ -1,7 +1,7 @@
 // 포백 테스트 화면 — app.js에서 ftInstall(도구)로 연결해요. 문구는 ft-data.js, 계산은 ft-core.js
 // 화면: ftStart 시작 · ftQ 문항 · ftLoad 분석 중 · ftRes 결과 · ftWait 궁합 대기 · ftMatch 궁합 · ftMy 내 복식 성향
-import { FQ, SHOT_O, FT_LOADING, POSN, STYN, COVN, TIP_HESITATE, TIP_MIXED, FT_NOTE, SEATN } from "./ft-data.js";
-import { FT_KEYS, SPOTS, isFore, ftValid, ftScore, ftPartners, ftShots, ftReason, ftMatch, b64e, ftInvite, ftReturn } from "./ft-core.js";
+import { FQ, SHOT_O, FT_LOADING, POSN, STYN, COVN, COVTAG, TIP_HESITATE, TIP_MIXED, FT_NOTE, SEATN, REAL } from "./ft-data.js";
+import { FT_KEYS, SPOTS, isFore, ftValid, ftScore, ftPartners, ftReason, ftSeatLabel, ftAnalysis, ftReal, ftMatch, b64e, ftInvite, ftReturn } from "./ft-core.js";
 
 export function ftInstall(X) {
   const { S, go, esc, toast, pop, askText } = X;
@@ -25,7 +25,7 @@ export function ftInstall(X) {
   async function share(t, okMsg) { try { if (navigator.share) { await navigator.share({ text: t }); return } await navigator.clipboard.writeText(t); toast(okMsg || "링크를 복사했어요. 카톡에 붙여넣어 주세요") } catch (e) { } }
 
   // ---------- 그림: 하프 코트 타점 지도(뒤에서 본 시점, 네트가 위, 왼쪽 백·오른쪽 포)
-  const PREF = { F: "포 선호", B: "백 선호", X: "유연" }, tags = r => `<div class="fttags"><span class="pill">${PREF[r.pos]}</span><span class="pill">${STYN[r.sty]}형</span><span class="pill">커버 ${COVN[r.cov]}</span></div>`;
+  const PREF = { F: "포 선호", B: "백 선호", X: "유연" }, tags = r => `<div class="fttags"><span class="pill">${PREF[r.pos]}</span><span class="pill">${STYN[r.sty]}형</span><span class="pill">${COVTAG[r.cov]}</span></div>`;
   const ratio = r => `<div class="ftbar"><span style="width:${r.fore}%"></span><span style="width:${r.back}%"></span></div>`;
 
   // ---------- 공유 카드(세로 이미지): 짙은 코트 바닥 + 비스듬한 코트 라인 + 공
@@ -65,16 +65,23 @@ export function ftInstall(X) {
   const shotNm = k => ("efgh".includes(k) ? (isFore(k) ? "포발리" : "백발리") : (isFore(k) ? "포핸드" : "백핸드"));
   // 결과: ① 핵심 요약(유형·포백 선호·추천 자리) ② 플레이 분석(자리별 4칸) ③ 플레이 스타일(접힘)
   const ST = { 1: "자신 있음", 0: "보통", "-1": "더 연습" };
-  function resBlock(R, rec) {
-    const r = ftScore(R.h, R.a), T = r.type, big = r.fore >= r.back, tips = [r.flags.hesitate ? TIP_HESITATE : "", r.flags.mixed ? TIP_MIXED : ""].filter(Boolean);
+  function summary(R, rec) {
+    const r = ftScore(R.h, R.a), T = r.type, lab = ftSeatLabel(r);
+    return `<div class="card ftsum"><div class="sub">${rec ? "나의 복식 플레이 성향" : esc(R.n || "") + "님의 복식 플레이 성향"} · ${r.h === "R" ? "오른손" : "왼손"}</div><div class="fthero">${T.n}</div><div class="ftone">${esc(T.one)}</div>${tags(r)}
+<div class="ftsec"><div class="row"><span class="ftlab" style="margin:0">포·백 선호도</span><span class="sub">설문 결과</span></div><div class="row ftpct"><span>포 ${r.fore}%</span><span>백 ${r.back}%</span></div>${ratio(r)}<div class="sub" style="margin-top:6px">실제 경기 성적이 아닌 상대적 선호도예요.</div></div>
+<div class="ftsec"><span class="ftlab">${lab}</span><div class="ftsn" style="font-size:18px">${SEATN[r.pos]}</div><div class="sub" style="margin-top:2px">${esc(ftReason(r))}</div></div></div>`;
+  }
+  function detail(R) {
+    const r = ftScore(R.h, R.a), T = r.type, an = ftAnalysis(r), tips = [r.flags.hesitate ? TIP_HESITATE : "", r.flags.mixed ? TIP_MIXED : ""].filter(Boolean);
     const NM = { BN: "백 전위", FN: "포 전위", BB: "백 후위", FB: "포 후위" };
     const cell = s => { const sp = SPOTS[r.h][s], rc = r.pos !== "X" && s[0] === r.pos, L = [["바깥", sp.out], ["센터", sp.cen]].sort((x, y) => r.shots[y[1]] - r.shots[x[1]]);
-      return `<div class="ftcell${rc ? " rec" : ""}"><b class="ftch">${NM[s]}${rc ? " · 추천" : ""}</b>${L.map(([w, k]) => `<div class="ftshot">${IC[r.shots[k]]}<div><div class="ftsn">${w} ${shotNm(k)}</div><div class="sub">${ST[r.shots[k]]}</div></div></div>`).join("")}</div>` };
-    return `<div class="card ftsum"><div class="sub">${rec ? "내 복식 성향" : esc(R.n || "") + "님의 복식 성향"} · ${r.h === "R" ? "오른손" : "왼손"}</div><div class="fthero">${T.n}</div><div class="ftone">${esc(T.one)}</div>${tags(r)}
-<div class="ftsec"><div class="sub">포·백 선호도</div><div class="row" style="align-items:baseline;margin:2px 0 8px"><div class="ftbig">${big ? `포 ${r.fore}%` : `백 ${r.back}%`}</div><span class="ftsmall">${big ? `백 ${r.back}%` : `포 ${r.fore}%`}</span></div>${ratio(r)}<div class="sub" style="margin-top:6px">설문 응답을 바탕으로 한 상대적 선호도</div></div>
-<div class="ftsec"><div class="ftshot">${IC[1]}<div><div class="ftsn">추천 자리 · ${SEATN[r.pos]}</div><div class="sub">${esc(ftReason(r))} 선호도와 샷 자신감을 함께 본 결과예요.</div></div></div></div></div>
-<h2>플레이 분석</h2><div class="sub" style="margin:-4px 2px 8px">자리별 샷 자신감 · 네트 쪽이 위, 왼쪽이 백(애드) 자리예요</div><div class="ftgrid">${["BN", "FN", "BB", "FB"].map(cell).join("")}</div>
-<details class="card sd ftmore" style="margin-top:14px"><summary><b>플레이 스타일</b></summary><div class="ftstyle">${tips.map(t => `<div class="fttip">${esc(t)}</div>`).join("")}${[["이럴 때 당신답다", T.moment], ["무기", T.weapon], ["이것만 조심", T.careful], ["다음 경기 미션", T.mission], ["파트너에게 들을 법한 말", `"${T.quote}"`]].map(([k, v]) => `<div><span class="ftlab">${k}</span><div>${esc(v)}</div></div>`).join("")}</div></details>`;
+      return `<div class="ftcell${rc ? " rec" : ""}"><b class="ftch">${NM[s]}${rc ? " · " + (ftSeatLabel(r) === "추천 자리" ? "추천" : "선호") : ""}</b>${L.map(([w, k]) => `<div class="ftshot">${IC[r.shots[k]]}<div><div class="ftsn">${w} ${shotNm(k)}</div><div class="sub">${ST[r.shots[k]]}</div></div></div>`).join("")}</div>` };
+    const rr2 = X.realRec(), real = rr2.st === "nologin" ? REAL.noLogin : rr2.st === "loading" ? REAL.loading : null, rv = real ? null : ftReal(r, rr2);
+    const pct = o => o.w + o.l ? Math.round(o.w / (o.w + o.l) * 100) + "%" : "–", wl = o => `${o.w}승${o.d ? ` ${o.d}무` : ""} ${o.l}패`;
+    return `<h2>플레이 분석</h2><div class="card ftan">${an.rows.map(([k, v, tip]) => `<div><span class="ftlab">${k}</span>${v ? `<div class="ftsn">${v}</div>` : ""}<div class="${v ? "sub" : ""}" style="margin-top:2px">${esc(tip)}</div></div>`).join("")}</div>
+<div class="card"><div class="row"><span class="ftlab" style="margin:0">실전 기록 비교</span><span class="sub">내 개인 기록</span></div>${real ? `<div class="sub" style="margin-top:8px">${real}</div>` : `<div class="ftreal"><div class="${rv.better === "F" ? "on" : ""}"><span class="sub">포 자리</span><b>${pct(rr2.fore)}</b><span class="sub">${wl(rr2.fore)}</span></div><div class="${rv.better === "B" ? "on" : ""}"><span class="sub">백 자리</span><b>${pct(rr2.back)}</b><span class="sub">${wl(rr2.back)}</span></div></div><div class="ftsn" style="font-size:15px;margin-top:10px">${esc(rv.text)}</div><div class="sub" style="margin-top:2px;font-size:12px">포·백을 입력한 복식 경기 기준 승률이에요.</div>`}</div>
+<details class="card sd ftmore"><summary><b>자리별 샷 자신감 보기</b></summary><div class="sub" style="font-size:12px">네트 쪽이 위, 왼쪽이 백(애드) 자리예요</div><div class="ftgrid" style="margin-top:8px">${["BN", "FN", "BB", "FB"].map(cell).join("")}</div></details>
+<details class="card sd ftmore"><summary><b>플레이 스타일</b></summary><div class="ftstyle">${tips.map(t => `<div class="fttip">${esc(t)}</div>`).join("")}${[["이럴 때 당신답다", T.moment], ["무기", T.weapon], ["이것만 조심", T.careful], ["다음 경기 미션", T.mission], ["파트너에게 들을 법한 말", `"${T.quote}"`]].map(([k, v]) => `<div><span class="ftlab">${k}</span><div>${esc(v)}</div></div>`).join("")}</div></details>`;
   }
   const pairsLine = r => `<div class="sub">잘 맞는 파트너 유형</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${ftPartners(r).map(p => `<span class="pill">${p.n} <span style="font-weight:400">${POSN[p.key[0]]}·${STYN[p.key.slice(2)]}</span></span>`).join("")}</div>`;
   const loginBtn = () => !S.user ? `<button class="ghost" data-a="ftSave">로그인해 저장</button>` : "";
@@ -92,13 +99,14 @@ ${q.pre ? `<div class="card center" style="background:var(--tint);box-shadow:non
     ftLoad: () => `<div class="mid center"><div class="spin"></div><p class="hi" style="margin-top:18px">${FT_LOADING}</p></div>`,
     ftRes: () => {
       const R = S.ftr, I = S.ft && S.ft.inv && S.ftr.fresh;
-      return `${back()}${resBlock(R, 1)}
-${I ? `<button data-a="ftMatchGo">${esc(I.n || "파트너")}님과 궁합 보기</button>` : `<button data-a="ftInv">파트너와 궁합 보기</button>`}<button class="ghost" data-a="ftCard">카드 저장</button>${loginBtn()}${!S.user ? `<button class="link" data-a="ftHome" style="display:block;margin:8px auto 0">Court Manager 둘러보기</button>` : ""}
-<button class="link" data-a="ftMyOpen" style="display:block;margin:6px auto 0">다시 하기 · 지난 결과</button><div class="sub center" style="margin:16px 0 24px;font-size:12px">${FT_NOTE}</div>${imgSheet()}` },
+      return `<div class="row" style="margin-bottom:4px"><button class="link bk" data-a="ftBack" style="margin:0"><span class="ar">←</span> 뒤로</button><span class="ftbrand">COURT MANAGER</span></div>${summary(R, 1)}
+${I ? `<button data-a="ftMatchGo">${esc(I.n || "파트너")}님과 궁합 보기</button>` : `<button data-a="ftInv">파트너와 궁합 보기</button>`}<button class="ghost" data-a="ftCard">결과 카드 저장</button>${!S.user ? `<button class="link" data-a="ftSave" style="display:block;margin:6px auto 0">로그인해 저장</button>` : ""}
+<div class="sub center" style="margin:10px 0 4px">아래에서 샷 자신감과 상세 플레이 분석을 확인할 수 있어요.</div>${detail(R)}
+<button class="link" data-a="ftMyOpen" style="display:block;margin:6px auto 0">다시 하기 · 지난 결과</button>${!S.user ? `<button class="link" data-a="ftHome" style="display:block;margin:0 auto">Court Manager 둘러보기</button>` : ""}<div class="sub center" style="margin:12px 0 24px;font-size:12px">${FT_NOTE}</div>${imgSheet()}` },
     ftWait: () => `${back("결과로")}<div class="mid center"><h1>궁합 대기 중</h1><p class="hi">파트너가 테스트를 마치면 궁합이 열립니다</p><div class="card" style="text-align:left;background:var(--tint);box-shadow:none"><div class="sub">파트너가 결과 화면에서 '궁합 결과 보내기'를 누르면, 받은 링크로 둘의 궁합을 볼 수 있어요.</div></div><div class="card" style="text-align:left">${pairsLine(ftScore(S.ftr.h, S.ftr.a))}</div></div><div class="bar"><button data-a="ftInvAgain">링크 다시 보내기</button></div>`,
     ftMatch: () => {
       const M = S.ftm, m = ftMatch(M.A, M.B), na = M.A.n || "A", nb = M.B.n || "B", N = [na, nb], R = [m.ra, m.rb];
-      const tcard = (n, r) => `<div class="card center" style="flex:1;min-width:0;margin:0;padding:12px 8px"><div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n)}</div><b style="font-size:19px;color:var(--main)">${r.type.n}</b><div class="sub" style="font-size:12px">${POSN[r.pos]} · ${STYN[r.sty]} · 커버 ${COVN[r.cov]}</div></div>`;
+      const tcard = (n, r) => `<div class="card center" style="flex:1;min-width:0;margin:0;padding:12px 8px"><div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n)}</div><b style="font-size:19px;color:var(--main)">${r.type.n}</b><div class="sub" style="font-size:12px">${POSN[r.pos]} · ${STYN[r.sty]} · ${COVTAG[r.cov]}</div></div>`;
       const cline = (i, s) => { const k = SPOTS[R[i].h][s].cen, v = R[i].shots[k]; return `<div class="ftshot">${IC[v]}<div><div class="ftlab">${esc(N[i])}님 · ${s === "FB" ? "포" : "백"} 자리의 센터 쪽</div><div><b>${isFore(k) ? "포핸드" : "백핸드"}</b> <span class="sub">${v === 1 ? "자신 있음" : v === 0 ? "보통" : "더 연습"}</span></div></div></div>` };
       const map = cline(m.fore, "FB") + cline(m.back, "BB");
       const pr = M.pr || [];
@@ -165,7 +173,7 @@ ${X.isDev() ? `<div class="sub center" id="ftst" style="margin-top:16px">테스�
         c.fillStyle = "#CFE67A"; c.font = `700 52px ${F}`; c.fillText("내 복식 성향", 540, 310);
         c.fillStyle = "#F6F4EC"; c.font = `800 ${T.n.length > 3 ? 150 : 176}px ${F}`; c.shadowColor = "rgba(0,0,0,.35)"; c.shadowBlur = 24; c.fillText(T.n, 540, 492); c.shadowBlur = 0;
         c.font = `700 ${T.one.length > 18 ? 42 : 50}px ${F}`; let y = wrap(c, `“${T.one}”`, 540, 590, 940, 62);
-        pills(c, F, [POSN[r.pos], STYN[r.sty] + "형", "커버 " + COVN[r.cov]], y + 14);
+        pills(c, F, [{ F: "포 선호", B: "백 선호", X: "유연" }[r.pos], STYN[r.sty] + "형", COVTAG[r.cov]], y + 14);
         const bx = 158, bw = 764, by = y + 124, bh = 82, fw = Math.max(0, Math.min(bw, bw * r.fore / 100));
         c.save(); rrect(c, bx, by, bw, bh, bh / 2); c.clip(); c.fillStyle = "#2B6650"; c.fillRect(bx, by, bw, bh); c.fillStyle = "#CBE56A"; c.fillRect(bx, by, fw, bh); c.restore();
         rrect(c, bx, by, bw, bh, bh / 2); c.strokeStyle = "rgba(200,230,120,.5)"; c.lineWidth = 2; c.stroke();

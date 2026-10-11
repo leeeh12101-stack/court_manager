@@ -35,6 +35,24 @@ const SW = [1, 1, 2, 0, 2, 2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1, 0]; // 마음 +1(백
 const rsw = F.ftScore("R", SW);
 eq("백을 좋아해도 샷이 포면 포 + 이유", [rsw.pos, F.ftReason(rsw)], ["F", "백 자리를 좋아하는 편이지만, 포 자리 샷이 훨씬 편하게 나왔어요."]);
 
+// ---------- 플레이 분석·자리 표시·실전 비교
+eq("사례 A: 분석 판정", (({ zone, hand, dir }) => ({ zone, hand, dir }))(F.ftAnalysis(ra)), { zone: "even", hand: "even", dir: "even" });
+eq("사례 A: 조심할 샷(백 자리)", F.ftAnalysis(ra).rows[3][2], "백 자리에서 부담스러운 샷이 없어요.");
+eq("사례 A: 샷도 백 → 추천 자리", F.ftSeatLabel(ra), "추천 자리");
+const PF = F.ftScore("R", [1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0]);
+eq("샷이 중립이면 선호 자리", [PF.pos, F.ftSeatLabel(PF)], ["B", "선호 자리"]);
+const FH = F.ftScore("R", [1, 1, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 1, 0]);
+eq("포핸드 의존형·네트/후위 균형", [F.ftAnalysis(FH).hand, F.ftAnalysis(FH).zone], ["fore", "even"]);
+const NT = F.ftScore("R", [1, 1, 0, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]);
+eq("네트형·센터 강자", [F.ftAnalysis(NT).zone, F.ftAnalysis(NT).dir], ["net", "cen"]);
+const Z = (fw, fl, bw, bl) => ({ fore: { g: fw + fl, w: fw, l: fl, d: 0 }, back: { g: bw + bl, w: bw, l: bl, d: 0 } });
+eq("실전: 경기 부족", F.ftReal(ra, Z(1, 1, 5, 2)).text, "포·백을 입력한 복식 경기가 쌓이면 비교해 드려요. (지금 9경기)");
+eq("실전: 설문 백 · 실전 백", F.ftReal(ra, Z(3, 6, 12, 5)).text, "설문과 실전이 같은 쪽이에요. 백 자리에서 더 잘 풀려요.");
+eq("실전: 설문 포 · 실전 백", F.ftReal(rsw, Z(3, 6, 12, 5)).text, "설문은 포, 실전은 백 자리에서 더 잘 풀려요.");
+eq("실전: 비슷", F.ftReal(ra, Z(5, 5, 5, 4)).text, "실전에서는 포·백 성적이 비슷해요.");
+const m5 = F.ftMatch({ n: "가", h: "R", a: FH.h ? [1, 1, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 1, 0] : [] }, { n: "나", h: "R", a: [1, 1, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 1, 0] });
+eq("궁합: 둘 다 포핸드 의존 → 경고", m5.cautions.some(c => c.startsWith("둘 다 포핸드에")), true);
+
 // ---------- 범위
 const all = (n, v) => Array(n).fill(v);
 const maxB = [1, 1, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0];  // 백 후위·백 전위 자신, 포 쪽 부담

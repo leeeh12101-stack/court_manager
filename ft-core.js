@@ -1,5 +1,5 @@
 // 포백 테스트 계산 — 화면·Firebase와 무관한 순수 계산(자동 테스트 대상: tests/ft.test.mjs)
-import { TYPES, COMBOS, SEAT, CENTER, CAUTION, PROMISES, POSN, SHOT_NM, REASON } from "./ft-data.js";
+import { TYPES, COMBOS, SEAT, CENTER, CAUTION, CAUTION2, PROMISES, POSN, SHOT_NM, REASON, AN, REAL } from "./ft-data.js";
 
 // 답 배열 순서. 모든 값은 고른 보기 번호(0부터). 샷 문항(a~h)은 0 자신 있음·1 보통·2 부담
 export const FT_KEYS = ["q2", "q3", "q4", "a", "b", "c", "d", "e", "f", "g", "h", "q6", "q7", "q8", "q9", "q10", "q11"];
@@ -49,6 +49,27 @@ export function ftReason(r) {
   return f(t ? REASON.mindWin : REASON.mindOnly);
 }
 
+// 자리 표시: 샷 자신감도 같은 쪽을 가리키면 '추천 자리', 선호만으로 정해졌으면 '선호 자리'
+export const ftSeatLabel = r => r.pos === "X" ? "자리" : (r.shotP > 0 ? "B" : r.shotP < 0 ? "F" : "") === r.pos ? "추천 자리" : "선호 자리";
+// 플레이 분석 4줄: 강한 구역(리시브 vs 발리) · 포핸드/백핸드 · 센터/바깥 · 추천 자리에서 조심할 샷
+export function ftAnalysis(r) {
+  const v = r.shots, s = ks => ks.split("").reduce((t, k) => t + v[k], 0);
+  const z = s("abcd") - s("efgh"), hd = s("aceg") - s("bdfh"), dr = s("cdgh") - s("abef");
+  const zone = z >= 2 ? "back" : z <= -2 ? "net" : "even", hand = hd >= 2 ? "fore" : hd <= -1 ? "back" : "even", dir = dr >= 2 ? "cen" : dr <= -2 ? "out" : "even";
+  let weak;
+  if (r.pos === "X") { const w = "abcdefgh".split("").filter(k => v[k] === -1).slice(0, 2).map(k => SHOT_NM[k]); weak = w.length ? fill(AN.weak.flex, { W: w.join(", ") }) : AN.weak.flexNone }
+  else { const sp = SPOTS[r.h], w = [sp[r.pos + "B"].out, sp[r.pos + "B"].cen, sp[r.pos + "N"].out, sp[r.pos + "N"].cen].filter(k => v[k] === -1).map(k => SHOT_NM[k]); weak = fill(w.length ? AN.weak.some : AN.weak.none, { S: POSN[r.pos], W: w.join(", ") }) }
+  return { zone, hand, dir, rows: [[AN.zone.k, ...AN.zone[zone]], [AN.hand.k, ...AN.hand[hand]], [AN.dir.k, ...AN.dir[dir]], [AN.weak.k, "", weak]] };
+}
+// 실전 기록 비교: z={fore:{w,l,d,g},back:{...}} → 문구. 각 자리 3경기 미만이면 안내
+export function ftReal(r, z) {
+  const n = z.fore.g + z.back.g; if (z.fore.g < 3 || z.back.g < 3) return { ok: 0, text: fill(REAL.few, { N: n }) };
+  const rt = o => o.w + o.l ? o.w / (o.w + o.l) : 0, d = rt(z.back) - rt(z.fore);
+  if (Math.abs(d) < .1) return { ok: 1, text: REAL.flat };
+  const S = d > 0 ? "B" : "F";
+  return { ok: 1, better: S, text: r.pos === "X" ? fill(REAL.flexBetter, { S: POSN[S] }) : fill(S === r.pos ? REAL.same : REAL.diff, { S: POSN[S], Q: POSN[r.pos] }) };
+}
+
 // 잘 맞는 파트너 유형: 자리는 반대(유연은 유연), 운영은 다른 것 2개
 export function ftPartners(r) {
   const op = { F: "B", B: "F", X: "X" }[r.pos], alt = { lead: ["link", "safe"], link: ["lead", "safe"], safe: ["lead", "link"] }[r.sty];
@@ -81,16 +102,20 @@ export function ftMatch(A, B) {
   // 주의할 장면(최대 2개)
   const bothAct = ra.cov === "act" && rb.cov === "act", bothShare = ra.cov === "share" && rb.cov === "share",
     bothFreeze = ra.flags.freeze && rb.flags.freeze, anyHes = ra.flags.hesitate || rb.flags.hesitate, zone = bothFreeze && anyHes;
+  const aa = ftAnalysis(ra), ab = ftAnalysis(rb), bothFore = aa.hand === "fore" && ab.hand === "fore", bothBackZ = aa.zone === "back" && ab.zone === "back", bothNet = aa.zone === "net" && ab.zone === "net";
   const cau = [];
   if (zone) cau.push(CAUTION.zone);
+  if (bothFore) cau.push(CAUTION2.fore);
   if (bothAct) cau.push(CAUTION.act);
   if (bothShare) cau.push(CAUTION.share);
   if (!zone && bothFreeze) cau.push(CAUTION.freeze);
   if (!zone && anyHes) cau.push(CAUTION.hesitate);
+  if (bothBackZ) cau.push(CAUTION2.back);
+  if (bothNet) cau.push(CAUTION2.net);
   // 약속 3개: 조건 맞는 것 우선순위대로, 모자라면 위에서부터
-  const centerWarn = cKind === "none" || bothAct || bothShare || bothFreeze || zone;
-  const cond = { center: centerWarn, poach: anyHes || bothAct, change: ra.sty !== rb.sty, gp: ra.q4 === rb.q4, lob: true };
-  const pick = PROMISES.filter(p => cond[p.id] && p.id !== "lob").map(p => p.id);
+  const centerWarn = cKind === "none" || bothAct || bothShare || bothFreeze || zone || bothFore;
+  const cond = { center: centerWarn, poach: anyHes || bothAct, change: ra.sty !== rb.sty, gp: ra.q4 === rb.q4, lob: bothNet };
+  const pick = PROMISES.filter(p => cond[p.id]).map(p => p.id);
   PROMISES.forEach(p => { if (pick.length < 3 && !pick.includes(p.id)) pick.push(p.id) });
   const prom = PROMISES.filter(p => pick.slice(0, 3).includes(p.id)).map(p => ({ ...p, o: p.o.map(x => fill(x, { A: na, B: nb })) }));
   return { ra, rb, combo, fore, back, seat, center, cKind, lr, cautions: cau.slice(0, 2), prom };
