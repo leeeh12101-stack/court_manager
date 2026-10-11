@@ -4,24 +4,27 @@ import { FQ, EQ, EASY, START, STRAT, SHOT_O, SHOT_ST, FT_LOADING, POSN, STYN, CO
 import { FT_KEYS, EASY_KEYS, ftTeam, SPOTS, isFore, ftUp, ftCayer, ftValid, ftScore, ftPartners, ftReason, ftSeatLabel, ftAnalysis, ftReal, ftMatch, b64e, ftInvite, ftReturn } from "./ft-core.js";
 
 export function ftInstall(X) {
-  const { S, go, esc, toast, pop, askText } = X;
+  const { S, go, esc, toast, pop, ask, askText } = X;
   const rr = () => { S.still = 1; X.render(); S.still = 0 };
   // ---------- 저장: 먼저 폰(localStorage), 로그인하면 users 문서의 ft(내 결과)·ftc(궁합) 항목에 최근 5개
   const LS = "cm_ft", ld = () => { try { return JSON.parse(localStorage.getItem(LS) || "{}") } catch (e) { return {} } }, sv = o => { try { localStorage.setItem(LS, JSON.stringify(o)) } catch (e) { } };
   const okR = x => x && x.at && ftValid(x.h, x.a), okC = x => x && x.at && x.A && x.B && ftValid(x.A.h, x.A.a) && ftValid(x.B.h, x.B.a);
   const uniq = (L, ok) => { const m = {}; L.forEach(x => { if (ok(x)) m[x.at] = { ...(m[x.at] || {}), ...x } }); return Object.values(m).sort((a, b) => b.at - a.at).slice(0, 5) };
   const upR = x => x && { ...x, a: ftUp(x.a) }, upC = x => x && { ...x, A: x.A && { ...x.A, a: ftUp(x.A.a) }, B: x.B && { ...x.B, a: ftUp(x.B.a) } }; // 예전 결과(v1)를 v2로
-  const mine = () => uniq([...(ld().r || []), ...((S.profile && S.profile.ft) || [])].map(upR), okR);
-  const comps = () => uniq([...(ld().c || []), ...((S.profile && S.profile.ftc) || [])].map(upC), okC);
+  // 지운 결과(at 목록)는 폰·계정 양쪽에 남겨 다른 기기에서 되살아나지 않게
+  const dels = () => new Set([...(ld().del || []), ...((S.profile && S.profile.ftDel) || [])]);
+  const mine = () => { const D = dels(); return uniq([...(ld().r || []), ...((S.profile && S.profile.ft) || [])].filter(x => x && !D.has(x.at)).map(upR), okR) };
+  const comps = () => { const D = dels(); return uniq([...(ld().c || []), ...((S.profile && S.profile.ftc) || [])].filter(x => x && !D.has(x.at)).map(upC), okC) };
   const myName = () => (S.profile && S.profile.name ? String(S.profile.name).slice(0, 10) : "") || ld().nick || "";
   function keepLocal(k, rec, ok) { const o = ld(); o[k] = uniq([rec, ...(o[k] || [])], ok); sv(o); sync() }
   async function sync() {
     if (!S.user || !S.profile) return;
-    const r = mine(), c = comps(), same = (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []);
-    if (same(r, S.profile.ft) && same(c, S.profile.ftc)) return;
-    try { await X.saveUser({ ft: r, ftc: c }); S.profile.ft = r; S.profile.ftc = c } catch (e) { }
+    const r = mine(), c = comps(), dl = [...dels()].slice(-100), same = (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []);
+    if (same(r, S.profile.ft) && same(c, S.profile.ftc) && same(dl, S.profile.ftDel)) return;
+    try { await X.saveUser({ ft: r, ftc: c, ftDel: dl }); S.profile.ft = r; S.profile.ftc = c; S.profile.ftDel = dl } catch (e) { }
   }
   const latest = () => mine()[0] || null;
+  function delAts(ats) { const o = ld(); o.del = [...new Set([...(o.del || []), ...ats])].slice(-100); o.r = (o.r || []).filter(x => !ats.includes(x.at)); o.c = (o.c || []).filter(x => !ats.includes(x.at)); sv(o); sync() }
   const base = () => location.origin + location.pathname, gen = () => Array.from({ length: 8 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.random() * 32 | 0]).join("");
   const invText = (n, link) => `[포백 테스트] ${n}님이 복식 궁합을 보자고 해요!\n나는 포잡이? 백잡이? 테스트하고 둘의 궁합을 확인해 보세요\n${link}`;
   const url = (k, o) => `${location.origin}${location.pathname}?${k}=${b64e(o)}`;
@@ -108,8 +111,8 @@ ${style}`;
   const loginBtn = () => !S.user ? `<button class="ghost" data-a="ftSave">로그인해 저장</button>` : "";
   const FV = {
     ftStart: () => { const I = S.ft && S.ft.inv; return `${back(I ? "닫기" : "뒤로")}${kakao()}<div class="ftstart center"><div class="ftbrand">${START.tag}</div>${ball()}<h1>${START.title}</h1><div class="ftlines">${START.lines.map(l => `<div>${l}</div>`).join("")}</div><div class="ftchips">${START.chips.map(c => `<span>${c}</span>`).join("")}</div>
-${I ? `<div class="card" style="text-align:left;background:var(--tint);box-shadow:none;margin:16px 0 0"><b>${esc(I.n || "파트너")}님이 복식 궁합을 보자고 해요</b><div class="sub">테스트를 마치면 둘의 궁합이 바로 열려요</div><input id="ftn" maxlength="10" value="${esc(S.ft.nick || myName())}" placeholder="내 이름 (궁합에 보여요)" style="margin:10px 0 0"></div>` : ""}
-<button data-a="ftGo" data-v="d" class="ftcta">${START.cta} →</button><button data-a="ftGo" data-v="e" class="ftcta2">${START.easy} →</button><div class="sub" style="margin-top:12px">${START.sub}</div>
+${I ? `<div class="card" style="text-align:left;background:var(--tint);box-shadow:none;margin:16px 0 0"><b>${esc(I.n || "파트너")}님이 복식 궁합을 보자고 해요</b><div class="sub">테스트를 마치면 둘의 궁합이 바로 열려요</div><input id="ftn" maxlength="10" value="${esc(S.ft.nick || myName())}" placeholder="내 이름 (궁합에 보여요)" style="margin:10px 0 0">${latest() ? (() => { const L = latest(), x = new Date(L.at); return `<div class="ftold"><b>이미 테스트한 결과가 있어요</b><div class="sub">${x.getMonth() + 1}.${String(x.getDate()).padStart(2, "0")} · ${ftScore(L.h, L.a).easy ? "간단 테스트" : "상세 테스트"}</div><button data-a="ftUseOld" style="margin-top:10px">이 결과로 바로 궁합 보기</button></div>` })() : ""}</div>` : ""}
+<button data-a="ftGo" data-v="d" class="${I && latest() ? "ftcta2" : "ftcta"}">${I && latest() ? "새로 테스트하기" : START.cta} →</button><button data-a="ftGo" data-v="e" class="ftcta2">${START.easy} →</button><div class="sub" style="margin-top:12px">${START.sub}</div>
 <div class="ftrule"></div><div class="sub ftnote">${START.note}</div></div>` },
     ftQ: () => {
       const QS = qs(), st = S.ft.step, q = QS[st], A = S.ft.a, n = QS.length;
@@ -149,9 +152,10 @@ ${M.role === "B" ? `<button data-a="ftSendBack">${esc(na)}님에게 궁합 결�
     },
     ftMy: () => {
       const L = mine(), C = comps(), d = at => { const x = new Date(at); return `${x.getMonth() + 1}.${String(x.getDate()).padStart(2, "0")}` };
-      return `${back()}<h1>내 복식 성향</h1>${L.length ? (() => { const r = ftScore(L[0].h, L[0].a); return `<div class="card tap" data-a="ftView" data-x="${L[0].at}" style="padding:16px"><div class="row"><div><div class="sub">최근 결과 · ${d(L[0].at)}</div><b style="font-size:18px;color:var(--main)">내 플레이 분석 보기</b><div class="sub">${PREF[r.pos]} · ${r.fore >= r.back ? `포 ${r.fore}%` : `백 ${r.back}%`}</div></div><span class="sub">›</span></div></div><button data-a="ftInvMy">파트너와 궁합 보기</button>` })() : `<div class="card sub center">아직 테스트 결과가 없어요</div>`}<button class="ghost" data-a="ftNew">${L.length ? "다시 하기" : "테스트 시작"}</button>
-${L.length > 1 ? `<h2>지난 결과</h2><div class="list">${L.slice(1).map(x => { const r = ftScore(x.h, x.a); return `<div class="li tap" data-a="ftView" data-x="${x.at}"><span class="sub" style="width:44px">${d(x.at)}</span><span class="nm">${PREF[r.pos]}</span><span class="sub">${r.fore >= r.back ? `포 ${r.fore}%` : `백 ${r.back}%`}</span></div>` }).join("")}</div>` : ""}
-${C.length ? `<h2>궁합 기록</h2><div class="list">${C.map(x => { const m = ftMatch(x.A, x.B); return `<div class="li tap" data-a="ftCView" data-x="${x.at}"><span class="sub" style="width:44px">${d(x.at)}</span><span class="nm">${esc(x.A.n)} × ${esc(x.B.n)}</span><span class="sub">${m.combo.n}</span></div>` }).join("")}</div>` : ""}
+      return `${back()}<h1>내 복식 캐릭터</h1>${L.length ? (() => { const r = ftScore(L[0].h, L[0].a); return `<div class="card tap" data-a="ftView" data-x="${L[0].at}" style="padding:16px"><div class="row"><div><div class="sub">최근 결과 · ${d(L[0].at)}${ftScore(L[0].h, L[0].a).easy ? " · 간단" : ""} <span class="ftdel" data-a="ftDel" data-x="${L[0].at}">삭제</span></div><b style="font-size:18px;color:var(--main)">내 플레이 분석 보기</b><div class="sub">${PREF[r.pos]} · ${r.fore >= r.back ? `포 ${r.fore}%` : `백 ${r.back}%`}</div></div><span class="sub">›</span></div></div><button data-a="ftInvMy">파트너와 궁합 보기</button>` })() : `<div class="card sub center">아직 테스트 결과가 없어요</div>`}<button class="ghost" data-a="ftNew">${L.length ? "다시 하기" : "테스트 시작"}</button>
+${L.length > 1 ? `<h2>지난 결과</h2><div class="list">${L.slice(1).map(x => { const r = ftScore(x.h, x.a); return `<div class="li tap" data-a="ftView" data-x="${x.at}"><span class="sub" style="width:44px">${d(x.at)}</span><span class="nm">${PREF[r.pos]}</span><span class="sub">${r.fore >= r.back ? `포 ${r.fore}%` : `백 ${r.back}%`}</span><span class="ftdel" data-a="ftDel" data-x="${x.at}">삭제</span></div>` }).join("")}</div>` : ""}
+${C.length ? `<h2>궁합 기록</h2><div class="list">${C.map(x => { const m = ftMatch(x.A, x.B); return `<div class="li tap" data-a="ftCView" data-x="${x.at}"><span class="sub" style="width:44px">${d(x.at)}</span><span class="nm">${esc(x.A.n)} × ${esc(x.B.n)}</span><span class="sub">${m.combo.n}</span><span class="ftdel" data-a="ftDel" data-x="${x.at}">삭제</span></div>` }).join("")}</div>` : ""}
+${L.length || C.length ? `<button class="link" data-a="ftDelAll" style="display:block;margin:14px auto 0;color:#B3402A">테스트 기록 모두 지우기</button>` : ""}
 ${X.isDev() ? `<div class="sub center ftst" style="margin-top:16px">${S.ftStatsT || "테스트 통계 불러오는 중…"}</div>` : ""}`
     }
   };
@@ -165,18 +169,18 @@ ${X.isDev() ? `<div class="sub center ftst" style="margin-top:16px">${S.ftStatsT
     const rec = { at: Date.now(), h: S.ft.h, a };
     keepLocal("r", rec, okR); X.count(S.ft.mode === "e" ? "doneE" : "done"); if (S.ft.inv) X.count("invDone");
     S.ftr = { ...rec, n: S.ft.nick || myName(), fresh: 1 };
-    if (S.ft.code) X.ftSetB(S.ft.code, { n: S.ftr.n || "파트너", h: rec.h, a: rec.a }).catch(() => { }); // 초대한 사람에게 자동으로 전달
+    if (S.ft.code) X.ftAddR(S.ft.code, { n: S.ftr.n || "파트너", h: rec.h, a: rec.a }).then(id => { S.ft.rid = id }).catch(() => { }); // 초대한 사람에게 자동으로 전달
     go("ftLoad"); setTimeout(() => { if (S.screen === "ftLoad") go("ftRes") }, 1000);
   }
   function openMatch(A, B, role, from) {
     const ex = comps().find(x => JSON.stringify([x.A, x.B]) === JSON.stringify([A, B]));
-    S.ftm = ex ? { ...ex, role } : { at: Date.now(), A, B, pr: [], role }; S.ftFrom = from || S.ftFrom; if (role === "B" && S.ft && S.ft.code) S.ftm.code = S.ft.code;
+    S.ftm = ex ? { ...ex, role } : { at: Date.now(), A, B, pr: [], role }; S.ftFrom = from || S.ftFrom; if (role === "B" && S.ft && S.ft.code) { S.ftm.code = S.ft.code; S.ftm.rid = S.ft.rid }
     keepLocal("c", { at: S.ftm.at, A, B, pr: S.ftm.pr || [] }, okC); go("ftMatch");
   }
   async function invite(R) {
     let n = myName(); if (!n) { n = ((await askText("파트너에게 보일 내 이름(10자까지)", "")) || "").trim().slice(0, 10); if (!n) return; const o = ld(); o.nick = n; sv(o) }
     // 짧은 코드로 서버에 보관(실패하면 예전처럼 답을 담은 긴 링크)
-    let code = null; try { code = gen(); await X.ftNew(code, { A: { n, h: R.h, a: R.a }, owner: S.user && S.profile ? S.user.uid : "", at: Date.now(), exp: Date.now() + 30 * 864e5 }); const o = ld(); o.inv = [{ code, at: Date.now() }, ...(o.inv || [])].slice(0, 10); sv(o) } catch (e) { code = null }
+    let code = null; try { code = gen(); await X.ftNew(code, { A: { n, h: R.h, a: R.a }, owner: S.user && S.profile ? S.user.uid : "", at: Date.now(), exp: Date.now() + 30 * 864e5 }); const o = ld(); o.inv = [{ code, at: Date.now(), exp: Date.now() + 30 * 864e5 }, ...(o.inv || [])].slice(0, 10); sv(o) } catch (e) { code = null }
     S.ftr = { ...R, n, code }; X.count("inv");
     await share(invText(n, code ? base() + "?ft=" + code : url("ft", { v: 2, n, h: R.h, a: R.a })));
     go("ftWait");
@@ -197,7 +201,14 @@ ${X.isDev() ? `<div class="sub center ftst" style="margin-top:16px">${S.ftStatsT
     async ftInvMy() { const L = latest(); if (L) { S.ftFrom = "ftMy"; await invite(L) } },
     async ftInvAgain() { const R = S.ftr; await share(invText(R.n, R.code ? base() + "?ft=" + R.code : url("ft", { v: 2, n: R.n, h: R.h, a: R.a }))) },
     ftMatchGo() { const I = S.ft.inv, R = S.ftr; openMatch(I, { n: R.n || "나", h: R.h, a: R.a }, "B") },
-    async ftSendBack() { const M = S.ftm; await share(`[포백 테스트] ${M.B.n}님이 테스트를 마쳤어요! 우리 둘의 복식 궁합 보기\n${M.code ? base() + "?fc=" + M.code : url("fr", { v: 2, A: M.A, B: M.B })}`) },
+    async ftSendBack() { const M = S.ftm; if (M.code && !M.rid) { try { M.rid = await X.ftAddR(M.code, M.B) } catch (e) { } }
+      await share(`[포백 테스트] ${M.B.n}님이 테스트를 마쳤어요! 우리 둘의 복식 궁합 보기\n${M.code && M.rid ? base() + "?fc=" + M.code + "-" + M.rid : url("fr", { v: 2, A: M.A, B: M.B })}`) },
+    // 이미 결과가 있는 사람이 초대받았을 때: 그 결과로 바로 궁합(초대한 사람에게 보낼지 물어봄)
+    async ftUseOld() { const L = latest(), I = S.ft.inv; if (!L || !I) return; const i = document.getElementById("ftn"), n = (i && i.value.trim().slice(0, 10)) || myName() || "파트너", B = { n, h: L.h, a: L.a };
+      let rid = null; if (S.ft.code && await ask(`${I.n || "파트너"}님에게 내 결과를 보낼까요?\n보내면 ${I.n || "파트너"}님도 둘의 궁합을 볼 수 있어요.`, "보내기", "나만 보기")) { try { rid = await X.ftAddR(S.ft.code, B); X.count("invDone"); toast("결과를 보냈어요") } catch (e) { pop("보내지 못했어요. 궁합 화면의 '결과 보내기'로 다시 보낼 수 있어요.") } }
+      S.ft.rid = rid; openMatch(I, B, "B") },
+    async ftDel(el) { if (!await ask("이 기록을 지울까요?", "지우기", "취소")) return; delAts([+el.dataset.x]); rr() },
+    async ftDelAll() { if (!await ask("포백 테스트 결과와 궁합 기록을 모두 지울까요?\n되돌릴 수 없어요.", "모두 지우기", "취소")) return; delAts([...mine(), ...comps()].map(x => x.at)); rr() },
     ftExtApp() { const u = new URL(S.ftLink); location.href = `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=https;package=io.github.leeeh12101_stack.courtmanager;S.browser_fallback_url=${encodeURIComponent(S.ftLink)};end` },
     ftExtBr() { location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(S.ftLink) },
     ftPick(el) { const M = S.ftm, pi = +el.dataset.x, oi = +el.dataset.v, pr = [...(M.pr || [])]; pr[pi] = pr[pi] === oi ? null : oi; M.pr = pr; keepLocal("c", { at: M.at, A: M.A, B: M.B, pr }, okC); rr() },
@@ -241,23 +252,35 @@ ${X.isDev() ? `<div class="sub center ftst" style="margin-top:16px">${S.ftStatsT
   async function pending() {
     let t = null, f = null, c = null; try { t = sessionStorage.getItem("cm_ft"); f = sessionStorage.getItem("cm_fr"); c = sessionStorage.getItem("cm_fc");["cm_ft", "cm_fr", "cm_fc"].forEach(k => sessionStorage.removeItem(k)) } catch (e) { }
     const from = S.user && S.profile ? "mode" : "login";
-    if (c) { c = c.toUpperCase(); S.ftLink = base() + "?fc=" + c; const d = await X.ftGet(c).catch(() => null), A = d && person(d.A), B = d && person(d.B);
-      if (A && B) { S.ftFrom = from; got(c); openMatch(A, B, "A"); return true } pop(d ? "아직 파트너가 테스트를 마치지 않았어요." : "링크가 만료됐거나 올바르지 않아요."); return false }
+    if (c) { const [cd, rid] = c.split("-"), code = cd.toUpperCase(); S.ftLink = base() + "?fc=" + c; const d = await X.ftGet(code).catch(() => null), A = d && person(d.A);
+      let B = null; if (A && rid) { const R = (await X.ftResp(code).catch(() => [])).find(x => x.id === rid); B = R && person(R.B) } else if (A) B = person(d.B);
+      if (A && B) { S.ftFrom = from; got(rid ? code + "/" + rid : code); openMatch(A, B, "A"); return true } pop(d ? "아직 파트너가 테스트를 마치지 않았어요." : "링크가 만료됐거나 올바르지 않아요."); return false }
     if (f) { const r = ftReturn(f); if (r) { S.ftFrom = from; openMatch(r.A, r.B, "A"); return true } }
-    if (t && /^[A-Za-z0-9]{8}$/.test(t)) { t = t.toUpperCase(); S.ftLink = base() + "?ft=" + t; const d = await X.ftGet(t).catch(() => null), A = d && (d.exp || 0) > Date.now() && person(d.A);
-      if (A) { S.ftFrom = from; resetFt(A); S.ft.code = t; go("ftStart"); return true } pop("초대 링크가 만료됐거나 올바르지 않아요."); return false }
+    if (t && /^[A-Za-z0-9]{8}$/.test(t)) { t = t.toUpperCase(); S.ftLink = base() + "?ft=" + t; const d = await X.ftGet(t).catch(() => null), A = d && person(d.A);
+      if (!A) { pop("초대 링크가 올바르지 않아요. 새 링크를 받아 주세요."); return false }
+      if ((d.exp || 0) < Date.now()) { pop("초대 링크가 만료됐어요. 새 링크를 받아 주세요."); return false }
+      // 내가 보낸 초대를 내가 연 경우: 도착한 결과가 있으면 궁합, 없으면 대기 화면
+      if ((d.owner && S.user && d.owner === S.user.uid) || (ld().inv || []).some(x => x.code === t)) { S.ftFrom = from; pop("내가 보낸 초대 링크예요."); await checkInv(); const C = comps(); if (C.length && C[0].A && JSON.stringify(C[0].A.a) === JSON.stringify(A.a)) { openMatch(C[0].A, C[0].B, "A") } else { S.ftr = { ...A, at: Date.now(), code: t }; go("ftWait") } return true }
+      S.ftFrom = from; resetFt(A); S.ft.code = t; go("ftStart"); return true }
     if (t) { const I = ftInvite(t); if (I) { S.ftFrom = from; resetFt(I); go("ftStart"); return true } }
     return false;
   }
   // 앱을 열 때: 내가 보낸 초대에 파트너 결과가 도착했으면 궁합 기록에 저장하고 알림
-  const got = c => { const o = ld(); o.got = [...new Set([...(o.got || []), c])].slice(-50); o.inv = (o.inv || []).filter(x => x.code !== c); sv(o) };
+  const got = k => { const o = ld(); o.got = [...new Set([...(o.got || []), k])].slice(-100); sv(o) };
   async function checkInv() {
     try {
       const o = ld(), seen = new Set(o.got || []), L = S.user && S.profile ? await X.ftMine().catch(() => []) : [];
-      for (const x of o.inv || []) if (!L.some(y => y.code === x.code)) { const d = await X.ftGet(x.code).catch(() => null); if (d) L.push({ code: x.code, ...d }) }
-      const fresh = L.filter(d => d.B && !seen.has(d.code) && person(d.A) && person(d.B)); if (!fresh.length) return;
-      fresh.forEach(d => { keepLocal("c", { at: d.bAt || Date.now(), A: person(d.A), B: person(d.B), pr: [] }, okC); got(d.code) });
-      const d = fresh[0]; toast(`${person(d.B).n || "파트너"}님이 궁합 결과를 보냈어요`, "보기", () => { S.ftFrom = S.user && S.profile ? "mode" : "login"; openMatch(person(d.A), person(d.B), "A") });
+      o.inv = (o.inv || []).filter(x => (x.exp || x.at + 30 * 864e5) > Date.now()); sv(o);
+      for (const x of o.inv) if (!L.some(y => y.code === x.code)) { const d = await X.ftGet(x.code).catch(() => null); if (d) L.push({ code: x.code, ...d }) }
+      const fresh = [];
+      for (const d of L) { const A = person(d.A); if (!A) continue;
+        if (d.B && person(d.B) && !seen.has(d.code)) fresh.push({ k: d.code, A, B: person(d.B), at: d.bAt });
+        if ((d.exp || 0) > Date.now() - 864e5) for (const r of await X.ftResp(d.code).catch(() => [])) { const B = person(r.B), k = d.code + "/" + r.id; if (B && !seen.has(k)) fresh.push({ k, A, B, at: r.at }) } }
+      if (!fresh.length) return;
+      fresh.forEach(x => { keepLocal("c", { at: x.at || Date.now(), A: x.A, B: x.B, pr: [] }, okC); got(x.k) });
+      const x = fresh[0];
+      if (fresh.length === 1) toast(`${x.B.n || "파트너"}님이 궁합 결과를 보냈어요`, "보기", () => { S.ftFrom = S.user && S.profile ? "mode" : "login"; openMatch(x.A, x.B, "A") });
+      else toast(`${x.B.n || "파트너"}님 외 ${fresh.length - 1}명이 궁합 결과를 보냈어요`, "보기", () => { S.ftFrom = S.user && S.profile ? "mode" : "login"; FA.ftMyOpen() });
     } catch (e) { }
   }
   // 카카오톡 안의 브라우저에서는 저장이 앱에 남지 않아요 → 앱(또는 다른 브라우저)으로 열기

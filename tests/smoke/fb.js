@@ -10,8 +10,8 @@ export const onAuthStateChanged = (a, cb) => setTimeout(() => cb(globalThis.__US
 // firestore
 export const getFirestore = () => ({});
 let auto = 0;
-export const collection = (db, c) => ({ coll: c });
-export const doc = (a, c, id) => a && a.coll ? { coll: a.coll, id: "auto" + (++auto) } : { coll: c, id };
+export const collection = (db, ...p) => ({ coll: p.join("/") });
+export const doc = (a, ...p) => a && a.coll ? { coll: a.coll, id: "auto" + (++auto) } : { coll: p.slice(0, -1).join("/"), id: p[p.length - 1] };
 export const where = (f, op, v) => ({ f, op, v });
 export const limit = n => ({ limit: n });
 export const query = (c, ...w) => ({ coll: c.coll, w: w.filter(x => x.f) });
@@ -20,7 +20,7 @@ const snap = (c, id) => ({ id, exists: () => id in col(c), data: () => col(c)[id
 const ok = (d, w) => { const x = d[w.f]; const v = typeof x === "object" && x && x.ms ? x.ms : x;
   return w.op === "==" ? v === w.v : w.op === "array-contains" ? Array.isArray(x) && x.includes(w.v) : w.op === ">" ? (typeof v === "number" ? v : 0) > (w.v && w.v.toMillis ? w.v.toMillis() : w.v) : w.op === ">=" ? v >= w.v : true; };
 export const getDoc = async r => { await 0; return snap(r.coll, r.id); };
-export const getDocs = async q => { await 0; const c = col(q.coll); const docs = Object.keys(c).filter(id => q.w.every(w => ok(c[id], w))).map(id => snap(q.coll, id)); return { docs, size: docs.length, empty: !docs.length, forEach: f => docs.forEach(f) }; };
+export const getDocs = async q => { await 0; const c = col(q.coll); const docs = Object.keys(c).filter(id => (q.w || []).every(w => ok(c[id], w))).map(id => snap(q.coll, id)); return { docs, size: docs.length, empty: !docs.length, forEach: f => docs.forEach(f) }; };
 const fix = o => { const r = {}; for (const k in o) { const v = o[k]; r[k] = v && v.__ts ? { ms: now(), toMillis: () => now() } : v; } return r; };
 const put = (r, data, merge) => { const c = col(r.coll); c[r.id] = merge ? { ...(c[r.id] || {}), ...fix(data) } : fix(data); };
 export const setDoc = async (r, d, o) => put(r, d, o && o.merge);

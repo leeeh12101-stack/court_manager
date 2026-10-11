@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1012-3",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1012-4",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -1405,10 +1405,11 @@ const BACK={gsImp:()=>go("mode"),clubs:()=>go("mode"),personal:()=>go("mode"),cl
 // 포백 테스트 참여 수(개발자 계정만 읽을 수 있음): 모드 선택 화면·내 복식 캐릭터 화면에 표시
 function ftStatsLoad(){if(!isDev())return;Promise.all(["done","doneE","inv","invDone"].map(n=>getDoc(doc(db,"ftStats",n)).then(d=>d.exists()?d.data().n||0:0).catch(()=>"?"))).then(([a,e2,b,c])=>{S.ftStatsT=`참여 ${typeof a==="number"&&typeof e2==="number"?a+e2:"?"}명 (상세 ${a} · 쉬운 ${e2}) · 초대 링크 ${b}개 · 초대받아 완료 ${c}명`;document.querySelectorAll(".ftst").forEach(e=>e.textContent=S.ftStatsT)})}
 // 포백 테스트(ft.js): 화면·동작·뒤로가기를 합쳐 연결
-const FT=ftInstall({S,go,render:()=>render(),esc,toast,pop,askText,login:()=>A.login(),home:()=>S.user&&S.profile?go("mode"):go("login"),toP:()=>A.toP(),isDev,
+const FT=ftInstall({S,go,render:()=>render(),esc,toast,pop,ask,askText,login:()=>A.login(),home:()=>S.user&&S.profile?go("mode"):go("login"),toP:()=>A.toP(),isDev,
  saveUser:v=>updateDoc(doc(db,"users",S.user.uid),{...v,updatedAt:serverTimestamp()}),
  count:n=>{try{setDoc(doc(db,"ftStats",n),{n:increment(1)},{merge:true}).catch(()=>{})}catch(e){}},
  ftGet:c=>getDoc(doc(db,"ftShares",c)).then(d=>d.exists()?d.data():null),ftNew:(c,v)=>setDoc(doc(db,"ftShares",c),v),ftSetB:(c,B)=>updateDoc(doc(db,"ftShares",c),{B,bAt:Date.now()}),
+ ftAddR:async(c,B)=>{const r=doc(collection(db,"ftShares",c,"r"));await setDoc(r,{B,at:Date.now()});return r.id},ftResp:c=>getDocs(collection(db,"ftShares",c,"r")).then(r=>r.docs.map(d=>({id:d.id,...d.data()}))),
  ftMine:()=>getDocs(query(collection(db,"ftShares"),where("owner","==",S.user.uid))).then(r=>r.docs.map(d=>({code:d.id,...d.data()}))),
  realRec:()=>{if(!S.user||!S.profile)return{st:"nologin"};if(!S.pready&&!S._ftPg){S._ftPg=1;pLoad().catch(()=>{}).finally(()=>{S._ftPg=2;if(FT.isFt(S.screen))render()})}if(!S.pready&&S._ftPg!==2)return{st:"loading"};
   const z={fore:{g:0,w:0,l:0,d:0},back:{g:0,w:0,l:0,d:0}};(S.pg||[]).forEach(g=>{if(!g.t1||g.t1.length<2)return;const p=g.t1[0].p;if(p!=="fore"&&p!=="back")return;const r=pres(g);z[p].g++;z[p][r]++});return{st:"ok",...z}},

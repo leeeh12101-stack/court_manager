@@ -169,6 +169,12 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['B', 'bAt'])
         && request.resource.data.B.keys().hasOnly(['n', 'h', 'a']);
       allow delete: if authed() && resource.data.owner == me();
+      // 응답(파트너 결과): 여러 명이 각자 추가만 가능, 수정·삭제 불가
+      match /r/{r} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['B', 'at']) && request.resource.data.B.keys().hasOnly(['n', 'h', 'a'])
+          && get(/databases/$(db)/documents/ftShares/$(c)).data.exp > request.time.toMillis();
+      }
     }
 
     match /personalGames/{g} {
