@@ -1,5 +1,5 @@
 // 포백 테스트 계산 — 화면·Firebase와 무관한 순수 계산(자동 테스트 대상: tests/ft.test.mjs)
-import { TYPES, COMBOS, SEAT, CENTER, CAUTION, PROMISES, POSN } from "./ft-data.js";
+import { TYPES, COMBOS, SEAT, CENTER, CAUTION, PROMISES, POSN, SHOT_NM, REASON } from "./ft-data.js";
 
 // 답 배열 순서. 모든 값은 고른 보기 번호(0부터). 샷 문항(a~h)은 0 자신 있음·1 보통·2 부담
 export const FT_KEYS = ["q2", "q3", "q4", "a", "b", "c", "d", "e", "f", "g", "h", "q6", "q7", "q8", "q9", "q10", "q11"];
@@ -10,7 +10,8 @@ export const SPOTS = {
   R: { FB: { out: "a", cen: "d" }, BB: { out: "b", cen: "c" }, FN: { out: "e", cen: "h" }, BN: { out: "f", cen: "g" } },
   L: { FB: { out: "b", cen: "c" }, BB: { out: "a", cen: "d" }, FN: { out: "f", cen: "g" }, BN: { out: "e", cen: "h" } }
 };
-const isFore = k => "aceg".includes(k); // 포핸드·포발리 문항
+export const isFore = k => "aceg".includes(k);
+const fill = (t, m) => t.replace(/\{(\w+)\}/g, (_, k) => m[k] ?? ""); // 포핸드·포발리 문항
 
 // 답 검증: h "R"|"L", a 길이 17, 각 값이 보기 범위 안
 export function ftValid(h, a) {
@@ -22,7 +23,7 @@ const obj = a => Object.fromEntries(FT_KEYS.map((k, i) => [k, a[i]]));
 
 export function ftScore(h, a) {
   const o = obj(a), v = k => SHOT[o[k]], sp = SPOTS[h], sum = s => v(sp[s].out) + v(sp[s].cen);
-  const P = PT.q2[o.q2] + PT.q3[o.q3] + PT.q4[o.q4] + (sum("BB") - sum("FB")) + 0.5 * (sum("BN") - sum("FN"));
+  const mind = PT.q2[o.q2] + PT.q3[o.q3] + PT.q4[o.q4], shotP = (sum("BB") - sum("FB")) + 0.5 * (sum("BN") - sum("FN")), P = mind + shotP;
   const pos = P < -2 ? "F" : P > 2 ? "B" : "X", back = Math.round(50 + 40 * P / 11);
   // 운영: 7~11번 표. 11번 '쭈뼛'(1)은 표 없음, 11번 '자리 지키기'(2)는 안정
   const votes = { lead: 0, link: 0, safe: 0 };
@@ -34,7 +35,18 @@ export function ftScore(h, a) {
   const flags = { freeze: o.q6 === 1, hesitate: o.q11 === 1, mixed: votes.lead >= 2 && votes.safe >= 2 };
   const shots = Object.fromEntries("abcdefgh".split("").map(k => [k, v(k)]));
   const key = pos + "-" + sty;
-  return { h, P, pos, back, fore: 100 - back, votes, sty, C, cov, flags, shots, key, type: TYPES[key], sum: { FB: sum("FB"), BB: sum("BB"), FN: sum("FN"), BN: sum("BN") }, q4: o.q4 };
+  return { h, P, mind, shotP, pos, back, fore: 100 - back, votes, sty, C, cov, flags, shots, key, type: TYPES[key], sum: { FB: sum("FB"), BB: sum("BB"), FN: sum("FN"), BN: sum("BN") }, q4: o.q4 };
+}
+
+// 결과 화면용: 자신 있는 샷·더 연습하면 좋은 샷(리시브 → 전위 순)
+export function ftShots(r) { const ks = "abcdefgh".split(""); return { good: ks.filter(k => r.shots[k] === 1).map(k => SHOT_NM[k]), weak: ks.filter(k => r.shots[k] === -1).map(k => SHOT_NM[k]) } }
+// 추천 자리 이유 한 줄: 마음(2~4번)과 샷(5번)이 어느 쪽을 가리키는지
+export function ftReason(r) {
+  const sg = x => x > 0 ? "B" : x < 0 ? "F" : "", m = sg(r.mind), t = sg(r.shotP), f = s => fill(s, { S: POSN[r.pos], M: POSN[m], T: POSN[t] });
+  if (r.pos === "X") return f(m && t && m !== t ? REASON.flexMix : REASON.flex);
+  if (m === r.pos && t === r.pos) return f(REASON.both);
+  if (t === r.pos) return f(m ? REASON.shotWin : REASON.shotOnly);
+  return f(t ? REASON.mindWin : REASON.mindOnly);
 }
 
 // 잘 맞는 파트너 유형: 자리는 반대(유연은 유연), 운영은 다른 것 2개
@@ -43,7 +55,6 @@ export function ftPartners(r) {
   return alt.map(s => ({ key: op + "-" + s, ...TYPES[op + "-" + s] }));
 }
 
-const fill = (t, m) => t.replace(/\{(\w+)\}/g, (_, k) => m[k] ?? "");
 
 // 궁합: A·B = {n,h,a}. 추천 자리·센터·주의 장면·약속 후보까지 계산
 export function ftMatch(A, B) {
