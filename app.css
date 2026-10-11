@@ -129,5 +129,8 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .ftreal b.none{font-size:16px;color:var(--sub);margin:6px 0 2px}
 .ftq5+.ftq5{margin-top:12px}
 .ftwarn.ok{border-color:var(--pt);background:var(--tint)}
-.ftstart{padding:4px 0}.ftstart h1{font-size:28px;line-height:1.3;margin:4px 0 10px}.ftlines{color:var(--sub);font-size:15px;line-height:1.7}
-.ftchips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:14px}.ftchips span{background:var(--tint);color:var(--main);font-weight:700;font-size:13px;padding:7px 12px;border-radius:99px}
+.ftstart{padding:4px 0 24px}.ftstart .ftbrand{letter-spacing:.22em}.ftstart h1{font-size:32px;line-height:1.3;margin:6px 0 14px;color:var(--main);font-weight:800;letter-spacing:-.03em}.ftlines{color:var(--sub);font-size:16px;line-height:1.85}
+.ftchips{display:flex;gap:6px;justify-content:center;flex-wrap:nowrap;margin-top:18px}.ftchips span{background:var(--tint);color:var(--main);font-weight:700;font-size:13px;padding:8px 12px;border-radius:99px;white-space:nowrap}
+.ftcta{margin-top:24px;font-size:17px;padding:17px 16px;border-radius:20px}
+.ftcta2{background:#fff;color:var(--main);box-shadow:inset 0 0 0 1.5px var(--main);font-size:16px;border-radius:20px}
+.ftrule{height:1px;background:var(--line);margin:20px 8px}.ftnote{line-height:1.9}
