@@ -151,6 +151,13 @@ service cloud.firestore {
       allow delete: if authed() && resource.data.createdBy == me();
     }
 
+    // 포백 테스트 측정 카운터: 누구나 1씩만 올릴 수 있고, 개발자만 읽음
+    match /ftStats/{d} {
+      allow read: if isDev();
+      allow create: if d in ['done', 'inv', 'invDone'] && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == 1;
+      allow update: if request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == resource.data.n + 1;
+    }
+
     match /personalGames/{g} {
       allow create: if authed() && request.resource.data.ownerUid == me();
       allow read, update, delete: if authed() && resource.data.ownerUid == me();

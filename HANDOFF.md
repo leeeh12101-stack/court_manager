@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-11 · **BUILD `1011-1`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-11 · **BUILD `1011-2`** · 버전 표기 `v0.1`
 
 ---
 
@@ -21,6 +21,7 @@
 | `app.css` | 디자인 |
 | `app.js` | 화면과 동작(약 286KB). 하나의 ES 모듈 |
 | `core.js` | **순수 계산**(Firebase·화면 무관) → 자동 테스트 대상 |
+| `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신) |
 | `firestore.rules` | 보안 규칙. 바꾸면 콘솔에 **게시** 필요 |
 | `sw.js` | 서비스 워커 `cm-v4`: 네트워크 우선, 3초 응답 없으면 저장본 |
@@ -67,6 +68,7 @@
 - **결과 공유·지난달 요약(1010-2)**: 오늘 탭 결과 카드 `doneShare`(최다승 `topW()`·경기 수·참석 수 + 링크, 관리자면 `?join=초대코드`). 지난달 요약 `rcCard`(core `monthRecap`·`prevYm`), 매달 1~15일·닫으면 `cm_rc_{p|c_클럽id}`에 그달 저장. 개인 홈 `rcP()`, 클럽 오늘 탭 `rcClub()`(games를 syncQ로 한 번 받아 `S.rc`, 클럽 지난달 최다승 포함).
 - **페어에게 보내기(1010-3)**: 개인 복식 기록을 `guestShares`{kind:"p",clubId:"",clubName:대회명,from,guests:[{n:페어,games}]}로 공유(`pShare`, `pgOut`은 label·cat·kind·stage·court·order·성별 포함, 메모 제외). 대회 복식 저장 시 끝(결승 또는 본선 패배)이면 `tourOf()`로 대회 경기를 모아 보낼지 물음. 경기 상세 `pShare1`, 대회 묶음 `pShareG`(`pairOf`: 파트너가 모두 같을 때만). 받는 쪽은 기존 `gsImp`/`gsGo`(kind p면 필드 유지). 이어서 입력은 페어 이름·포지션·성별 유지. 규칙: guestShares create에 kind p 허용.
 - **메모 화면(1011-1)**: `memoView()` 날짜별(경기 메모를 날짜 묶음, 접기 키 `md:날짜`, 최근 날짜만 펼침)·사람 메모(이름순, 누르면 상대 카드). 보기 상태 `S.form.pmv`.
+- **포백 테스트(1011-2)**: 로그인 없이 가능. 진입 = 로그인 화면·모드 선택·클럽 목록 배너(`FT.banner()`), 개인 홈 카드(`FT.pcard()` → `ftMy`). 링크 `?ft=`(초대: base64url `{v:1,n,h,a}`) → 바로 `ftStart`, `?fr=`(돌려주기 `{v:1,A,B}`) → `ftMatch`. 잘못된 링크는 무시. 답 배열 17칸(`FT_KEYS`, 보기 번호), 손은 `h`. 저장: 폰 `localStorage cm_ft`{r:결과,c:궁합,nick} → 로그인하면 `users.ft`·`users.ftc`(최근 5개, `FT.sync()`). 운영 동점(주도=안정, 연결 아님)은 7번 답, 주도·안정 둘 다 2표 이상이면 '전략형' 한 줄. 측정 `ftStats/{done|inv|invDone}.n`(increment, 규칙: 1씩만, 개발자만 읽음, `ftMy` 하단에 개발자용 표시). 문구는 ft-data.js만 고치면 됨.
 - **아래 창 그리는 위치**: 전적 창(`sSheet`)은 clubHome, 상대 카드(`pmSheet`)는 personal 화면 맨 아래에서 그림(탭과 무관).
 - 개인: 홈 최근 5경기, 상대 카드(만난 경기 수·파트너/상대 따로·최근 경기·포지션별 접기·메모, 이름 띄어쓰기 무시), 경기 탭 보기 방식 `pgv`(전체/날짜별/클럽·대회별, core `groupLabel`).
 - 오늘 탭 이름 → 대진 창(`mSheet`): 회차 순으로 대진 한 줄(회차·시간·코트 고정 칸 + 이름 4칸 오른쪽 정렬), 쉬는 회차는 사이에 '휴식' 줄, 오늘이면 다음 경기 줄 연두색 강조, 파트너·상대 횟수는 아래.

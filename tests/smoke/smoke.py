@@ -12,7 +12,7 @@ srv = S2(("127.0.0.1", 0), functools.partial(Q, directory=ROOT)); threading.Thre
 VAR = {"기본": "", "순번제": "__DB.clubs.c1.mode='queue';", "결과만 기록": "__DB.clubs.c1.mode='record';",
        "대진 없음": "__DB.sessions={};", "코트 번호 없음": "delete __DB.clubs.c1.cnum;", "모임 끝남": "__DB.clubs.c1.regularEndTime='00:01';",
        "불참": "Object.values(__DB.sessionParticipants).forEach(x=>{if(x.uid==='u1')x.status='out'});",
-       "모임 없는 날": "__DB.clubs.c1.regularDays=[(new Date().getDay()+3)%7];", "개인 모드": "localStorage.setItem('cm_mode','personal');"}
+       "모임 없는 날": "__DB.clubs.c1.regularDays=[(new Date().getDay()+3)%7];", "개인 모드": "localStorage.setItem('cm_mode','personal');", "포백 테스트(로그인 전)": "globalThis.__USER=null;"}
 errs = []
 def run(b, vn, vs):
     pg = b.new_page(viewport={"width": 390, "height": 844}); cur = ["시작"]
@@ -33,7 +33,9 @@ def run(b, vn, vs):
             el.click()
         pg.wait_for_timeout(wait)
         if pg.locator("#app .spin").count(): errs.append(f"[{vn} · {name}] 로딩 원이 계속 보임")
-    if vn == "개인 모드":
+    if vn.startswith("포백"):
+        step("배너", "[data-a=ftOpen]"); step("시작", "[data-a=ftGo]"); step("손", "[data-a=ftAns]"); step("이전", "[data-a=ftPrev]")
+    elif vn == "개인 모드":
         for t in ["home", "games", "stats", "settings"]: step("개인 " + t, f".nav [data-k={t}]")
         step("사람 카드", "[data-a=pmopen]", opt=True)
     else:
