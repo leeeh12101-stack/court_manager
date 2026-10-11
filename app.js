@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1012-1",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1012-2",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -732,7 +732,7 @@ name:()=>{let inv=false;try{inv=!!sessionStorage.getItem("cm_join")}catch(e){}re
 <input id="nm" value="${esc(S.profile.name)}" maxlength="20"><div class="bar"><button data-a="saveName">시작하기</button></div>`},
 mode:()=>`<h1>안녕하세요, ${esc(S.profile.name)}님</h1><p class="hi">오늘은 어떤 모드로 시작할까요?</p><div class="card hero tap" data-a="modeClub" style="padding:22px 18px"><b style="font-size:18px">클럽·모임</b><div class="sub">정기 클럽부터 소모임·번개까지 함께 관리해요</div></div>
 <div class="card tap" data-a="modePersonal" style="padding:22px 18px"><b style="font-size:18px">개인</b><div class="sub">클럽 밖 경기까지 내 전적과 통계를 기록해요</div></div>${FT.banner()}
-<div class="list" style="margin-top:14px"><div class="li tap" data-a="editName"><span class="nm" style="font-weight:500">내 이름</span><span class="sub">${esc(S.profile.name)}</span></div><div class="li tap" data-a="fbOpen"><span class="nm" style="font-weight:500">의견 보내기</span></div>${isDev()?'<div class="li tap" data-a="acDiag"><span class="nm" style="font-weight:500;color:var(--main)">App Check 진단</span></div>':""}${isDev()?'<div class="li tap" data-a="fbAdminOpen"><span class="nm" style="font-weight:500;color:var(--main)">받은 의견</span></div>':""}<div class="li tap noar" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div><div class="row" style="justify-content:center;gap:16px;margin-top:10px"><span class="sub tap" data-a="privacy">개인정보처리방침</span><span class="sub tap" data-a="delAcct">계정 삭제</span></div>
+<div class="list" style="margin-top:14px"><div class="li tap" data-a="editName"><span class="nm" style="font-weight:500">내 이름</span><span class="sub">${esc(S.profile.name)}</span></div><div class="li tap" data-a="fbOpen"><span class="nm" style="font-weight:500">의견 보내기</span></div>${isDev()?'<div class="li tap" data-a="acDiag"><span class="nm" style="font-weight:500;color:var(--main)">App Check 진단</span></div>':""}${isDev()?'<div class="li tap" data-a="fbAdminOpen"><span class="nm" style="font-weight:500;color:var(--main)">받은 의견</span></div><div class="li noar" style="display:block"><span class="nm" style="font-weight:500;color:var(--main)">포백 테스트 참여</span><div class="sub ftst" style="margin-top:2px">'+esc(S.ftStatsT||"불러오는 중…")+'</div></div>':""}<div class="li tap noar" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div><div class="row" style="justify-content:center;gap:16px;margin-top:10px"><span class="sub tap" data-a="privacy">개인정보처리방침</span><span class="sub tap" data-a="delAcct">계정 삭제</span></div>
 <div class="ver" style="margin-top:auto;padding:16px 0 calc(12px + env(safe-area-inset-bottom))">테스트 버전 ${APPV} · ${BUILD}</div>`,
 clubs:()=>S.clubsReady?V.clubs0():V.boot(),
 clubs0:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드 변경</button></div>
@@ -794,7 +794,7 @@ ${lab("점수")}<div class="row" style="gap:10px;justify-content:center"><input 
 <button class="morebar" id="pdet0" data-a="pmore">${more?"접기 ▴":"상세 입력 ▾"}</button>`}${more?pDetail(f,club,!dbl):""}
 <div class="bar"><button data-a="psave">저장</button></div></div>`},
 };
-function render(){ $("#app").innerHTML=V[S.screen]?`${S.pv?`<div class="pvbar"><span>${S.pv==="staff"?"운영진":"일반 회원"} 화면으로 보는 중</span><button data-a="pvExit">끝내기</button></div>`:""}<div class="scr${S.still?" still":""}">${V[S.screen]()}${S.exp?expSheet():""}</div>`:""; if(S.screen==="clubHome"&&S.tab==="settings")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)S.invCode=d.data()?.inviteCode||"";e.textContent=S.invCode||"-"}).catch(()=>{}); }
+function render(){ if(S.screen==="mode"&&isDev()&&Date.now()-(S._ftsAt||0)>60000){S._ftsAt=Date.now();setTimeout(ftStatsLoad,0)} $("#app").innerHTML=V[S.screen]?`${S.pv?`<div class="pvbar"><span>${S.pv==="staff"?"운영진":"일반 회원"} 화면으로 보는 중</span><button data-a="pvExit">끝내기</button></div>`:""}<div class="scr${S.still?" still":""}">${V[S.screen]()}${S.exp?expSheet():""}</div>`:""; if(S.screen==="clubHome"&&S.tab==="settings")getDoc(doc(db,"clubPrivate",S.cur.id)).then(d=>{const e=$("#invc");if(e)S.invCode=d.data()?.inviteCode||"";e.textContent=S.invCode||"-"}).catch(()=>{}); }
 
 // 가입 직후 그 클럽 오늘 탭으로 바로 이동. pick=명단에서 내 이름 고르기 창 띄우기
 async function gsMake(guests,dk,what){const c=S.cur,code=Array.from({length:8},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.random()*32|0]).join("");
@@ -1402,6 +1402,8 @@ const BUSY=new Set();
 history.replaceState({r:1,d:0},"");
 ["pointerup","touchend","keydown","click"].forEach(t=>addEventListener(t,()=>{S.exitArm=0;hTop()},true));
 const BACK={gsImp:()=>go("mode"),clubs:()=>go("mode"),personal:()=>go("mode"),clubHome:()=>openClubs(),create:()=>S.cw&&S.cw.step>1?A.cwPrev():(openClubs()),join:()=>openClubs(),closed:()=>openClubs(),attend:()=>A.toClub(),guest:()=>A.toClub(),draw:()=>A.toClub(),gedit:()=>A.toClub(),offAdd:()=>A.toClub(),mtgEdit:()=>A.toClub(),closeClub:()=>A.toClub(),gfix:()=>A.toClub(),dups:()=>A.toP(),ev:()=>A.toClub(),evs:()=>A.toClub(),evEdit:()=>A.eeBack(),bulk:()=>A.toClub(),fb:()=>A.fbBack(),fbAdmin:()=>go("mode"),xl:()=>A.xBack(),nameEdit:()=>go("mode"),drawPhoto:()=>A.dpBack(),preview:()=>go("draw"),photo:()=>A.phBack(),pdet:()=>A.toP(),padd:()=>A.toP()};
+// 포백 테스트 참여 수(개발자 계정만 읽을 수 있음): 모드 선택 화면·내 복식 캐릭터 화면에 표시
+function ftStatsLoad(){if(!isDev())return;Promise.all(["done","doneE","inv","invDone"].map(n=>getDoc(doc(db,"ftStats",n)).then(d=>d.exists()?d.data().n||0:0).catch(()=>"?"))).then(([a,e2,b,c])=>{S.ftStatsT=`참여 ${typeof a==="number"&&typeof e2==="number"?a+e2:"?"}명 (상세 ${a} · 쉬운 ${e2}) · 초대 링크 ${b}개 · 초대받아 완료 ${c}명`;document.querySelectorAll(".ftst").forEach(e=>e.textContent=S.ftStatsT)})}
 // 포백 테스트(ft.js): 화면·동작·뒤로가기를 합쳐 연결
 const FT=ftInstall({S,go,render:()=>render(),esc,toast,pop,askText,login:()=>A.login(),home:()=>S.user&&S.profile?go("mode"):go("login"),toP:()=>A.toP(),isDev,
  saveUser:v=>updateDoc(doc(db,"users",S.user.uid),{...v,updatedAt:serverTimestamp()}),
@@ -1410,7 +1412,7 @@ const FT=ftInstall({S,go,render:()=>render(),esc,toast,pop,askText,login:()=>A.l
  ftMine:()=>getDocs(query(collection(db,"ftShares"),where("owner","==",S.user.uid))).then(r=>r.docs.map(d=>({code:d.id,...d.data()}))),
  realRec:()=>{if(!S.user||!S.profile)return{st:"nologin"};if(!S.pready&&!S._ftPg){S._ftPg=1;pLoad().catch(()=>{}).finally(()=>{S._ftPg=2;if(FT.isFt(S.screen))render()})}if(!S.pready&&S._ftPg!==2)return{st:"loading"};
   const z={fore:{g:0,w:0,l:0,d:0},back:{g:0,w:0,l:0,d:0}};(S.pg||[]).forEach(g=>{if(!g.t1||g.t1.length<2)return;const p=g.t1[0].p;if(p!=="fore"&&p!=="back")return;const r=pres(g);z[p].g++;z[p][r]++});return{st:"ok",...z}},
- devStats:()=>{if(!isDev())return;Promise.all(["done","inv","invDone"].map(n=>getDoc(doc(db,"ftStats",n)).then(d=>d.exists()?d.data().n||0:0).catch(()=>"?"))).then(([a,b,c])=>{const e=$("#ftst");if(e)e.textContent=`테스트 통계: 완료 ${a} · 초대 링크 ${b} · 초대받아 완료 ${c}`})}});
+ devStats:()=>ftStatsLoad()});
 Object.assign(V,FT.V);Object.assign(A,FT.A);Object.assign(BACK,FT.BACK);
 window.addEventListener("popstate",()=>{
   if(S.hSkip){S.hSkip=0;return}if(HPRE.includes(S.screen))return;

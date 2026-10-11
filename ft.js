@@ -1,7 +1,7 @@
 // 포백 테스트 화면 — app.js에서 ftInstall(도구)로 연결해요. 문구는 ft-data.js, 계산은 ft-core.js
 // 화면: ftStart 시작 · ftQ 문항 · ftLoad 분석 중 · ftRes 결과 · ftWait 궁합 대기 · ftMatch 궁합 · ftMy 내 복식 성향
-import { FQ, SHOT_O, SHOT_ST, FT_LOADING, POSN, STYN, COVN, COVTAG, TIP_HESITATE, TIP_MIXED, FT_NOTE, SEATN, REAL, CAYER, AGREE, SHOT_GROUPS, REAL2, AN_CHIP, SHOT_NM } from "./ft-data.js";
-import { FT_KEYS, SPOTS, isFore, ftUp, ftCayer, ftValid, ftScore, ftPartners, ftReason, ftSeatLabel, ftAnalysis, ftReal, ftMatch, b64e, ftInvite, ftReturn } from "./ft-core.js";
+import { FQ, EQ, EASY, START, STRAT, SHOT_O, SHOT_ST, FT_LOADING, POSN, STYN, COVN, COVTAG, TIP_HESITATE, TIP_MIXED, FT_NOTE, SEATN, REAL, CAYER, AGREE, SHOT_GROUPS, REAL2, AN_CHIP, SHOT_NM } from "./ft-data.js";
+import { FT_KEYS, EASY_KEYS, ftTeam, SPOTS, isFore, ftUp, ftCayer, ftValid, ftScore, ftPartners, ftReason, ftSeatLabel, ftAnalysis, ftReal, ftMatch, b64e, ftInvite, ftReturn } from "./ft-core.js";
 
 export function ftInstall(X) {
   const { S, go, esc, toast, pop, askText } = X;
@@ -73,9 +73,12 @@ export function ftInstall(X) {
     const x = sp[0] === "F" ? 29 : 11, y = sp[1] === "N" ? 16 : 40, side = (sp[0] === "F") === (w === "out") ? 1 : -1, tx = x + side * 7;
     return `<svg width="46" height="52" viewBox="0 0 40 46" aria-hidden="true" style="flex:none"><rect x="2" y="5" width="36" height="38" fill="#DCE6CF" stroke="#fff" stroke-width="1.5"/><line x1="2" y1="25" x2="38" y2="25" stroke="#fff" stroke-width="1.2"/><line x1="20" y1="5" x2="20" y2="25" stroke="#fff" stroke-width="1.2"/><line x1="0" y1="5" x2="40" y2="5" stroke="#5C635F" stroke-width="2.5"/><line x1="20" y1="0" x2="${tx}" y2="${y - 2}" stroke="#5E8A1E" stroke-width="2.4" stroke-dasharray="3.5 2"/><circle cx="${tx}" cy="${y - 2}" r="3.4" fill="#D4E83A" stroke="#5E8A1E"/><circle cx="${x}" cy="${y}" r="4.2" fill="#174A43"/></svg>`;
   }
+  const ball = () => `<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" style="display:block;margin:14px auto 6px"><circle cx="28" cy="28" r="24" fill="#CFE14A"/><path d="M10 12 A24 24 0 0 1 10 44" fill="none" stroke="#fff" stroke-width="3"/><path d="M46 12 A24 24 0 0 0 46 44" fill="none" stroke="#fff" stroke-width="3"/></svg>`;
+  // 쉬운 버전 '리턴할 때 편한 쪽' 그림: 뒤에서 본 코트, 왼쪽 애드 · 오른쪽 듀스
+  const sidePic = () => `<div class="card" style="padding:10px 12px"><svg viewBox="0 0 300 150" width="100%" aria-hidden="true"><rect x="40" y="18" width="220" height="110" fill="#DCE6CF"/><g stroke="#fff" stroke-width="2" fill="none"><rect x="40" y="18" width="220" height="110"/><line x1="40" y1="70" x2="260" y2="70"/><line x1="150" y1="18" x2="150" y2="70"/></g><line x1="30" y1="18" x2="270" y2="18" stroke="#5C635F" stroke-width="3"/><text x="150" y="12" font-size="10" text-anchor="middle" fill="#5C635F">네트</text><circle cx="95" cy="138" r="7" fill="#2B6650"/><circle cx="205" cy="138" r="7" fill="#174A43"/><text x="95" y="112" font-size="13" font-weight="700" text-anchor="middle" fill="#174A43">왼쪽</text><text x="95" y="127" font-size="11" text-anchor="middle" fill="#5C635F">애드 · 백 자리</text><text x="205" y="112" font-size="13" font-weight="700" text-anchor="middle" fill="#174A43">오른쪽</text><text x="205" y="127" font-size="11" text-anchor="middle" fill="#5C635F">듀스 · 포 자리</text></svg><div class="sub center" style="font-size:12px">내가 리턴하려고 서는 자리 (코트 뒤에서 본 모습)</div></div>`;
   function summary(R, rec) {
     const r = ftScore(R.h, R.a), T = r.type, lab = ftSeatLabel(r);
-    return `<div class="card ftsum"><div class="sub">${rec ? "나의 복식 플레이 성향" : esc(R.n || "") + "님의 복식 플레이 성향"} · ${r.h === "R" ? "오른손" : "왼손"}</div><div class="fthero">${T.n}</div><div class="ftone">${esc(T.one)}</div>${tags(r)}
+    return `<div class="card ftsum"><div class="sub">${rec ? "나의 복식 캐릭터" : esc(R.n || "") + "님의 복식 캐릭터"} · ${r.h === "R" ? "오른손" : "왼손"}${r.easy ? ` · <span style="color:var(--main);font-weight:700">${EASY.badge}</span>` : ""}</div><div class="fthero">${T.n}</div><div class="ftone">${esc(T.one)}</div>${tags(r)}
 <div class="ftsec"><div class="row"><span class="ftlab" style="margin:0">포·백 선호도</span><span class="sub">설문 결과</span></div><div class="row ftpct"><span>포 ${r.fore}%</span><span>백 ${r.back}%</span></div>${ratio(r)}<div class="sub" style="margin-top:6px">실제 경기 성적이 아닌 상대적 선호도예요.</div></div>
 <div class="ftsec"><span class="ftlab">${lab}</span><div class="ftsn" style="font-size:18px">${SEATN[r.pos]}</div><div class="sub" style="margin-top:2px">${esc(ftReason(r))}</div></div></div>`;
   }
@@ -90,34 +93,40 @@ export function ftInstall(X) {
     let rmsg = "";
     if (!real) { const fF = rr2.fore.g < 3, fB = rr2.back.g < 3; rmsg = fF || fB ? `<div class="ftsn" style="margin-top:12px">${fF && fB ? REAL2.both : REAL2.head.replace("{S}", fF ? "포" : "백")}</div><div class="sub" style="margin-top:2px">${REAL2.sub.replace("{F}", rr2.fore.g).replace("{B}", rr2.back.g)}</div>` : `<div class="ftsn" style="margin-top:12px">${esc(rv.text)}</div>` }
     const weak = an.rows[3][2], wkH = Object.values(SHOT_NM).reduce((t, n) => t.split(n).join(`<b>${n}</b>`), esc(weak));
+    const strat = `<div class="card"><span class="ftlab">내 유형 맞춤 전략</span>${STRAT.k.map(([k, t]) => `<div class="anrow"><div><b style="font-size:15px">${t}</b></div><div>${esc(STRAT[r.sty][k])}</div></div>`).join("")}</div>`;
+    const realC = `<div class="card"><div class="row"><span class="ftlab" style="margin:0">실전 기록 비교</span><span class="sub" style="font-size:12px">${REAL2.basis}</span></div>${real ? `<div class="sub" style="margin-top:8px">${real}</div>` : `<div class="ftreal">${tile("포 자리", rr2.fore, rv.better === "F")}${tile("백 자리", rr2.back, rv.better === "B")}</div>${rmsg}`}</div>`;
+    const style = `<details class="card sd ftmore"><summary><b>플레이 스타일</b></summary><div class="ftstyle">${ftCayer(r) ? `<div class="sub">${CAYER.line.replace("{S}", `<b style="color:var(--main)">${CAYER[ftCayer(r)]}</b>`)}</div>` : ""}${tips.map(t => `<div class="fttip">${esc(t)}</div>`).join("")}${[["이럴 때 당신답다", T.moment], ["무기", T.weapon], ["이것만 조심", T.careful], ["다음 경기 미션", T.mission], ["파트너에게 들을 법한 말", `"${T.quote}"`]].map(([k, v]) => `<div><span class="ftlab">${k}</span><div>${esc(v)}</div></div>`).join("")}</div></details>`;
+    if (r.easy) return `<h2>내 플레이</h2><div class="card"><span class="ftlab">포핸드·백핸드</span><b style="color:var(--main)">${EASY.stroke[r.ek < 2 ? "fore" : r.ek === 3 ? "back" : "even"]}</b><div class="sub" style="margin-top:10px">${EASY.moreSub}</div><button class="ghost sm" data-a="ftDetail" style="margin-top:10px">${EASY.more} ›</button></div>${strat}${realC}${style}`;
     return `<h2>플레이 분석</h2><div class="card ftan"><div class="fttags" style="margin-bottom:4px">${an.rows.slice(0, 3).map(x => `<span class="pill">${AN_CHIP[x[1]] || x[1]}</span>`).join("")}</div>
 ${an.rows.slice(0, 3).map(([k, v, tip]) => `<div class="anrow"><div><span class="ftlab">${k}</span><b>${v}</b></div><div class="sub">${esc(tip)}</div></div>`).join("")}
 <div class="ftwarn${an.rows[3][2].includes("없어요") ? " ok" : ""}"><span class="ftlab">${an.rows[3][0]}</span><div>${wkH}</div></div></div>
-<div class="card"><div class="row"><span class="ftlab" style="margin:0">실전 기록 비교</span><span class="sub" style="font-size:12px">${REAL2.basis}</span></div>${real ? `<div class="sub" style="margin-top:8px">${real}</div>` : `<div class="ftreal">${tile("포 자리", rr2.fore, rv.better === "F")}${tile("백 자리", rr2.back, rv.better === "B")}</div>${rmsg}`}</div>
+${strat}${realC}
 <details class="card sd ftmore"><summary><b>자리별 샷 자신감 보기</b></summary><div class="ftgrid" style="margin-top:8px">${["BN", "FN", "BB", "FB"].map(cell).join("")}</div></details>
-<details class="card sd ftmore"><summary><b>플레이 스타일</b></summary><div class="ftstyle">${ftCayer(r) ? `<div class="sub">${CAYER.line.replace("{S}", `<b style="color:var(--main)">${CAYER[ftCayer(r)]}</b>`)}</div>` : ""}${tips.map(t => `<div class="fttip">${esc(t)}</div>`).join("")}${[["이럴 때 당신답다", T.moment], ["무기", T.weapon], ["이것만 조심", T.careful], ["다음 경기 미션", T.mission], ["파트너에게 들을 법한 말", `"${T.quote}"`]].map(([k, v]) => `<div><span class="ftlab">${k}</span><div>${esc(v)}</div></div>`).join("")}</div></details>`;
+${style}`;
   }
   const pairsLine = r => `<div class="sub">잘 맞는 파트너 유형</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${ftPartners(r).map(p => `<span class="pill">${p.n} <span style="font-weight:400">${POSN[p.key[0]]}·${STYN[p.key.slice(2)]}</span></span>`).join("")}</div>`;
   const loginBtn = () => !S.user ? `<button class="ghost" data-a="ftSave">로그인해 저장</button>` : "";
   const FV = {
-    ftStart: () => { const I = S.ft && S.ft.inv; return `${back(I ? "닫기" : "뒤로")}${kakao()}<div class="mid center" style="padding:10px 0"><h1 style="font-size:28px">포백 테스트</h1><p class="hi" style="margin-bottom:6px">나는 포잡이? 백잡이?</p><div class="sub">${FQ.length}문항 · 약 2분 · 로그인 없이 바로</div>
-${I ? `<div class="card" style="margin-top:18px;text-align:left;background:var(--tint);box-shadow:none"><b>${esc(I.n || "파트너")}님이 복식 궁합을 보자고 해요</b><div class="sub">테스트를 마치면 둘의 궁합이 바로 열려요</div></div><div class="sub" style="text-align:left">내 이름 (궁합에 보여요)</div><input id="ftn" maxlength="10" value="${esc(S.ft.nick || myName())}" placeholder="이름 또는 닉네임">` : ""}</div><div class="bar"><button data-a="ftGo">테스트 시작</button></div>` },
+    ftStart: () => { const I = S.ft && S.ft.inv; return `${back(I ? "닫기" : "뒤로")}${kakao()}<div class="ftstart center"><div class="ftbrand">${START.tag}</div>${ball()}<h1>${START.title}</h1><div class="ftlines">${START.lines.map(l => `<div>${l}</div>`).join("")}</div><div class="ftchips">${START.chips.map(c => `<span>${c}</span>`).join("")}</div>
+${I ? `<div class="card" style="text-align:left;background:var(--tint);box-shadow:none;margin:14px 0 4px"><b>${esc(I.n || "파트너")}님이 복식 궁합을 보자고 해요</b><div class="sub">테스트를 마치면 둘의 궁합이 바로 열려요</div><input id="ftn" maxlength="10" value="${esc(S.ft.nick || myName())}" placeholder="내 이름 (궁합에 보여요)" style="margin:10px 0 0"></div>` : ""}
+<button data-a="ftGo" data-v="e" style="margin-top:14px">${START.cta} →</button><button class="link" data-a="ftGo" data-v="d" style="display:block;margin:4px auto 0">${START.detail} ›</button>
+<div class="sub" style="margin-top:12px">${START.note}</div><div class="sub" style="font-size:12px;margin:8px 0 20px">${START.foot}</div></div>` },
     ftQ: () => {
-      const st = S.ft.step, q = FQ[st], A = S.ft.a, n = FQ.length;
+      const QS = qs(), st = S.ft.step, q = QS[st], A = S.ft.a, n = QS.length;
       let body;
       if (q.rows) { const G = SHOT_GROUPS[q.id], hd = S.ft.h || "R", ks = G.g.flatMap(([sp]) => [SPOTS[hd][sp].out, SPOTS[hd][sp].cen]);
         const line = (k, t, sp, w) => `<div class="ftq5"><div class="row" style="justify-content:flex-start;gap:8px;margin-bottom:8px">${mini(sp, w)}<div style="font-weight:600">${t} <span class="sub">(${shotNm(k)})</span></div></div><div style="display:flex;gap:6px">${SHOT_O.map((o, i) => `<span class="ftchip ftc5${A[k] === i ? " on" : ""}" data-a="ftShot" data-x="${k}" data-v="${i}">${o}</span>`).join("")}</div></div>`;
         body = `${G.g.map(([sp, t]) => `<div class="card" style="padding:12px 14px"><div class="ftlab" style="color:var(--main);font-size:14px">${t}</div>${line(SPOTS[hd][sp].out, G.out, sp, "out")}${line(SPOTS[hd][sp].cen, G.cen, sp, "cen")}</div>`).join("")}<div class="bar"><button data-a="ftNext" ${ks.every(k => A[k] != null) ? "" : "disabled"}>다음</button></div>` }
       else { const sel = q.id === "hand" ? (S.ft.h === "R" ? 0 : S.ft.h === "L" ? 1 : -1) : A[q.id]; body = q.o.map((t, i) => `<div class="card tap ftopt${sel === i ? " on" : ""}" data-a="ftAns" data-v="${i}">${esc(t)}</div>`).join("") }
       return `<button class="link bk" data-a="ftPrev"><span class="ar">←</span> ${st ? "이전" : "나가기"}</button><div class="row" style="margin:4px 0 6px"><span class="sub">${st + 1} / ${n}</span></div><div class="ftprog"><span style="width:${(st + 1) / n * 100}%"></span></div>
-${q.pre ? `<div class="card center" style="background:var(--tint);box-shadow:none;padding:10px 12px;margin-top:12px;color:var(--main);font-weight:600">${esc(q.pre)}</div>` : ""}<h1 style="font-size:21px;margin:14px 0 14px;line-height:1.4">${esc(q.t)}</h1>${body}`
+${q.pre ? `<div class="card center" style="background:var(--tint);box-shadow:none;padding:10px 12px;margin-top:12px;color:var(--main);font-weight:600">${esc(q.pre)}</div>` : ""}<h1 style="font-size:21px;margin:14px 0 14px;line-height:1.4">${esc(q.t)}</h1>${q.pic ? sidePic() : ""}${body}`
     },
     ftLoad: () => `<div class="mid center"><div class="spin"></div><p class="hi" style="margin-top:18px">${FT_LOADING}</p></div>`,
     ftRes: () => {
       const R = S.ftr, I = S.ft && S.ft.inv && S.ftr.fresh;
       return `<div class="row" style="margin-bottom:4px"><button class="link bk" data-a="ftBack" style="margin:0"><span class="ar">←</span> 뒤로</button><span class="ftbrand">COURT MANAGER</span></div>${kakao()}${summary(R, 1)}
 ${I ? `<button data-a="ftMatchGo">${esc(I.n || "파트너")}님과 궁합 보기</button>` : `<button data-a="ftInv">파트너와 궁합 보기</button>`}<button class="ghost" data-a="ftCard">결과 카드 저장</button>${!S.user ? `<button class="link" data-a="ftSave" style="display:block;margin:6px auto 0">로그인해 저장</button>` : ""}
-<div class="sub center" style="margin:10px 0 4px">아래에서 샷 자신감과 상세 플레이 분석을 확인할 수 있어요.</div>${detail(R)}
+<div class="sub center" style="margin:10px 0 4px">${ftScore(R.h, R.a).easy ? "아래에서 내 플레이와 맞춤 전략을 확인할 수 있어요." : "아래에서 샷 자신감과 상세 플레이 분석을 확인할 수 있어요."}</div>${detail(R)}
 <button class="link" data-a="ftMyOpen" style="display:block;margin:6px auto 0">다시 하기 · 지난 결과</button>${!S.user ? `<button class="link" data-a="ftHome" style="display:block;margin:0 auto">Court Manager 둘러보기</button>` : ""}<div class="sub center" style="margin:12px 0 24px;font-size:12px">${FT_NOTE}</div>${imgSheet()}` },
     ftWait: () => `${back("결과로")}<div class="mid center"><h1>궁합 대기 중</h1><p class="hi">파트너가 테스트를 마치면 궁합이 열립니다</p><div class="card" style="text-align:left;background:var(--tint);box-shadow:none"><div class="sub">파트너가 결과 화면에서 '궁합 결과 보내기'를 누르면, 받은 링크로 둘의 궁합을 볼 수 있어요.</div></div><div class="card" style="text-align:left">${pairsLine(ftScore(S.ftr.h, S.ftr.a))}</div></div><div class="bar"><button data-a="ftInvAgain">링크 다시 보내기</button></div>`,
     ftMatch: () => {
@@ -130,6 +139,7 @@ ${I ? `<button data-a="ftMatchGo">${esc(I.n || "파트너")}님과 궁합 보기
 <div class="card hero center" style="padding:18px"><div class="sub">우리 조합</div><div style="font-size:28px;font-weight:800">${m.combo.n}</div><div>"${m.combo.one}"</div></div>
 <div class="list">${sec("잘 맞는 점", m.combo.good)}${sec("주의할 점", m.combo.bad)}</div>
 <h2>추천 자리</h2><div class="card">${esc(m.seat)}</div>
+<h2>우리 팀 전략</h2><div class="card">${(() => { const t = ftTeam(m); return `<span class="ftlab">기본 포메이션</span><b style="color:var(--main)">${t.form[0]}</b><div class="sub" style="margin-top:2px">${t.form[1]}</div><div class="anrow"><div><b style="font-size:15px">서브 게임</b></div><div>${esc(t.serve)}</div></div><div class="anrow"><div><b style="font-size:15px">리턴 게임</b></div><div>${esc(t.ret)}</div></div>` })()}</div>
 <h2>센터 담당</h2><div class="card">${map}<div style="margin-top:10px;font-weight:700">${esc(m.center)}</div>${m.lr ? `<div class="sub" style="margin-top:4px">${esc(m.lr)}</div>` : ""}</div>
 ${m.cautions.length ? `<h2>주의할 장면</h2>${m.cautions.map(c => `<div class="card" style="background:#FFF8E6;box-shadow:none;border:1px solid #F0D9A0;padding:12px 14px">${esc(c)}</div>`).join("")}` : ""}
 <h2>우리 둘의 약속</h2><div class="sub" style="margin:-4px 2px 8px">${AGREE}</div>${m.prom.map((p, pi) => `<div class="card" style="padding:12px 14px"><b>${esc(p.q)}</b><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${p.o.map((o, oi) => `<span class="ftchip${pr[pi] === oi ? " on" : ""}" data-a="ftPick" data-x="${pi}" data-v="${oi}" style="text-align:left">${esc(o)}</span>`).join("")}</div></div>`).join("")}
@@ -142,17 +152,18 @@ ${M.role === "B" ? `<button data-a="ftSendBack">${esc(na)}님에게 궁합 결�
       return `${back()}<h1>내 복식 성향</h1>${L.length ? (() => { const r = ftScore(L[0].h, L[0].a); return `<div class="card tap" data-a="ftView" data-x="${L[0].at}" style="padding:16px"><div class="row"><div><div class="sub">최근 결과 · ${d(L[0].at)}</div><b style="font-size:18px;color:var(--main)">내 플레이 분석 보기</b><div class="sub">${PREF[r.pos]} · ${r.fore >= r.back ? `포 ${r.fore}%` : `백 ${r.back}%`}</div></div><span class="sub">›</span></div></div><button data-a="ftInvMy">파트너와 궁합 보기</button>` })() : `<div class="card sub center">아직 테스트 결과가 없어요</div>`}<button class="ghost" data-a="ftNew">${L.length ? "다시 하기" : "테스트 시작"}</button>
 ${L.length > 1 ? `<h2>지난 결과</h2><div class="list">${L.slice(1).map(x => { const r = ftScore(x.h, x.a); return `<div class="li tap" data-a="ftView" data-x="${x.at}"><span class="sub" style="width:44px">${d(x.at)}</span><span class="nm">${PREF[r.pos]}</span><span class="sub">${r.fore >= r.back ? `포 ${r.fore}%` : `백 ${r.back}%`}</span></div>` }).join("")}</div>` : ""}
 ${C.length ? `<h2>궁합 기록</h2><div class="list">${C.map(x => { const m = ftMatch(x.A, x.B); return `<div class="li tap" data-a="ftCView" data-x="${x.at}"><span class="sub" style="width:44px">${d(x.at)}</span><span class="nm">${esc(x.A.n)} × ${esc(x.B.n)}</span><span class="sub">${m.combo.n}</span></div>` }).join("")}</div>` : ""}
-${X.isDev() ? `<div class="sub center" id="ftst" style="margin-top:16px">테스트 통계 불러오는 중…</div>` : ""}`
+${X.isDev() ? `<div class="sub center ftst" style="margin-top:16px">${S.ftStatsT || "테스트 통계 불러오는 중…"}</div>` : ""}`
     }
   };
 
   // ---------- 동작
+  const qs = () => S.ft && S.ft.mode === "e" ? EQ : FQ;
   const resetFt = inv => { S.ft = { step: 0, h: null, a: {}, inv: inv || null, nick: "" } };
   function finish() {
-    const a = FT_KEYS.map(k => S.ft.a[k]);
+    const a = (S.ft.mode === "e" ? EASY_KEYS : FT_KEYS).map(k => S.ft.a[k]);
     if (!ftValid(S.ft.h, a)) return pop("답하지 않은 문항이 있어요.");
     const rec = { at: Date.now(), h: S.ft.h, a };
-    keepLocal("r", rec, okR); X.count("done"); if (S.ft.inv) X.count("invDone");
+    keepLocal("r", rec, okR); X.count(S.ft.mode === "e" ? "doneE" : "done"); if (S.ft.inv) X.count("invDone");
     S.ftr = { ...rec, n: S.ft.nick || myName(), fresh: 1 };
     if (S.ft.code) X.ftSetB(S.ft.code, { n: S.ftr.n || "파트너", h: rec.h, a: rec.a }).catch(() => { }); // 초대한 사람에게 자동으로 전달
     go("ftLoad"); setTimeout(() => { if (S.screen === "ftLoad") go("ftRes") }, 1000);
@@ -175,10 +186,11 @@ ${X.isDev() ? `<div class="sub center" id="ftst" style="margin-top:16px">테스�
     ftOpen(el) { S.ftFrom = S.screen === "personal" ? "personal" : S.user && S.profile ? "mode" : "login"; const L = latest(); if (L && el.dataset.v !== "new") { S.ftr = { ...L, n: myName() }; resetFt(); go("ftRes") } else { resetFt(); go("ftStart") } },
     ftMyOpen() { if (S.ftFrom !== "ftMy") S.ftMyBack = S.ftFrom; S.ftFrom = "ftMy"; go("ftMy"); X.devStats() },
     ftNew() { if (S.screen === "ftMy") S.ftFrom = "ftMy"; resetFt(); go("ftStart") },
-    ftGo() { const i = document.getElementById("ftn"); if (i) { const n = i.value.trim().slice(0, 10); S.ft.nick = n; if (n && !S.profile) { const o = ld(); o.nick = n; sv(o) } } S.ft.step = 0; go("ftQ") },
-    ftAns(el) { const i = +el.dataset.v, q = FQ[S.ft.step]; if (q.id === "hand") S.ft.h = i ? "L" : "R"; else S.ft.a[q.id] = i; rr(); setTimeout(() => { if (S.screen !== "ftQ") return; if (S.ft.step >= FQ.length - 1) finish(); else { S.ft.step++; go("ftQ") } }, 160) },
+    ftGo(el) { S.ft.mode = el && el.dataset.v === "d" ? "d" : "e"; S.ft.a = {}; const i = document.getElementById("ftn"); if (i) { const n = i.value.trim().slice(0, 10); S.ft.nick = n; if (n && !S.profile) { const o = ld(); o.nick = n; sv(o) } } S.ft.step = 0; go("ftQ") },
+    ftAns(el) { const QS = qs(), i = +el.dataset.v, q = QS[S.ft.step]; if (q.id === "hand") S.ft.h = i ? "L" : "R"; else S.ft.a[q.id] = i; rr(); setTimeout(() => { if (S.screen !== "ftQ") return; if (S.ft.step >= QS.length - 1) finish(); else { S.ft.step++; go("ftQ") } }, 160) },
+    ftDetail() { resetFt(); S.ft.mode = "d"; S.ft.step = 0; go("ftQ") },
     ftShot(el) { S.ft.a[el.dataset.x] = +el.dataset.v; rr() },
-    ftNext() { if (S.ft.step >= FQ.length - 1) finish(); else { S.ft.step++; go("ftQ") } },
+    ftNext() { if (S.ft.step >= qs().length - 1) finish(); else { S.ft.step++; go("ftQ") } },
     ftPrev() { if (S.ft.step > 0) { S.ft.step--; go("ftQ") } else go("ftStart") },
     ftBack() { const f = FB[S.screen]; if (f) f() },
     async ftInv() { await invite(S.ftr) },
@@ -251,6 +263,6 @@ ${X.isDev() ? `<div class="sub center" id="ftst" style="margin-top:16px">테스�
   // 카카오톡 안의 브라우저에서는 저장이 앱에 남지 않아요 → 앱(또는 다른 브라우저)으로 열기
   const kakao = () => S.ftLink && /KAKAOTALK/i.test(navigator.userAgent) ? `<div class="card" style="background:#FFF8E6;box-shadow:none;border:1px solid #F0D9A0;padding:12px 14px"><b>카카오톡 안에서는 결과가 앱에 저장되지 않아요</b><div class="row" style="gap:8px;margin-top:8px">${/Android/i.test(navigator.userAgent) ? '<button class="sm" data-a="ftExtApp" style="margin:0">앱에서 열기</button>' : ""}<button class="sm ghost" data-a="ftExtBr" style="margin:0">다른 브라우저로 열기</button></div></div>` : "";
   const isFt = s => /^ft[A-Z]/.test(s || "");
-  const banner = () => latest() ? `<div class="card tap ftban" data-a="ftOpen"><div><b>내 복식 성향</b><div class="sub">분석 완료 · 내 플레이 분석 보기 →</div></div></div>` : `<div class="card tap ftban" data-a="ftOpen" data-v="new"><div><b>포백 테스트</b><div class="sub">나는 포잡이? 백잡이?</div></div><span class="sub">›</span></div>`;
+  const banner = () => latest() ? `<div class="card tap ftban" data-a="ftOpen"><div><b>내 복식 캐릭터</b><div class="sub">내 복식 캐릭터 보기 →</div></div></div>` : `<div class="card tap ftban" data-a="ftOpen" data-v="new"><div><b>포백 테스트</b><div class="sub">코트 위에서 나는 어떤 타입일까?</div></div><span class="sub">›</span></div>`;
   return { V: FV, A: FA, BACK: FB, pending, checkInv, isFt, banner, sync };
 }

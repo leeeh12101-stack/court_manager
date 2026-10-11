@@ -1,5 +1,5 @@
 // 포백 테스트 계산 — 화면·Firebase와 무관한 순수 계산(자동 테스트 대상: tests/ft.test.mjs)
-import { TYPES, COMBOS, SEAT, CENTER, CAUTION, CAUTION2, PROMISES, POSN, SHOT_NM, REASON, AN, REAL } from "./ft-data.js";
+import { TYPES, COMBOS, SEAT, CENTER, CAUTION, CAUTION2, PROMISES, POSN, SHOT_NM, REASON, AN, REAL, REASON_E, TEAM } from "./ft-data.js";
 
 // 답 배열 순서(v2). 모든 값은 고른 보기 번호(0부터). 샷 문항(a~h)은 5단계(0 매우 자신 … 4 매우 부담), role 3은 '응답 없음'(예전 결과를 옮긴 경우)
 export const FT_KEYS = ["q2", "q3", "q4", "a", "b", "c", "d", "e", "f", "g", "h", "q6", "q7", "q8", "q9", "q10", "q11", "role"];
@@ -17,15 +17,39 @@ const fill = (t, m) => t.replace(/\{(\w+)\}/g, (_, k) => m[k] ?? "");
 // 예전(v1: 17칸, 샷 3단계) 답을 v2로 옮기기
 export function ftUp(a) { if (!Array.isArray(a) || a.length !== 17) return a; const b = a.slice(); for (let i = 3; i <= 10; i++) b[i] = [0, 2, 4][a[i]] ?? a[i]; b.push(3); return b }
 
-// 답 검증: h "R"|"L", a 길이 18, 각 값이 보기 범위 안
+// 쉬운 버전 답(8칸): 리턴 편한 쪽 · 포/백핸드 자신감 · e1~e6(e2는 커버)
+export const EASY_KEYS = ["es", "ek", "e1", "e2", "e3", "e4", "e5", "e6"];
+const ENOPT = [4, 4, 3, 3, 3, 3, 3, 3];
+// 답 검증: h "R"|"L", a 길이 18(상세) 또는 8(쉬운 버전), 각 값이 보기 범위 안
 export function ftValid(h, a) {
   if (h !== "R" && h !== "L") return false;
+  if (Array.isArray(a) && a.length === EASY_KEYS.length) return a.every((x, i) => Number.isInteger(x) && x >= 0 && x < ENOPT[i]);
   if (!Array.isArray(a) || a.length !== FT_KEYS.length) return false;
   return FT_KEYS.every((k, i) => Number.isInteger(a[i]) && a[i] >= 0 && a[i] < (NOPT[k] || 5));
 }
 const obj = a => Object.fromEntries(FT_KEYS.map((k, i) => [k, a[i]]));
 
+// 쉬운 버전 계산: 위치 = 편한 쪽(±2) + 더 강한 스트로크를 바깥에(오른손 포핸드 강하면 포 쪽). 샷은 포/백핸드 자신감으로 채워 궁합 계산에 씀
+function ftScoreE(h, a) {
+  const [es, ek, ...E] = a, sd = [-2, 2, 0, 0][es], st = [-1.5, -.75, 0, 1][ek] * (h === "R" ? 1 : -1), P = sd + st;
+  const pos = P < -1.5 ? "F" : P > 1.5 ? "B" : "X", back = Math.round(50 + 40 * P / 3.5);
+  const votes = { lead: 0, link: 0, safe: 0 };[0, 2, 3, 4, 5].forEach(i => votes[STY[E[i]]]++);
+  const mx = Math.max(votes.lead, votes.link, votes.safe), top = STY.filter(s => votes[s] === mx), sty = top.includes("link") ? "link" : top.length === 1 ? top[0] : STY[E[0]];
+  const cov = ["act", "bal", "share"][E[1]], C = { act: 3, bal: 0, share: -3 }[cov];
+  const fv = [1, .5, 0, -.5][ek], bv = [-.5, 0, 0, 1][ek], shots = Object.fromEntries("abcdefgh".split("").map(k => [k, isFore(k) ? fv : bv]));
+  const sp = SPOTS[h], sum = s => shots[sp[s].out] + shots[sp[s].cen], key = pos + "-" + sty;
+  return { easy: 1, h, es, ek, P, mind: sd, shotP: st, pos, back, fore: 100 - back, votes, sty, C, cov, flags: { freeze: false, hesitate: false, mixed: votes.lead >= 2 && votes.safe >= 2 }, shots, key, type: TYPES[key], sum: { FB: sum("FB"), BB: sum("BB"), FN: sum("FN"), BN: sum("BN") }, q4: -1 };
+}
+export const ftReasonE = r => `${REASON_E.side[r.es]} ${REASON_E.stroke[r.ek < 2 ? "fore" : r.ek === 3 ? "back" : "even"]} ${REASON_E.tail[r.pos]}`;
+// 팀 전략: 기본 포메이션(두 사람 강한 구역) + 서브/리턴 게임 플랜(운영 조합)
+export function ftTeam(m) {
+  const z = r => r.easy ? "even" : ftAnalysis(r).zone, za = z(m.ra), zb = z(m.rb), f = za === "net" && zb === "net" ? "net" : za === "back" && zb === "back" ? "back" : "mix";
+  const k = [m.ra.sty, m.rb.sty].sort((x, y) => STY.indexOf(x) - STY.indexOf(y)).join("+");
+  return { form: TEAM.form[f], serve: TEAM.plan[k][0], ret: TEAM.plan[k][1] };
+}
+
 export function ftScore(h, a) {
+  if (Array.isArray(a) && a.length === EASY_KEYS.length) return ftScoreE(h, a);
   const o = obj(a), v = k => SHOT[o[k]], sp = SPOTS[h], sum = s => v(sp[s].out) + v(sp[s].cen);
   const mind = PT.q2[o.q2] + PT.q3[o.q3] + PT.q4[o.q4];
   const shotP = W.out * (v(sp.BB.out) - v(sp.FB.out)) + W.cen * (v(sp.BB.cen) - v(sp.FB.cen)) + W.vol * (sum("BN") - sum("FN")), P = mind + shotP;
@@ -50,6 +74,7 @@ export const ftCayer = r => r.pos === "X" && r.sty === "link" ? "allcourt" : r.s
 export function ftShots(r) { const ks = "abcdefgh".split(""); return { good: ks.filter(k => r.shots[k] > 0).map(k => SHOT_NM[k]), weak: ks.filter(k => r.shots[k] < 0).map(k => SHOT_NM[k]) } }
 // 추천 자리 이유 한 줄: 마음(2~4번)과 샷(5번)이 어느 쪽을 가리키는지
 export function ftReason(r) {
+  if (r.easy) return ftReasonE(r);
   const sg = x => x > 0 ? "B" : x < 0 ? "F" : "", m = sg(r.mind), t = sg(r.shotP), f = s => fill(s, { S: POSN[r.pos], M: POSN[m], T: POSN[t] });
   if (r.pos === "X") return f(m && t && m !== t ? REASON.flexMix : REASON.flex);
   if (m === r.pos && t === r.pos) return f(REASON.both);
