@@ -23,9 +23,9 @@ export function pickTeams(four,pc,oc,tl,tierOn){const [a,b,c,d]=four,K=(x,y)=>x<
 export function mergeDocs(c,list,rep,keep){if(rep)c.docs={};list.forEach(r=>{const x=clean(r);if(x.deleted||(keep&&!keep(x)))delete c.docs[x._id];else c.docs[x._id]=x;c.last=Math.max(c.last,typeof x.updatedAt==="number"?x.updatedAt:0)});return c}
 export function tourResults(gs,pres){const t=gs.filter(g=>g.cat==="tour"&&g.label).sort((a,b)=>a.date.localeCompare(b.date)),cl=[];t.forEach(g=>{const c=cl.find(x=>x.label===g.label&&dayDiff(x.last,g.date)<=3);if(c){c.gs.push(g);c.last=g.date}else cl.push({label:g.label,first:g.date,last:g.date,gs:[g]})});
  const rk=s=>{const i=STG.indexOf(s);return i<0?-1:i},NX={"32강":"16강","16강":"8강","8강":"4강","4강":"결승"};
- return cl.reverse().map(c=>{const z=[...c.gs].sort((a,b)=>rk(a.stage)-rk(b.stage)||a.date.localeCompare(b.date)),L=z[z.length-1],r=pres(L),st=L.stage||"",k=c.gs.find(g=>g.kind);let result,tone;
+ return cl.reverse().map(c=>{const z=[...c.gs].sort((a,b)=>rk(a.stage)-rk(b.stage)||a.date.localeCompare(b.date)||(a.order||0)-(b.order||0)),sq=z.length===1||(z.every(g=>rk(g.stage)>=0)&&new Set(z.map(g=>g.stage)).size===z.length),L=z[z.length-1],r=pres(L),st=L.stage||"",k=c.gs.find(g=>g.kind);let result,tone;
   if(st==="결승"){result=r==="w"?"우승":"준우승";tone=r==="w"?"gold":"tint"}else if(!st){result=`${c.gs.length}경기`;tone="gray"}else if(st.startsWith("예선")){result=r==="l"?"예선":"예선 통과";tone="gray"}else if(r==="l"){result=st;tone="gray"}else{result=NX[st]==="결승"?"결승 진출":(NX[st]||st);tone="tint"}
-  return{label:c.label,first:c.first,kind:k?k.kind:"",result,tone}})}
+  return{label:c.label,first:c.first,kind:k?k.kind:"",result,tone,gs:z,sq}})}
 
 // 엑셀 양식(빈 양식·내보내기·가져오기 공통)
 export const XHDR=["날짜","구분","클럽·대회 이름","모임 종류·부서","코트 바닥","단·복식","경기 순서·대회 단계","내 포지션","파트너","파트너 성별","상대1","상대1 포지션","상대1 성별","상대2","상대2 포지션","상대2 성별","스코어","승패","메모","출처"];
