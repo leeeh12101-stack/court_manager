@@ -30,7 +30,7 @@ export const writeBatch = () => { const ops = []; return { set: (r, d, o) => ops
 export const serverTimestamp = () => ({ __ts: 1 });
 export const onSnapshot = (r, cb) => { setTimeout(() => cb(snap(r.coll, r.id)), 5); return () => {}; };
 export const increment = n => n;
-export const runTransaction = async (db, fn) => fn({ get: getDoc, set: (r, d) => put(r, d), update: (r, d) => put(r, d, true) });
+export const runTransaction = async (db, fn) => fn({ get: getDoc, set: (r, d) => put(r, d), update: (r, d) => put(r, d, true), delete: r => { delete col(r.coll)[r.id]; } });
 export const Timestamp = { fromMillis: ms => ({ toMillis: () => ms }), now: () => ({ toMillis: () => now() }) };
 // ai / app check
 export const getAI = () => ({}), getGenerativeModel = () => ({}), GoogleAIBackend = class {};
