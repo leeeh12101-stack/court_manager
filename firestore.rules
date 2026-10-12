@@ -38,7 +38,8 @@ service cloud.firestore {
         || (resource.data.get('status', 'open') == 'open' && can(c, 'stats', 'admin') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statsOff','rankShow']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'meeting', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mtgOverride','mdays','sched']))
         || (resource.data.get('status', 'open') == 'open' && can(c, 'notice', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notice']))
-        || (resource.data.get('status', 'open') == 'open' && can(c, 'result', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gOk']));
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'result', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gOk']))
+        || (resource.data.get('status', 'open') == 'open' && can(c, 'draw', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dprio']) && request.resource.data.dprio is list && request.resource.data.dprio.size() <= 8);
       allow delete: if closedPrimary(c);
     }
 
