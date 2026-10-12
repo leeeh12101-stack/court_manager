@@ -208,7 +208,8 @@ service cloud.firestore {
     match /clubPhotos/{p} {
       allow read: if isActive(resource.data.clubId);
       allow create: if authed() && request.resource.data.by == me()
-        && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'by', 'byName', 'exp', 'data', 'w', 'h', 'at'])
+        && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'by', 'byName', 'exp', 'data', 'w', 'h', 'at', 'qr'])
+        && request.resource.data.get('qr', '').size() <= 2000
         && request.resource.data.data is string && request.resource.data.data.size() <= 750000
         && request.resource.data.exp is number && request.resource.data.exp <= request.time.toMillis() + 777600000
         && getAfter(/databases/$(db)/documents/photoDays/$(request.resource.data.clubId + '_' + request.resource.data.date + '_' + request.resource.data.kind)).data.items[p].by == me()
