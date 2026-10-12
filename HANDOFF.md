@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-11 · **BUILD `1012-8`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-11 · **BUILD `1012-9`** · 버전 표기 `v0.1`
 
 ---
 
@@ -51,6 +51,7 @@
 - 상태 `S`, 동작 `A`(data-a로 연결, 약 252개), 화면 `V`(go("화면")), 클럽 탭 `T`(today·games·stats·members·settings), 개인 탭 `P`(home·games·stats·settings), 뒤로가기 `BACK`.
 - 렌더: `render()`, 입력 유지 재렌더 `keepR()`/`rer()`, 클럽 데이터 `load()`, 개인 데이터 `pLoad()`.
 - 쓰기 함수 `setDoc/updateDoc/deleteDoc/writeBatch`는 **감싼 버전**(회원 화면 미리보기 중 저장 차단 + 회원 명단 캐시 무효화).
+- 폰 저장소 `IDB`는 3초 안에 안 열리면(iOS IndexedDB 멈춤 대비) 그 실행 동안 저장 없이 서버에서 바로 받음(1012-9). 개인 설정 클럽 동기화 줄에 가져온 경기 수·꺼짐 표시.
 - 회원 명단 2분 캐시 `memQ()`, 경기·출석·개인 기록은 **폰 저장 + 바뀐 것만 받기** `syncQ()`(IndexedDB, 30일 전체 갱신을 키별로 분산).
 - **삭제는 삭제 표시**(`deleted:true` + `updatedAt`). 저장·수정 시 **`updatedAt` 필수**(바뀐 것만 받기 때문).
 - 경기 탭 '기록': 날짜 칸 안에서 `groupRounds`(core.js)로 회차별 묶음(1회차부터·코트순 / 순번제는 `n번째` / 회차 없음은 `기타`). 왼쪽 칸은 코트.
