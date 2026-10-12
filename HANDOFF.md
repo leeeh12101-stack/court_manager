@@ -23,7 +23,7 @@
 | `core.js` | **순수 계산**(Firebase·화면 무관) → 자동 테스트 대상 |
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신) |
-| `firestore.rules` | 보안 규칙. 바꾸면 콘솔에 **게시** 필요 |
+| `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
 | `sw.js` | 서비스 워커 `cm-v4`: 네트워크 우선, 3초 응답 없으면 저장본 |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
 | `tests/core.test.mjs` | core.js 테스트 138개 |
@@ -40,7 +40,7 @@
    `node -e 'import("./core.js").then(m=>{const k=Object.keys(m).sort(),fs=require("fs");let a=fs.readFileSync("app.js","utf8");a=a.replace(/import \{[^}]*\} from "\.\/core\.js";/,"import {"+k.join(",")+"} from \"./core.js\";");fs.writeFileSync("app.js",a)})'`
 4. **이름표(data-*) 겹침 주의**: 클릭 처리에서 특별 분기하는 속성 `np ep pn ps pt lk nt sk st2 pr xv pk fl sc pm pu r d`는 **새 요소에 쓰지 말 것**(과거 3번 버그). 날짜는 `data-dk`, 접는 칸은 `data-sec`를 씀.
 5. 계산 로직은 가능하면 **core.js에 넣고 테스트 추가**.
-6. 점검 통과 후 **저장소 `main`에 바로 커밋·푸시**(GitHub Pages 자동 반영, 실패 시에만 바뀐 파일 zip 전달). 바로 이어서 코딩할 땐 중간 파일 만들지 않기, 규칙 변경 시 **게시** 안내.
+6. 점검 통과 후 **저장소 `main`에 바로 커밋·푸시**(GitHub Pages 자동 반영, 실패 시에만 바뀐 파일 zip 전달). 바로 이어서 코딩할 땐 중간 파일 만들지 않기, 규칙은 푸시하면 자동 게시되니 Actions 성공(`gh run list --workflow firestore-rules.yml`)만 확인.
 7. **화면에 보이는 기능을 바꾸면 `NEWS`(app.js) 맨 아래에 새 묶음 추가**: `[대상, 제목, 한 줄 설명]`, 대상은 all·club·personal·권한 키. 사람마다 `users.newsSeen`(본 묶음 수)까지 건너뛰고 밀린 항목을 한 번에 보여 줌. 새 가입자는 처음부터 본 것으로 처리.
 8. **누를 수 있는 곳 표시 규칙**: 목록 줄은 `.li.tap`이면 자동으로 `›`(이동이 아닌 줄은 `noar`), 문장 속 글자는 `.lnk`(주의는 `.lnk.warn`) 점선 밑줄, 아래 창은 제목+닫기 머리줄·바깥 누르기·뒤로가기로 닫힘.
 9. Python으로 패치할 때 문자열 정확히 일치 확인(실패 목록 출력) → 실패 0이어야 함.
