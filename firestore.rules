@@ -192,13 +192,17 @@ service cloud.firestore {
       allow update: if authed() && resource.data.ownerUid == me() && request.resource.data.ownerUid == me() && request.resource.data.text.size() <= 1000;
       allow read, delete: if authed() && resource.data.ownerUid == me();
     }
-    // 주차권·모임 사진: 날짜별 목록(최대 8장) + 사진 1장당 문서 1개, 7일 뒤 정리
+    // 주차권(모임당 30장, 당일 자정/끝난 뒤 3시간 삭제, 가져가기)·모임 사진(3장, 7일): 날짜·종류별 목록 + 사진 1장당 문서 1개
     function clubOn(c, f) { return get(/databases/$(db)/documents/clubs/$(c)).data.get(f, false) == true; }
     match /photoDays/{d} {
-      allow read: if isActive(resource.data.clubId);
-      allow create, update: if isActive(request.resource.data.clubId) && d == request.resource.data.clubId + '_' + request.resource.data.date
-        && request.resource.data.keys().hasOnly(['clubId', 'date', 'n', 'items', 'updatedAt'])
-        && request.resource.data.n == request.resource.data.items.size() && request.resource.data.n <= 8;
+      allow get: if isActive(d.split('_')[0]);
+      allow list: if isActive(resource.data.clubId);
+      allow create, update: if isActive(request.resource.data.clubId)
+        && request.resource.data.kind in ['park', 'group']
+        && d == request.resource.data.clubId + '_' + request.resource.data.date + '_' + request.resource.data.kind
+        && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'n', 'items', 'updatedAt'])
+        && request.resource.data.n == request.resource.data.items.size()
+        && request.resource.data.n <= (request.resource.data.kind == 'park' ? 30 : 3);
       allow delete: if isActive(resource.data.clubId);
     }
     match /clubPhotos/{p} {
@@ -206,8 +210,8 @@ service cloud.firestore {
       allow create: if authed() && request.resource.data.by == me()
         && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'by', 'byName', 'exp', 'data', 'w', 'h', 'at'])
         && request.resource.data.data is string && request.resource.data.data.size() <= 750000
-        && request.resource.data.exp is number && request.resource.data.exp <= request.time.toMillis() + 605400000
-        && getAfter(/databases/$(db)/documents/photoDays/$(request.resource.data.clubId + '_' + request.resource.data.date)).data.items[p].k == request.resource.data.kind
+        && request.resource.data.exp is number && request.resource.data.exp <= request.time.toMillis() + 777600000
+        && getAfter(/databases/$(db)/documents/photoDays/$(request.resource.data.clubId + '_' + request.resource.data.date + '_' + request.resource.data.kind)).data.items[p].by == me()
         && ((request.resource.data.kind == 'park' && clubOn(request.resource.data.clubId, 'parkOn') && can(request.resource.data.clubId, 'park', 'staff'))
           || (request.resource.data.kind == 'group' && clubOn(request.resource.data.clubId, 'photoOn') && can(request.resource.data.clubId, 'photo', 'staff')));
       allow delete: if authed() && (resource == null || (isActive(resource.data.clubId)
