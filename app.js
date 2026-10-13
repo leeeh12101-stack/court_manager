@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1013-9",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1013-10",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -171,10 +171,10 @@ const cxHtml=(L,nw)=>`<span class="cxl">${L.map(x=>{const n=!nw||nw.has(cxK(x));
 const askH=(h,ok,no)=>new Promise(r=>{$("#popmsg").innerHTML=h;$("#popok").textContent=ok;$("#popno").textContent=no||"";$("#popno").style.display=no?"block":"none";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 function buildDraw(parts,c,dr){
  const {iv,st,R}=rinfo(c),cts=eff(c).courts,pl=parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:dnp(p),p:p.position,s:tmin(p.start),e:tmin(p.end),g:0,t:(()=>{const m=S.mem.find(x=>mkey(x)===key(p));return m&&m.tierId!=null&&m.tierId!==""?m.tierId:null})(),x:gOf(key(p),p)}));
- const pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a,cnt=(m,a,b)=>m[K(a,b)]||0,inc=(m,a,b)=>m[K(a,b)]=cnt(m,a,b)+1,rounds=[],W=dW(dr.prio);let rp=new Set();
+ const pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a,cnt=(m,a,b)=>m[K(a,b)]||0,inc=(m,a,b)=>m[K(a,b)]=cnt(m,a,b)+1,rounds=[],W=dW(dr.prio),fpc={};let rp=new Set();
  for(let r=0;r<R;r++){
   const t=st+r*iv,av=pl.filter(p=>p.s<=t&&p.e>=t+iv&&!(dr.excl[p.k]||[]).includes(r+1)),by=Object.fromEntries(av.map(p=>[p.k,p])),used=new Set();
-  let units=[];dr.pairs.forEach(([a,b])=>{if(by[a]&&by[b]){units.push([by[a],by[b]]);used.add(a);used.add(b)}});
+  let units=[];dr.pairs.forEach(([a,b,n])=>{if(by[a]&&by[b]&&!(n&&(fpc[a+'|'+b]||0)>=n)){units.push([by[a],by[b]]);used.add(a);used.add(b)}});
   av.forEach(p=>{if(!used.has(p.k))units.push([p])});
   const avg=u=>u.reduce((x,p)=>x+p.g-(rp.has(p.k)?.5:0),0)/u.length;units=shuf(units).sort((x,y)=>avg(x)-avg(y));
   let sel=[],tot=0;for(const u of units)if(tot+u.length<=cts*4){sel.push(u);tot+=u.length}
@@ -191,6 +191,7 @@ function buildDraw(parts,c,dr){
   for(let i=0;i<400;i++){let T;if(i<80)T=mk();else{T=best.map(q=>({...q,m:[...q.m]}));const a=T[Math.random()*T.length|0],b=T[Math.random()*T.length|0];if(a===b||a.f||b.f)continue;const x=Math.random()<.5?0:1,y=Math.random()<.5?0:1;[a.m[x],b.m[y]]=[b.m[y],a.m[x]]}const v=sc(T);if(v<bs){best=T;bs=v}}
   const games=[];for(let i=0;i<best.length;i+=2){const A=best[i].m,B=best[i+1].m,f=q=>q.map(p=>({k:p.k,n:p.n,p:p.p}));games.push({court:i/2+1,t1:f(A),t2:f(B)});
    inc(pc,A[0].k,A[1].k);inc(pc,B[0].k,B[1].k);A.forEach(a=>B.forEach(b=>inc(oc,a.k,b.k)));[...A,...B].forEach(p=>p.g++)}
+  games.forEach(g=>[g.t1,g.t2].forEach(t=>dr.pairs.forEach(([a,b])=>{const ks=t.map(p=>p.k);if(ks.includes(a)&&ks.includes(b))fpc[a+'|'+b]=(fpc[a+'|'+b]||0)+1})));
   const on=new Set(games.flatMap(g=>[...g.t1,...g.t2].map(p=>p.k)));rp=new Set(av.filter(p=>!on.has(p.k)).map(p=>p.k));
   rounds.push({n:r+1,time:fmt(t),games});
  }
@@ -339,7 +340,7 @@ const posPill=m=>`<span class="pill" style="background:none;color:var(--sub)">${
 const vis=k=>{const v=(S.cur.memberView||{})[k]||"all";return v==="all"||(v==="staff"&&["admin","staff"].includes(S.cur.role))};
 const tn=(c,i)=>(c.tiers||["A","B","C","D"])[i]||"";
 const tierPill=m=>S.cur.tierEnabled&&m.tierId!=null&&m.tierId!==""?`<span class="pill" style="background:var(--bg);color:var(--sub)">${esc(tn(S.cur,m.tierId))}</span>`:"";
-const nmOf=k=>(S.parts.find(p=>key(p)===k)||{}).name||k;
+const nmOf=k=>{const p=S.parts.find(q=>key(q)===k);return (p&&(dnp(p)||p.name))||k};
 const nmj=l=>l.map(x=>esc(x.n)).join("·"),md=d=>d.slice(4,6)+"."+d.slice(6);
 const gTeams=g=>{const w=g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0,f=(l,i)=>w===i?`<b>${nmj(l)}</b>`:nmj(l);return `${f(g.t1,1)} <span class="sub">vs</span> ${f(g.t2,2)}`};
 const isUnk=p=>{const c=S.cur;if(!c||!p||!p.k||S.screen==="personal")return false;const k=ck(p);return !S.mem.some(m=>mkey(m)===k)&&!(c.gOk||[]).includes(p.n)};
@@ -498,7 +499,8 @@ const NEWS=[[
  ["draw","연속 휴식 줄이기","경기 수가 같으면 직전 회차에 쉰 사람이 먼저 뛰어요. 지키지 못한 조건은 미리보기에서 알려줘요"],
  ["draw","바꾸기 확인 보기 쉽게","대진에서 이름을 바꿀 때 누가 몇 회차에 왜 걸리는지 사람별로 보여줘요"]],[
  ["park","주차권 올린 사람·가져간 사람","주차권 화면에서 누가 몇 장 올리고 가져갔는지 보여요. 가져간 주차권에 '게스트 홍길동'처럼 메모를 남길 수 있어요"],
- ["park","게스트에게 주차권 보내기","내 주차권에서 게스트를 고르면 이름이 메모로 남고 카톡으로 바로 보낼 수 있어요"]]];
+ ["park","게스트에게 주차권 보내기","내 주차권에서 게스트를 고르면 이름이 메모로 남고 카톡으로 바로 보낼 수 있어요"],
+ ["draw","고정 페어 게임 수","고정 페어를 몇 게임만 함께할지 정할 수 있어요. 채우면 그다음부터는 따로 섞여요"]]];
 function pvSheet(){const o=(v,t,d)=>`<div class="card tap" data-a="pvGo" data-v="${v}" style="padding:14px 16px;margin:8px 0 0"><b>${t}</b><div class="sub">${d}</div></div>`;
  return `<div class="sh" data-a="pvNo"><div data-keep="1"><h3>어떤 화면으로 볼까요?</h3><div class="sub">미리보기 중에는 아무것도 저장되지 않아요</div>${o("member","일반 회원 화면","회원에게 보이는 그대로")}${o("staff","운영진 화면","운영진 권한으로 보이는 화면")}<button class="ghost" data-a="pvNo" style="margin-top:12px">취소</button></div></div>`}
 function newsItems(){const P=S.profile;if(!P||S.pv||S.newsX||(+P.newsSeen||0)>=NEWS.length)return[];const cm=S.screen==="clubHome"&&S.cur;
@@ -819,11 +821,11 @@ ${S.form.play==="no"&&S.cur.noPlayEnabled!==false?"":`포지션<div class="seg" 
 guest:()=>`<button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>참석자·게스트 추가</h1>이름<input id="gn" list="gl" maxlength="20" placeholder="게스트 또는 회원 이름"><datalist id="gl">${S.mem.map(m=>`<option value="${esc(m.displayName)}">`).join("")}</datalist>시작<input id="st" type="time" value="${S.form.st}">종료<input id="et" type="time" value="${S.form.et}">
 ${S.cur.genderMode?`성별<div class="seg" data-k="gg">${[["m","남"],["f","여"]].map(([v,t])=>`<div data-v="${v}" class="${(S.form.gg??(S.cur.genderMode==="mixed"?"":S.cur.genderMode))===v?"on":""}">${t}</div>`).join("")}</div>`:""}포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
 <div class="bar"><button data-a="addGuest">추가</button></div>`,
-draw:()=>{const R=rinfo(S.cur).R,d=S.dr,o=S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>`<option value="${esc(key(p))}">${esc(p.name)}</option>`).join("");
+draw:()=>{const R=rinfo(S.cur).R,d=S.dr,o=S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>`<option value="${esc(key(p))}">${esc(dnp(p)||p.name||"")}</option>`).join("");
  return `<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>대진 만들기</h1>
 ${(()=>{const o=dcOrd(),av=dcAv(),ch=o.join()!==DCD.filter(k=>av.includes(k)).join();return `<div class="dch-h"><span class="sub">대진 조건</span><span class="qm" data-a="help" data-h="dch">?</span><span style="flex:1"></span>${ch?'<span class="tap dcrst" data-a="dcRst">기본으로</span>':""}</div>${DCG.map(([t,ks])=>{const v=ks.filter(k=>av.includes(k));return v.length?`<div class="dcrow"><span class="dcl">${t}</span><div class="dcg">${v.map(k=>{const n=o.indexOf(k);return `<span class="dcc${n>=0?" on":""}" data-a="dcTap" data-v="${k}"><i>${n>=0?n+1:""}</i>${DC[k]}</span>`}).join("")}${v.length===1?'<span class="dcc ph"></span>':""}</div></div>`:""}).join("")}<div class="sub dcs">맞추는 순서: ${o.length?o.map(k=>DCS[k]).join(" → "):"없음 (랜덤으로 섞어요)"}</div>`})()}
-<h2>고정 페어</h2><div class="row"><select id="pa">${o}</select><select id="pb">${o}</select></div><button class="ghost" data-a="addPair">페어 추가</button>
-${d.pairs.length?`<div class="list" style="margin-top:12px">${d.pairs.map(([a,b],i)=>`<div class="li"><span class="nm">${esc(nmOf(a))} · ${esc(nmOf(b))}</span><span class="tap sub" data-a="delPair" data-id="${i}">✕</span></div>`).join("")}</div>`:""}
+<h2>고정 페어</h2><div class="row"><select id="pa">${o}</select><select id="pb">${o}</select></div>${(()=>{const v=S.form.pgn||"all";return `<div class="dcrow" style="margin:8px 0 0"><span class="dcl" style="padding-top:0">게임 수</span><div class="seg" data-k="pgn" style="flex:1;margin:0">${[["all","전부"],["1","1"],["2","2"],["3","3"],["c","직접"]].map(([k,t])=>`<div data-v="${k}" class="${v===k?"on":""}">${t}</div>`).join("")}</div></div>${v==="c"?`<div class="dcrow" style="margin:8px 0 0"><span class="dcl"></span><input id="pgnv" type="number" inputmode="numeric" min="1" max="${R}" placeholder="게임 수 (1~${R})" style="margin:0;flex:1"></div>`:""}`})()}<button class="ghost" data-a="addPair">페어 추가</button>
+${d.pairs.length?`<div class="list" style="margin-top:12px">${d.pairs.map(([a,b,n],i)=>`<div class="li"><span class="nm">${esc(nmOf(a))} · ${esc(nmOf(b))}</span><span class="sub" style="flex:none;margin-right:14px">${n?n+"게임":"전부"}</span><span class="tap sub" data-a="delPair" data-id="${i}" style="flex:none">✕</span></div>`).join("")}</div>`:""}
 <h2>회차 제외</h2><select id="xp">${o}</select><div class="seg chips" style="flex-wrap:wrap">${Array.from({length:R},(_,i)=>`<div data-r="${i+1}">${i+1}회차</div>`).join("")}</div><button class="ghost" data-a="addExcl">제외 추가</button>
 ${Object.keys(d.excl).length?`<div class="list" style="margin-top:12px">${Object.entries(d.excl).map(([k,v])=>`<div class="li"><span class="nm">${esc(nmOf(k))}</span><span class="sub">${v.join(", ")}회차 제외</span><span class="tap sub" data-a="delExcl" data-id="${esc(k)}">✕</span></div>`).join("")}</div>`:""}
 <div class="bar"><button data-a="gen">대진 생성</button></div></div>`},
@@ -1431,14 +1433,15 @@ async pick(el){const ref=el.dataset.s,rr=()=>{S.still=1;render();S.still=0},isR=
   if((isR(a)&&isR(ref))||((isR(a)||isR(ref))&&a.split(":")[0]!==ref.split(":")[0])){S.sel=ref;return rr()}
   const rs=JSON.parse(JSON.stringify(S.dr.plan.rounds)),get=x=>{const q=x.split(":");return q[1]==="x"?{...pool().find(p=>p.k===q.slice(2).join(":"))}:rs[q[0]].games[q[1]]["t"+q[2]][q[3]]},put=(x,v)=>{const q=x.split(":");if(q[1]!=="x")rs[q[0]].games[q[1]]["t"+q[2]][q[3]]=v};
   const va=get(a),vb=get(ref);put(a,vb);put(ref,va);
-  const {iv,st}=rinfo(S.cur),cx=R=>{const o=new Map(),ad=(w,d)=>o.set("⛔"+w+d,{c:"hard",i:"⛔",w,d});R.forEach((r,ri)=>{const t=r.time?tmin(r.time):st+ri*iv,iv2=r.time&&R[ri+1]&&R[ri+1].time?tmin(R[ri+1].time)-t:(r.time&&R[ri-1]&&R[ri-1].time?t-tmin(R[ri-1].time):iv),seen={};r.games.forEach(g=>{[...g.t1,...g.t2].forEach(x=>{if(seen[x.k])ad(x.n,`${r.n}회차에 두 번 들어가요`);seen[x.k]=1;const p=S.parts.find(q=>key(q)===x.k);if(p&&!(tmin(p.start)<=t&&tmin(p.end)>=t+iv2))ad(x.n,`${r.n}회차는 참석 시간 밖이에요`);if((S.dr.excl[x.k]||[]).includes(r.n))ad(x.n,`${r.n}회차는 빼 달라고 한 회차예요`)});S.dr.pairs.forEach(([p,q])=>[g.t1,g.t2].forEach(m=>{const ks=m.map(x=>x.k);if(ks.includes(p)!==ks.includes(q))ad("고정 페어",`${r.n}회차에 ${nmOf(p)} · ${nmOf(q)}가 갈라져요`)}))})});cx2(R).forEach(x=>o.set(cxK(x),x));return[...o.values()]};
+  const {iv,st}=rinfo(S.cur),cx=R=>{const o=new Map(),ad=(w,d)=>o.set("⛔"+w+d,{c:"hard",i:"⛔",w,d});R.forEach((r,ri)=>{const t=r.time?tmin(r.time):st+ri*iv,iv2=r.time&&R[ri+1]&&R[ri+1].time?tmin(R[ri+1].time)-t:(r.time&&R[ri-1]&&R[ri-1].time?t-tmin(R[ri-1].time):iv),seen={};r.games.forEach(g=>{[...g.t1,...g.t2].forEach(x=>{if(seen[x.k])ad(x.n,`${r.n}회차에 두 번 들어가요`);seen[x.k]=1;const p=S.parts.find(q=>key(q)===x.k);if(p&&!(tmin(p.start)<=t&&tmin(p.end)>=t+iv2))ad(x.n,`${r.n}회차는 참석 시간 밖이에요`);if((S.dr.excl[x.k]||[]).includes(r.n))ad(x.n,`${r.n}회차는 빼 달라고 한 회차예요`)});S.dr.pairs.forEach(([p,q,n])=>{if(n)return;[g.t1,g.t2].forEach(m=>{const ks=m.map(x=>x.k);if(ks.includes(p)!==ks.includes(q))ad("고정 페어",`${r.n}회차에 ${nmOf(p)} · ${nmOf(q)}가 갈라져요`)})})})});
+   S.dr.pairs.forEach(([p,q,n])=>{if(!n)return;let tog=0,sp=0;R.forEach(r=>r.games.forEach(g=>{const a=[...g.t1,...g.t2].some(x=>x.k===p),b=[...g.t1,...g.t2].some(x=>x.k===q);if(!a||!b)return;[g.t1,g.t2].some(t=>t.some(x=>x.k===p)&&t.some(x=>x.k===q))?tog++:sp++}));if(tog<n&&sp)ad(`고정 페어 ${nmOf(p)} · ${nmOf(q)}`,`${n}게임 중 ${tog}게임만 같이 해요`)});cx2(R).forEach(x=>o.set(cxK(x),x));return[...o.values()]};
   const bef=new Set(cx(S.dr.plan.rounds).map(cxK)),aft=cx(rs),nw=new Set(aft.map(cxK).filter(k=>!bef.has(k)));
   if(nw.size){const L=[...aft.filter(x=>nw.has(cxK(x))),...aft.filter(x=>!nw.has(cxK(x)))];if(!await askH(`<b style="font-size:16px">${esc(va.n||"")} ↔ ${esc(vb.n||"")} 바꾸기</b><span class="sub" style="display:block;margin:2px 0 8px">바꾸면 새로 생기는 것은 진하게, 원래 있던 것은 흐리게 보여요</span>${cxHtml(L,nw)}`,"그래도 바꾸기","취소"))return rr()}
   S.dr.plan.rounds=rs;rr()},
 toDraw(){if(!S.dr)S.dr={mode:"pos",excl:{},pairs:[],plan:null};go("draw")},
 addExcl(){const k=$("#xp").value,r=[...document.querySelectorAll("[data-r].on")].map(x=>+x.dataset.r);if(!k||!r.length)return pop("선수와 제외할 회차를 골라 주세요.");S.dr.excl[k]=r;render()},
 delExcl(el){delete S.dr.excl[el.dataset.id];render()},
-addPair(){const a=$("#pa").value,b=$("#pb").value;if(!a||!b||a===b)return pop("서로 다른 두 사람을 골라 주세요.");if(S.dr.pairs.some(p=>p.includes(a)||p.includes(b)))return pop("이미 다른 페어에 속한 사람입니다.");S.dr.pairs.push([a,b]);render()},
+addPair(){const a=$("#pa").value,b=$("#pb").value;if(!a||!b||a===b)return pop("서로 다른 두 사람을 골라 주세요.");if(S.dr.pairs.some(p=>p.includes(a)||p.includes(b)))return pop("이미 다른 페어에 속한 사람입니다.");const v=S.form.pgn||"all",n=v==="all"?0:v==="c"?parseInt(($("#pgnv")||{}).value):+v;if(v==="c"&&!(n>=1))return pop("게임 수를 숫자로 적어 주세요.");S.dr.pairs.push(n?[a,b,n]:[a,b]);S.form.pgn="all";render()},
 delPair(el){S.dr.pairs.splice(+el.dataset.id,1);render()},
 dcTap(el){const k=el.dataset.v,o=dcOrd().filter(x=>x!==DCX[k]),n=o.indexOf(k);if(n>=0)o.splice(n,1);else o.push(k);S.form.dch=o;keepR()},
 dsumO(){const x=cx2(S.dr.plan.rounds,1);askH(`<b style="font-size:16px">지키지 못한 조건</b><span class="sub" style="display:block;margin:2px 0 8px">인원·성별 수에 따라 다 지킬 수 없을 때가 있어요</span>${cxHtml(x)}`,"닫기")},
