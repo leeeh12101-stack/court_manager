@@ -236,5 +236,12 @@ eq("요약: 지난달보다 승률 변화", R9.diff, 17);
 eq("요약: 가장 많이 만난 사람(띄어쓰기 무시)", R9.top, { n: "철수", g: 3 });
 eq("요약: 경기 없는 달", C.monthRecap(RC, "202607"), { g: 0, w: 0, l: 0, d: 0, rate: null, diff: null, top: null });
 
+// ---------- 이 클럽에 왔던 게스트
+const GA=[{guest:true,status:"in",name:"민수",date:"20261001"},{guest:true,status:"in",name:"민수",date:"20261010"},{guest:true,status:"out",name:"지영",date:"20261012"},
+ {guest:true,status:"in",name:"지영",date:"20260901"},{guest:false,status:"in",name:"회원",date:"20261013"},{guest:true,status:"in",name:"미래",date:"20261020"},{guest:true,status:"in",name:" 가람 ",date:"20261010"}];
+eq("게스트: 이름별 마지막 날·최근 순·불참/회원/미래 제외", C.guestRecent(GA,"20261014"), [{n:"가람",last:"20261010"},{n:"민수",last:"20261010"},{n:"지영",last:"20260901"}]);
+eq("게스트: 기록 없음", C.guestRecent(null,"20261014"), []);
+eq("며칠 전", ["20261014","20261013","20261011","20261007","20260924","20260914","20260714"].map(d=>C.agoLab(d,"20261014")), ["오늘","어제","3일 전","1주 전","2주 전","1달 전","3달 전"]);
+
 console.log(`\n${fail ? "❌" : "✅"} 통과 ${pass} · 실패 ${fail}`);
 if (fail) process.exit(1);

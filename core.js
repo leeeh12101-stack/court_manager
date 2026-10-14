@@ -122,3 +122,7 @@ export function monthRecap(rows,ym){const st=m=>{const o={g:0,w:0,l:0,d:0};(rows
  const cur=st(ym),prev=st(prevYm(ym)),C={},N={};(rows||[]).forEach(x=>{if(!x.date||x.date.slice(0,6)!==ym)return;(x.ppl||[]).forEach(n=>{const k=xn(n);if(!k)return;C[k]=(C[k]||0)+1;N[k]=N[k]||n})});
  const top=Object.entries(C).sort((a,b)=>b[1]-a[1]||N[a[0]].localeCompare(N[b[0]]))[0];
  return{...cur,diff:cur.rate!=null&&prev.rate!=null?cur.rate-prev.rate:null,top:top?{n:N[top[0]],g:top[1]}:null}}
+// 이 클럽에 왔던 게스트: 참석 기록(ap) 중 guest·참석(in)·오늘까지만 → 이름별 마지막 온 날짜, 최근 순
+export function guestRecent(ap,td){const L={};(ap||[]).forEach(p=>{if(!p||!p.guest||p.status!=="in"||!p.date||p.date>td)return;const n=String(p.name||"").trim();if(n&&(!L[n]||p.date>L[n]))L[n]=p.date});return Object.entries(L).map(([n,last])=>({n,last})).sort((a,b)=>b.last.localeCompare(a.last)||(a.n<b.n?-1:a.n>b.n?1:0))}
+// 며칠 전 표시: 오늘·어제·n일 전(~6일)·n주 전(~29일)·n달 전
+export function agoLab(dk,td){const d=Math.round(dayDiff(dk,td));return d<1?"오늘":d<2?"어제":d<7?`${d}일 전`:d<30?`${Math.floor(d/7)}주 전`:`${Math.floor(d/30)}달 전`}

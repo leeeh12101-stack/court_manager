@@ -8,7 +8,7 @@ import {ftInstall} from "./ft.js";
 const pvHold=()=>{pop("미리보기 중에는 저장되지 않아요. 위쪽 띠의 '끝내기'를 누르면 원래 화면으로 돌아가요.");return new Promise(()=>{})};
 const setDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_setDoc(...a)),updateDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_updateDoc(...a)),deleteDoc=(...a)=>S.pv?pvHold():(S.memAt=0,_deleteDoc(...a)),writeBatch=d=>{const b=_writeBatch(d);if(S.pv)b.commit=pvHold;else{const c0=b.commit.bind(b);b.commit=()=>{S.memAt=0;return c0()}}return b};
 import * as CFG from "./firebase-config.js";
-import {BMIN,CAT,CATN,CT,DOW,KPRE,MT,POS,PSL,STG,XHDR,XN,XO,XSYN,XV,badges,clean,dayDiff,detectCols,dupNames,exactDups,findDups,findHeader,groupLabel,groupRounds,hsh,isMonthly,isRegDay,kindOf,mPhase,meetingsAhead,mergeDocs,monthRecap,mtOfP,nthDow,pTable,parseNames,perKey,pickTeams,prevYm,rankCmp,rate,sameGame,schedSet,simName,topK,tourResults,tsD,xDate,xStage,xn,xvalDef,ymd,ymdD} from "./core.js";
+import {BMIN,CAT,CATN,CT,DOW,KPRE,MT,POS,PSL,STG,XHDR,XN,XO,XSYN,XV,agoLab,badges,clean,dayDiff,detectCols,dupNames,exactDups,findDups,findHeader,groupLabel,groupRounds,guestRecent,hsh,isMonthly,isRegDay,kindOf,mPhase,meetingsAhead,mergeDocs,monthRecap,mtOfP,nthDow,pTable,parseNames,perKey,pickTeams,prevYm,rankCmp,rate,sameGame,schedSet,simName,topK,tourResults,tsD,xDate,xStage,xn,xvalDef,ymd,ymdD} from "./core.js";
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MAX_CREATE=2, MAX_JOIN=10;
@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1014-7",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1014-8",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -179,7 +179,8 @@ const CHO="ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ",choOf=ch=>
 const nmMatch=(q,n)=>{const Q=[...String(q||"").replace(/\s+/g,"").toLowerCase()];if(!Q.length)return true;const T=[...String(n||"").replace(/\s+/g,"").toLowerCase()];for(let i=0;i+Q.length<=T.length;i++)if(Q.every((x,j)=>x===T[i+j]||(CHO.includes(x)&&choOf(T[i+j])===x)))return true;return false};
 const koCmp=(a,b)=>String(a).localeCompare(String(b),"ko");
 // 사람 고르기(1014-7): p={t,items:[{k,n,sub,grp,dim}],sel:[],q,max,go,btn}
-function pkrGrid(p,w){const its=p.items.filter(x=>nmMatch(p.q,x.n));if(!its.length)return '<div class="sub center" style="padding:18px 0">찾는 이름이 없어요</div>';const gs=[...new Set(its.map(x=>x.grp||""))];return gs.map(g=>`${g?`<div class="pkgl">${esc(g)}</div>`:""}<div class="pkg">${its.filter(x=>(x.grp||"")===g).map(x=>`<span class="pkc${p.sel.includes(x.k)?" on":""}${x.dim?" dim":""}" data-a="pkTap" data-id="${esc(x.k)}" data-v="${w||""}"><b>${esc(x.n)}</b>${x.sub?`<small>${esc(x.sub)}</small>`:""}</span>`).join("")}</div>`).join("")}
+function pkrGrid(p,w){const q=String(p.q||"").replace(/\s/g,""),on=x=>p.sel.includes(x.k),its=p.items.filter(x=>q?nmMatch(p.q,x.n):x.hid?on(x):x.lim?(p.more||on(x)):true);if(!its.length)return `<div class="sub center" style="padding:18px 0">${q?"찾는 이름이 없어요":"고를 사람이 없어요 · 이름으로 찾아보세요"}</div>`;const gs=[...new Set(its.map(x=>x.grp||""))];
+ return gs.map(g=>{const nl=q?0:p.items.filter(x=>(x.grp||"")===g&&x.lim&&!on(x)).length;return `<div${nl?' id="pkgx"':""}>${g?`<div class="pkgl">${esc(g)}</div>`:""}<div class="pkg">${its.filter(x=>(x.grp||"")===g).map(x=>`<span class="pkc${p.sel.includes(x.k)?" on":""}${x.dim?" dim":""}" data-a="pkTap" data-id="${esc(x.k)}" data-v="${w||""}"><b>${esc(x.n)}</b>${x.sub?`<small>${esc(x.sub)}</small>`:""}</span>`).join("")}</div>${nl?`<button class="pkmore" data-a="gpMore">${p.more?"접기":`게스트 더 보기 (${nl}명)`}</button>`:""}</div>`}).join("")}
 function pkrSheet(){const p=S.pkr,ns=p.sel.map(k=>(p.items.find(x=>x.k===k)||{}).n).filter(Boolean);return `<div class="sh" data-a="pkX"><div data-keep="1"><div class="row"><h3>${esc(p.t)}</h3><span class="tap sub" data-a="pkX" style="padding:4px 0 4px 12px">✕</span></div>${p.items.length>12?`<input id="pkq" class="pkq" placeholder="이름 또는 초성 (예: ㄱㅇㅈ)" value="${esc(p.q)}" autocomplete="off">`:""}${p.max===2?`<div class="pkp"><b>${esc(ns[0]||"첫 번째")}</b> + <b>${esc(ns[1]||"?")}</b></div>`:""}<div id="pkgrid">${pkrGrid(p)}</div>${p.max===2?"":`<button data-a="pkOk" style="margin-top:12px"${p.sel.length?"":" disabled"}>${esc(p.btn(p.sel.length))}</button>`}</div></div>`}
 // 펼친 내용이 보이게 자동 스크롤
 const showIn=sel=>requestAnimationFrame(()=>requestAnimationFrame(()=>{const el=document.querySelector(sel);if(!el)return;const r=el.getBoundingClientRect(),bar=(document.querySelector("#app .bar")||{}).offsetHeight||0,vh=innerHeight-bar-12;if(r.bottom>vh||r.top<0){const dy=r.top<0||r.height>vh-12?r.top-12:r.bottom-vh;window.scrollBy({top:dy,behavior:"smooth"})}}));
@@ -558,7 +559,8 @@ const NEWS=[[
  ["park","게스트에게 주차권 보내기","내 주차권에서 게스트를 고르면 이름이 메모로 남고 카톡으로 바로 보낼 수 있어요"],
  ["draw","고정 페어 게임 수","고정 페어를 몇 게임만 함께할지 정할 수 있어요. 채우면 그다음부터는 따로 섞여요"]],[
  ["club","대진표 이미지","이미지로 저장할 때 팀 배치를 위아래·좌우 중에 고를 수 있고, 회차마다 쉬는 사람도 함께 보여요"]],[
- ["draw","사람별 설정","대진 만들기에서 회원마다 출전·휴식 회차, 게임 수, 고정 페어를 한 곳에서 정할 수 있어요"]]];
+ ["draw","사람별 설정","대진 만들기에서 회원마다 출전·휴식 회차, 게임 수, 고정 페어를 한 곳에서 정할 수 있어요"]],[
+ ["guest","왔던 게스트 최근 순","참석자 추가에서 이 클럽에 왔던 게스트가 최근 온 순으로 보이고, 며칠 전에 왔는지 함께 보여요. 오래 안 온 게스트는 찾기로 골라요"]]];
 function pvSheet(){const o=(v,t,d)=>`<div class="card tap" data-a="pvGo" data-v="${v}" style="padding:14px 16px;margin:8px 0 0"><b>${t}</b><div class="sub">${d}</div></div>`;
  return `<div class="sh" data-a="pvNo"><div data-keep="1"><h3>어떤 화면으로 볼까요?</h3><div class="sub">미리보기 중에는 아무것도 저장되지 않아요</div>${o("member","일반 회원 화면","회원에게 보이는 그대로")}${o("staff","운영진 화면","운영진 권한으로 보이는 화면")}<button class="ghost" data-a="pvNo" style="margin-top:12px">취소</button></div></div>`}
 function newsItems(){const P=S.profile;if(!P||S.pv||S.newsX||(+P.newsSeen||0)>=NEWS.length)return[];const cm=S.screen==="clubHome"&&S.cur;
@@ -899,7 +901,7 @@ ${S.cur.noPlayEnabled!==false?`<div class="seg" data-k="play"><div data-v="play"
 ${S.form.play==="no"&&S.cur.noPlayEnabled!==false?"":`포지션<div class="seg" data-k="pos">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>`}
 <div class="bar"><button data-a="saveAttend" data-s="in">참석 저장</button><button class="ghost" data-a="saveAttend" data-s="out">불참</button></div>`,
 guest:()=>{const p=S.gpk||(A.gpkInit(),S.gpk),n=p.sel.length;return `<div class="cmp"><button class="link bk" data-a="toClub"><span class="ar">←</span> 뒤로</button><h1>참석자 추가</h1>
-${p.items.length>12?`<input id="gpq" class="pkq" placeholder="이름 또는 초성 (예: ㄱㅇㅈ)" value="${esc(p.q)}" autocomplete="off">`:""}<div id="gpgrid">${p.items.length?pkrGrid(p,"g"):'<div class="sub" style="padding:8px 2px">모든 회원이 이미 참석으로 표시돼 있어요</div>'}</div>
+${p.items.length>12||p.items.some(x=>x.hid)?`<input id="gpq" class="pkq" placeholder="이름 또는 초성 (예: ㄱㅇㅈ)" value="${esc(p.q)}" autocomplete="off">`:""}<div id="gpgrid">${p.items.length?pkrGrid(p,"g"):'<div class="sub" style="padding:8px 2px">모든 회원이 이미 참석으로 표시돼 있어요</div>'}</div>${p.gl?"":'<div class="pkgl">이 클럽에 왔던 게스트</div><div class="spin pksp"></div>'}
 <div class="dgl">게스트 직접 입력</div><div class="row" style="gap:8px"><input id="gn" maxlength="20" autocomplete="off" placeholder="게스트 이름" style="margin:0;flex:1"><button class="sm" data-a="gAddN" style="flex:none;width:72px">추가</button></div>
 <div class="dgl">시간 · 포지션 <span class="sub" style="font-size:12px">고른 사람 모두</span></div><div class="row" style="gap:8px"><input id="st" type="time" value="${S.form.st}" style="margin:0"><span class="sub">~</span><input id="et" type="time" value="${S.form.et}" style="margin:0"></div>
 ${S.cur.genderMode&&p.sel.some(k=>k.startsWith("g:"))?`<div class="dgl">게스트 성별</div><div class="seg" data-k="gg">${[["m","남"],["f","여"]].map(([v,t])=>`<div data-v="${v}" class="${(S.form.gg??(S.cur.genderMode==="mixed"?"":S.cur.genderMode))===v?"on":""}">${t}</div>`).join("")}</div>`:""}<div class="seg" data-k="pos" style="margin-top:8px">${Object.entries(POS).map(([v,t])=>`<div data-v="${v}" class="${S.form.pos===v?"on":""}">${t}</div>`).join("")}</div>
@@ -1545,12 +1547,16 @@ dcRst(){S.form.dch=DCD.filter(k=>dcAv().includes(k));S.form.dman=0;Object.keys(S
 gen(){const st=dcSt(),o=st.on;S.dr.prio=o;S.dr.W=dW2(st);S.dr.mode=o.includes("pos")?"pos":"random";S.dr.tier=o.includes("tw")?"within":o.includes("tb")?"balance":"none";S.dr.gmode=o.includes("mixed")?"mixed":o.includes("same")?"same":"none";if(S.parts.filter(p=>p.status==="in"&&!p.noPlay).length<4)return pop("경기 참여 인원이 4명 이상 필요합니다.");{const c=S.cur,v=dcSer(st);if(!S.pv&&JSON.stringify(c.dprio||DCD)!==JSON.stringify(v)&&can("draw")){c.dprio=v;updateDoc(doc(db,"clubs",c.id),{dprio:v}).catch(()=>{})}}const pc=psCheck(S.dr);if(pc.length)return askH(`<b style="font-size:16px">대진을 만들 수 없어요</b><span class="sub" style="display:block;margin:2px 0 8px">추가 설정(고정 페어·사람별 출전 설정)을 고쳐 주세요</span>${cxHtml(pc)}`,"확인");
  S.sel=null;let pl=null;for(let i=0;i<40;i++){pl=buildDraw(S.parts,S.cur,S.dr);if(!psViol(pl.rounds,S.dr).length)break}S.dr.plan=pl;go("preview")},
 async confirm(){const c=S.cur,d=ymd(nextMeeting(c).date);try{await setDoc(doc(db,"sessions",`${c.id}_${d}`),{clubId:c.id,date:d,drawMode:S.dr.mode,rounds:S.dr.plan.rounds,status:"confirmed",createdBy:S.user.uid,updatedAt:serverTimestamp()},{merge:true});try{localStorage.setItem("cm_onb3_"+c.id,"1")}catch(e){}S.dr=null;S.mdt=null;A.toClub()}catch(e){pop("확정하지 못했습니다. Firestore 규칙이 게시되었는지 확인해 주세요.")}},
-toGuest(){S.form={...S.form,pos:"either",st:eff(S.cur).start,et:eff(S.cur).end};S.gpk=null;A.gpkInit();go("guest")},
+toGuest(){S.form={...S.form,pos:"either",st:eff(S.cur).start,et:eff(S.cur).end};S.gpk=null;A.gpkInit();go("guest");A.gpLoad()},
+async gpLoad(){const c=S.cur,td=ymd(new Date());let L;try{L=guestRecent(await syncQ(`${S.user.uid}_cp_${c.id}`,"sessionParticipants",[["clubId","==",c.id]]),td)}catch(e){L=[]}
+ S.gl={cid:c.id,L};if(S.screen!=="guest"||S.cur!==c||!S.gpk)return;const o=S.gpk;A.gpkInit();const p=S.gpk;p.sel=o.sel;p.q=o.q;p.more=o.more;o.items.filter(x=>x.grp==="새 게스트"&&!p.items.some(y=>y.k===x.k)).forEach(x=>p.items.push(x));keepR()},
+gpMore(){const p=S.gpk;if(!p)return;p.more=!p.more;keepR();if(p.more)showIn("#pkgx")},
 gpkInit(){const ins=new Set(S.parts.filter(p=>p.status==="in").map(p=>key(p))),st=k=>{const p=S.parts.find(q=>key(q)===k);return p?(p.status==="out"?"불참":""):"미응답"};
  const mem=S.mem.filter(m=>!ins.has(mkey(m))).map(m=>({k:mkey(m),n:m.displayName||"",sub:st(mkey(m)),grp:"회원"})).sort((a,b)=>koCmp(a.n,b.n));
- const gn=new Set([...(S.cur.gOk||[]),...(S.games||[]).flatMap(g=>[...(g.t1||[]),...(g.t2||[])]).filter(x=>String(x.k||"").startsWith("g:")).map(x=>x.n)]);S.mem.forEach(m=>gn.delete(m.displayName));
- const gs=[...gn].filter(n=>n&&!ins.has("g:"+n)).sort(koCmp).map(n=>({k:"g:"+n,n,grp:"이 클럽에 왔던 게스트"}));
- S.gpk={items:[...mem,...gs],sel:[],q:""}},
+ const G="이 클럽에 왔던 게스트",td=ymd(new Date()),ok=S.gl&&S.gl.cid===S.cur.id,mn=new Set(S.mem.map(m=>m.displayName)),use=n=>n&&!mn.has(n)&&!ins.has("g:"+n),seen=new Set();let v=0;
+ const gs=(ok?S.gl.L:[]).filter(x=>use(x.n)).map(x=>{seen.add(x.n);const it={k:"g:"+x.n,n:x.n,sub:agoLab(x.last,td),grp:G};if(dayDiff(x.last,td)>90)it.hid=1;else if(v++>=6)it.lim=1;return it});
+ [...new Set(S.cur.gOk||[])].filter(n=>use(n)&&!seen.has(n)).sort(koCmp).forEach(n=>gs.push({k:"g:"+n,n,grp:G,hid:1}));
+ S.gpk={items:[...mem,...gs],sel:[],q:"",more:0,gl:ok}},
 async gAddN(){const el=$("#gn"),n=(el.value||"").trim(),p=S.gpk;if(!n)return pop("게스트 이름을 입력해 주세요.");const m=S.mem.find(x=>x.displayName===n);
  if(m){if(S.parts.some(q=>q.status==="in"&&key(q)===mkey(m)))return pop(`'${n}' 회원은 이미 참석이에요.`);if(await ask(`'${n}' 회원으로 추가할까요?`,"회원으로 추가","다른 사람(게스트)")){if(!p.sel.includes(mkey(m)))p.sel.push(mkey(m));el.value="";return keepR()}const r=await splitName(m,n);if(!r)return;return A.gAddName(r)}
  A.gAddName(n)},
