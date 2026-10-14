@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-14 · **BUILD `1014-9`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-15 · **BUILD `1015-1`** · 버전 표기 `v0.1`
 
 ---
 
@@ -24,7 +24,7 @@
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
-| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v32`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
+| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v33`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
 | `tests/core.test.mjs` | core.js 테스트 147개 |
@@ -98,7 +98,7 @@
 - **참석 마감(1013-1)**: 이름 '응답 마감'→'참석 마감'. `mClosed(m)` = sched.reopen 아니고 (sched.closed 또는 자동 마감 시각 지남). 자동 `clubs.rclose{t:'none'|'h'|'d',n,at}`(설정 › 모임 일정, 규칙 schedule 키에 rclose), `autoAt`·`closeLab`. 마감 시 확인, 다시 열면 `reopen:true`. 참석자 목록 포지션 빈 값은 '포or백', 시간 칸은 전체가 아닌 사람만. 경기 결과 삭제는 경기 편집의 '이 경기 결과 삭제'(확인+되돌리기).
 - **아래 창 그리는 위치**: 전적 창(`sSheet`)은 clubHome, 상대 카드(`pmSheet`)는 personal 화면 맨 아래에서 그림(탭과 무관).
 - 개인: 홈 최근 5경기, 상대 카드(만난 경기 수·파트너/상대 따로·최근 경기·포지션별 접기·메모, 이름 띄어쓰기 무시), 경기 탭 보기 방식 `pgv`(전체/날짜별/클럽·대회별, core `groupLabel`).
-- 오늘 탭 이름 → 대진 창(`mSheet`): 회차 순으로 대진 한 줄(회차·시간·코트 고정 칸 + 이름 4칸 오른쪽 정렬), 쉬는 회차는 사이에 '휴식' 줄, 오늘이면 다음 경기 줄 연두색 강조, 파트너·상대 횟수는 아래.
+- 오늘 탭 이름·내 대진 → 대진 창(`mSheet`, 1015-1 정리): 머리줄 이름 + 작은 글씨 `n경기 · 휴식 n`, 닫기는 이름 높이. 줄 `.mq` 격자 = 왼쪽 70px(`n회차` 진하게 / `시간 · 코트` 작게) · 내 팀(vs 쪽으로 오른쪽 정렬, **나는 늘 맨 앞 진하게**) · vs · 상대 팀(왼쪽 정렬), 팀 안 이름은 `·`, 길면 이름 단위로 줄바꿈. 쉬는 회차는 이름 자리 전체 옅은 회색 상자 `휴식`(`.mqr`), 오늘이면 다음 경기 줄 연두색 강조, 파트너·상대 횟수는 아래.
 - **회원 화면 미리보기**: 관리자는 선택 창(일반 회원/운영진/취소, `pvSheet`), 휴대폰 뒤로가기 = 미리보기 끝내기, 끝내면 시작한 탭으로(`S.pvTab`).
 - **초대 가입 흐름**: 이름 화면에 초대 안내 → 가입 후 `goClub(cid,1)`로 그 클럽 오늘 탭 → 미가입 회원이 있으면 '명단에 내 이름이 있나요?'(`pickSheet`) → 고르면 내 clubMembers `displayName`=그 이름, `linkReq`=oid → 관리자 화면의 기존 '같은 사람일 수 있어요'(linkPairs) 카드로 연동.
 - **모임 당일 내 카드**: `curR()` 이번 회차 = 결과가 모두 입력됐거나 다음 회차 시각이 지난 회차를 건너뛴 첫 회차. 오늘 경기 결과는 today 로드 때 `S.tg`(clubId+date). 첫 경기/이번 회차/휴식/오늘 경기 끝. 모임 당일엔 카드가 공지 위로.

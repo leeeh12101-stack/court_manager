@@ -188,3 +188,20 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .gsa .accb input{background:#F4F6F4;box-shadow:none}
 .gsa .accb .seg{margin-bottom:0}
 .gsa .accb .seg div:not(.on){background:#F4F6F4;box-shadow:none}
+.mqh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.mqh h3{margin:0}
+.mqh small{display:block;font-size:13px;color:var(--sub);margin-top:2px}
+.mqh button.link{padding:2px 0 8px 12px;font-size:15px}
+.mqs{border-top:1px solid var(--line)}
+.mq{display:grid;grid-template-columns:70px minmax(0,1fr) 26px minmax(0,1fr);align-items:center;column-gap:4px;min-height:52px;padding:6px 0;border-bottom:1px solid var(--line)}
+.mq.nxg{background:var(--tint);border-radius:10px;margin:2px -8px;padding:6px 8px;border-bottom-color:transparent}
+.mql{display:flex;flex-direction:column;line-height:1.25;white-space:nowrap}
+.mql b{font-size:14px;font-weight:600}
+.mql small{font-size:12px;color:var(--sub)}
+.mqt{font-size:14.5px;line-height:1.35;text-align:left;min-width:0}
+.mqt>span{display:inline-block;white-space:nowrap}
+.mqt.a{text-align:right}
+.mqt b{font-weight:700}
+.mqt i{font-style:normal;color:#B5BCB7;margin:0 2px}
+.mqv{text-align:center;font-size:12px;color:var(--sub)}
+.mqr{grid-column:2/-1;background:#F1F3F1;border-radius:10px;text-align:center;color:var(--sub);font-size:13.5px;padding:9px 0;letter-spacing:.5px}
