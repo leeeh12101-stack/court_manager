@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""대진 만들기 점검: 사람별 출전·고정 페어 장면 + 무작위 설정 수백 개.
+'만들기 전 검사를 통과했는데 대진이 조건을 어기는' 경우가 하나라도 있으면 실패. 저장소 루트에서: python3 tests/smoke/draw.py"""
+import os, sys, http.server, threading, functools, datetime, json
+from playwright.sync_api import sync_playwright
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))); SM = os.path.join(ROOT, "tests", "smoke")
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a): pass
+srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Q, directory=ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start(); port = srv.server_address[1]
+# 12~3시, 40분, 2코트(4회차). 김나리 2시까지, 냥이 1시 20분까지
+N = [["김나리","14:00"],["강이","15:00"],["냥이","13:20"],["타냐","15:00"],["김가루","15:00"],["이수빈","15:00"],["이은현","15:00"],["고은지","15:00"],["윰이","15:00"],["김수정","15:00"],["박하늘","15:00"],["최유리","15:00"],["정다온","15:00"]]
+SEED = """(()=>{const td=Object.keys(__DB.sessions)[0].split("_")[1],ts=Object.values(__DB.games)[0].updatedAt;
+Object.assign(__DB.clubs.c1,{regularStartTime:"12:00",regularEndTime:"15:00",roundInterval:40,regularCourtCount:2});
+__DB.sessionParticipants=Object.fromEntries(%s.map(([n,e],i)=>[`c1_${td}_x${i}`,{clubId:"c1",date:td,uid:"",guest:true,name:n,status:"in",start:"12:00",end:e,position:["fore","back","either"][i%%3],updatedAt:ts}]));__DB.sessions={};})();""" % json.dumps(N, ensure_ascii=False)
+FUZZ = """(T)=>{const {S,buildDraw,psIssues,psViol}=__cm,ks=S.parts.filter(p=>p.status==="in").map(p=>"g:"+p.name),R=4,rnd=n=>Math.random()*n|0;let pass=0,blocked=0;const bad=[];
+for(let t=0;t<T;t++){const ps={},pairs=[],pick=()=>ks[rnd(ks.length)];for(let i=0,nP=1+rnd(5);i<nP;i++){const k=pick(),r={};for(let n=1;n<=R;n++){const x=Math.random();if(x<.25)r[n]="in";else if(x<.4)r[n]="out"}ps[k]={r,n:Math.random()<.4?1+rnd(3):0}}
+ for(let i=0,np=rnd(3);i<np;i++){const a=pick(),b=pick();if(a!==b&&!pairs.some(p=>p.includes(a)||p.includes(b)))pairs.push(Math.random()<.5?[a,b]:[a,b,1+rnd(2)])}
+ const dr={mode:"pos",excl:{},pairs,ps,prio:["pair","pos","opp"]};if(psIssues(dr).length){blocked++;continue}
+ let ok=false;for(let i=0;i<40&&!ok;i++){const pl=buildDraw(S.parts,S.cur,dr);if(!psViol(pl.rounds,dr).length)ok=true}if(ok)pass++;else bad.push(dr)}
+return{pass,blocked,bad:bad.slice(0,3)}}"""
+errs = []; out = []
+def chk(c, msg):
+    if not c: errs.append(msg)
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(viewport={"width": 390, "height": 844})
+    pg.on("pageerror", lambda e: errs.append("오류: " + str(e)))
+    pg.clock.install(time=datetime.datetime.now().replace(hour=9, minute=0, second=0, microsecond=0))
+    pg.route("https://www.gstatic.com/**", lambda r: r.fulfill(path=os.path.join(SM, "fb.js"), content_type="text/javascript"))
+    pg.route("**/firebase-config.js", lambda r: r.fulfill(path=os.path.join(SM, "fbcfg.js"), content_type="text/javascript"))
+    pg.route("**/sw.js", lambda r: r.fulfill(body="", content_type="text/javascript"))
+    pg.add_init_script(path=os.path.join(SM, "seed.js")); pg.add_init_script(SEED)
+    pg.goto(f"http://127.0.0.1:{port}/index.html"); pg.wait_for_timeout(1500)
+    pg.locator("[data-a=club]").first.click(); pg.wait_for_timeout(1500)
+    pg.locator("[data-a=toDraw]").first.click(); pg.wait_for_timeout(600)
+    W = lambda ms=150: pg.wait_for_timeout(ms)
+    def acc(v):
+        if pg.locator(f'[data-a=accTog][data-v={v}] .accv').inner_text() == "▾": pg.locator(f'[data-a=accTog][data-v={v}] .accv').click(); W()
+    def add_people(*names):
+        acc("ps"); pg.locator("[data-a=psAdd]").click(); W()
+        for n in names: pg.locator(f'.sh [data-a=pkTap][data-id="g:{n}"]').click(); W(80)
+        pg.locator("[data-a=pkOk]").click(); W()
+    def cell(n, r, times): 
+        for _ in range(times): pg.locator(f'.mc[data-id="g:{n}"][data-v="{r}"]').click(); W(80)
+    # 찾기: 초성
+    acc("ps"); pg.locator("[data-a=psAdd]").click(); W(); pg.fill("#pkq", "ㄱㅇㅈ"); W()
+    shown = pg.locator(".sh .pkc b").all_inner_texts(); chk(shown == ["고은지"], f"초성 찾기 결과가 이상해요: {shown}")
+    pg.fill("#pkq", "김ㄴ"); W(); shown = pg.locator(".sh .pkc b").all_inner_texts(); chk(shown == ["김나리"], f"섞어 찾기 결과가 이상해요: {shown}")
+    pg.locator(".sh [data-a=pkX]").last.click(); W()
+    # 사진 사례: 1·3 출전, 2·4 휴식 → 2게임 정해짐
+    add_people("이은현"); cell("이은현", 1, 1); cell("이은현", 2, 2); cell("이은현", 3, 1); cell("이은현", 4, 2)
+    fx = pg.locator('.mxr:has(.mc[data-id="g:이은현"]) .mg').inner_text(); chk(fx == "2게임", f"1·3 출전 + 2·4 휴식인데 게임 수가 '{fx}'")
+    # 2시 회원 1~3 출전 → 매번 3경기
+    add_people("김나리"); cell("김나리", 1, 1); cell("김나리", 2, 1); cell("김나리", 3, 1)
+    # 페어(냥이 1:20에 감)
+    acc("pp"); pg.locator("[data-a=ppAdd]").click(); W(); pg.locator('.sh [data-a=pkTap][data-id="g:강이"]').click(); W(80); pg.locator('.sh [data-a=pkTap][data-id="g:냥이"]').click(); W()
+    RD = "()=>[...document.querySelectorAll('.list')].filter(l=>l.querySelector('.rh')).map(l=>[...l.querySelectorAll('.gr')].map(g=>[...g.querySelectorAll('.tg')].map(t=>[...t.querySelectorAll('span')].map(s=>s.textContent.trim()))))"
+    pg.locator("[data-a=gen]").last.click(); W(450)
+    for i in range(15):
+        run = pg.evaluate(RD)
+        c = lambda n: sum(1 for rd in run for g in rd if any(n in t for t in g))
+        chk(c("김나리") == 3, f"김나리가 {c('김나리')}경기"); chk(c("이은현") == 2, f"이은현이 {c('이은현')}경기")
+        for ri, rd in enumerate(run):
+            for g in rd:
+                for t in g:
+                    if any("강이" in x for x in t) and ri < 2: chk(any("냥이" in x for x in t) or not any("냥이" in x for gg in rd for tt in gg for x in tt), f"{ri+1}회차 강이·냥이가 갈라짐")
+        pg.locator("[data-a=gen]").last.click(); W(220)
+    pg.go_back(); W(400)
+    if not pg.locator("[data-a=psAdd]").count(): pg.locator("[data-a=toDraw]").first.click(); W(500)
+    out.append("장면 점검 끝")
+    # 무작위
+    NF=int(os.environ.get("DRAW_N","400")); r = pg.evaluate(FUZZ, NF); out.append(f"무작위 {NF}개: 통과 {r['pass']} · 미리 막음 {r['blocked']} · 어김 {len(r['bad'])}")
+    chk(not r["bad"], "검사를 통과했는데 조건을 어긴 설정: " + json.dumps(r["bad"], ensure_ascii=False)[:600])
+    chk(r["pass"] > 100, f"통과한 설정이 너무 적어요({r['pass']})")
+    b.close()
+srv.shutdown()
+print("\n".join(out)); print("\n".join(errs) if errs else "✅ 대진 점검 통과"); sys.exit(1 if errs else 0)

@@ -49,4 +49,7 @@ with sync_playwright() as p:
     for vn, vs in VAR.items(): run(b, vn, vs)
     b.close()
 srv.shutdown()
-print("\n".join(errs) if errs else f"✅ 화면 점검: {len(VAR)}가지 상황 오류 없음"); sys.exit(1 if errs else 0)
+import subprocess
+dr = subprocess.run([sys.executable, os.path.join(SM, "draw.py")], capture_output=True, text=True)
+if dr.returncode: errs.append("[대진 점검] " + (dr.stdout + dr.stderr).strip()[-800:])
+print("\n".join(errs) if errs else f"✅ 화면 점검: {len(VAR)}가지 상황 오류 없음 · 대진 점검 통과"); sys.exit(1 if errs else 0)
