@@ -151,3 +151,4 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .cpsum{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;background:var(--bg);border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14px;line-height:1.5}.cpsum>span{color:var(--sub);font-size:13px;white-space:nowrap}.cpsum b{color:var(--main)}
 .cpgc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;text-align:left}.cpgc span{padding:6px 12px;border-radius:99px;background:var(--bg);font-size:14px;cursor:pointer}.cpgc span.on{background:var(--main);color:#fff}
 .seg.dxs{margin:6px 0 14px}.seg.dxs div{padding:10px 4px}.seg.dxs small{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--sub)}
+.dxpv{display:block;width:100%;max-height:44vh;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:12px;margin:2px 0 14px;cursor:zoom-in}
