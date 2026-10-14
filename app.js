@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1015-1",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1015-2",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -266,16 +266,15 @@ function addSec(){const d=S.dr,iss=psIssues(d),pr=ppRows(iss),np=(d.pairs||[]).f
 const pkItems=ex=>{const {st,en}=(()=>{const e=eff(S.cur);return{st:tmin(e.start),en:tmin(e.end)}})();return S.parts.filter(p=>p.status==="in"&&!p.noPlay&&!ex.includes(key(p))).map(p=>{const short=tmin(p.start)>st||tmin(p.end)<en;return{k:key(p),n:dnp(p)||p.name||"",sub:short?`${p.start}~${p.end}`:"",grp:short?"일찍 가거나 늦게 오는 사람":"참석자"}}).sort((a,b)=>(a.grp===b.grp?0:a.grp==="참석자"?1:-1)||koCmp(a.n,b.n))};
 function mSheet(){const k=S.mdt,rs=S.screen==="preview"?S.dr.plan.rounds:S.sess.rounds,pa={},op={},gm=[],me=pool().find(p=>ck(p)===k)||pf(S.screen==="preview"?S.dr.plan.rounds:S.sess.rounds,k)||(()=>{const m=S.mem.find(x=>mkey(x)===k);return m?{n:m.displayName}:null})();if(!me)return"";const att=pool().some(p=>ck(p)===k),rr=att?rs.filter(r=>!r.games.some(g=>[...g.t1,...g.t2].some(p=>ck(p)===k))).map(r=>r.n+"회차"):[];
  rs.forEach(r=>r.games.forEach(g=>{const a=g.t1.some(x=>ck(x)===k),b=g.t2.some(x=>ck(x)===k);if(!a&&!b)return;const my=a?g.t1:g.t2,ot=a?g.t2:g.t1;
-  my.filter(x=>ck(x)!==k).forEach(x=>pa[x.n]=(pa[x.n]||0)+1);ot.forEach(x=>op[x.n]=(op[x.n]||0)+1);gm.push({r,g,my,ot})}));
- const ch=o=>Object.entries(o).sort((x,y)=>y[1]-x[1]).map(([n,c])=>`<span>${esc(n)}(${c})</span>`).join("")||'<span style="background:none;color:var(--sub)">없음</span>';
- const nm=l=>l.map(x=>ck(x)===k?`<b>${esc(dn(x))}</b>`:esc(dn(x))).join("·");
- const td=S.screen!=="preview"&&S.sess&&S.sess.date===ymd(new Date()),nw=new Date(),nM=nw.getHours()*60+nw.getMinutes(),iv=rinfo(S.cur).iv,nx=td?gm.find(x=>rs.indexOf(x.r)>=curR(rs,S.sess.date||ymd(new Date()))):null,
-  lc=(r,ct)=>`<span class="mql"><b>${r.n}회차</b><small>${[r.time,ct].filter(Boolean).join(" · ")}</small></span>`,
-  tm=(l,me)=>{const a=me?[...l.filter(p=>ck(p)===k),...l.filter(p=>ck(p)!==k)]:l;return a.map((p,i)=>`<span>${i?"<i>·</i>":""}${ck(p)===k?`<b>${esc(dn(p))}</b>`:esc(dn(p))}</span>`).join("")},
-  rows=rs.map(r=>{const x=gm.find(z=>z.r===r);if(x)return `<div class="mq${x===nx?" nxg":""}">${lc(r,cLab(x.g))}<span class="mqt a">${tm(x.my,1)}</span><span class="mqv">vs</span><span class="mqt">${tm(x.ot)}</span></div>`;
-   return rr.includes(r.n+"회차")?`<div class="mq">${lc(r,"")}<span class="mqr">휴식</span></div>`:""}).join("");
- return `<div class="sh" data-a="mclose"><div data-keep="1"><div class="mqh"><div><h3>${esc(dn(me))}</h3><small>${gm.length}경기${rr.length?` · 휴식 ${rr.length}`:""}</small></div><button class="link" data-a="mclose">닫기</button></div><div class="mqs">
-${rows||'<div class="sub">이번 대진에 경기가 없어요</div>'}</div><div class="k">파트너</div><div class="ch">${ch(pa)}</div><div class="k">상대</div><div class="ch">${ch(op)}</div></div></div>`}
+  my.filter(x=>ck(x)!==k).forEach(x=>{const n=dn(x);pa[n]=(pa[n]||0)+1});ot.forEach(x=>{const n=dn(x);op[n]=(op[n]||0)+1});gm.push({r,g,my,ot})}));
+ const n3=n=>{const a=[...String(n||"")];return a.length>3?a.slice(0,2).join("")+"..":a.join("")},PO={fore:0,either:1,back:2},
+  ch=o=>Object.keys(o).sort(koCmp).map(n=>`<span>${esc(n3(n))}${o[n]>1?`<em>${o[n]}</em>`:""}</span>`).join("")||'<span class="none">없음</span>',
+  tm=l=>l.map((p,i)=>[p,i]).sort((x,y)=>((PO[x[0].p]??1)-(PO[y[0].p]??1))||x[1]-y[1]).map(([p],i)=>`<span>${i?"<i>·</i>":""}${ck(p)===k?`<b>${esc(n3(dn(p)))}</b>`:esc(n3(dn(p)))}</span>`).join(""),
+  nx=S.screen!=="preview"&&S.sess&&S.sess.date===ymd(new Date())?gm.find(x=>rs.indexOf(x.r)>=curR(rs,S.sess.date)):null,
+  rows=rs.map(r=>{const x=gm.find(z=>z.r===r);if(x)return `<div class="mq${x===nx?" nx":""}"><span class="mqn">${r.n}</span><span class="mqtm">${esc(r.time||"")}</span><span class="mqct">${esc(cLab(x.g))}</span><span class="mqvs"><span class="mqp my">${tm(x.my)}</span><span class="mqv">vs</span><span class="mqp">${tm(x.ot)}</span></span></div>`;
+   return rr.includes(r.n+"회차")?`<div class="mq rs"><span class="mqn">${r.n}</span><span class="mqtm">${esc(r.time||"")}</span><span class="mqrs">휴식</span></div>`:""}).join("");
+ return `<div class="sh" data-a="mclose"><div data-keep="1"><div class="mqh"><h3>${esc(dn(me))}<span>${gm.length} 경기${rr.length?` · ${rr.length} 휴식`:""}</span></h3><button class="link" data-a="mclose">닫기</button></div>
+${rows?`<div class="mqb">${rows}</div>`:'<div class="sub">이번 대진에 경기가 없어요</div>'}<div class="mqst"><b>페어</b><div class="mqc">${ch(pa)}</div></div><div class="mqst"><b>상대</b><div class="mqc op">${ch(op)}</div></div></div></div>`}
 const statReset=all=>{const f=S.form;if(all){delete f.pman;delete f.mtf}if(!f.pman){delete f.py;delete f.pm;delete f.pdd}};
 const autoDay=ds=>{if(S.form.py||(S.form.per||"day")!=="day")return;const td=ymd(new Date()),c=ds.filter(x=>x&&x<=td).sort().pop();if(c&&c!==td){S.form.py=+c.slice(0,4);S.form.pm=+c.slice(4,6);S.form.pdd=+c.slice(6)}};
 const apHeld=p=>{const td=ymd(new Date()),n=new Date();return !!p.arrivedAt||p.date<td||(p.date===td&&n.getHours()*60+n.getMinutes()>=tmin(eff(S.cur).start))};
@@ -566,7 +565,7 @@ const NEWS=[[
  ["draw","사람별 설정","대진 만들기에서 회원마다 출전·휴식 회차, 게임 수, 고정 페어를 한 곳에서 정할 수 있어요"]],[
  ["guest","왔던 게스트 최근 순","참석자 추가에서 이 클럽에 왔던 게스트가 최근 온 순으로 보이고, 며칠 전에 왔는지 함께 보여요. 오래 안 온 게스트는 찾기로 골라요"]],[
  ["guest","참석자 추가 간단하게","이름 칸 하나로 찾고, 없으면 바로 새 게스트로 추가해요. 시간·포지션은 한 줄로 접혀 있다가 누르면 펼쳐져요"]],[
- ["club","내 대진 보기 쉽게","이름이나 내 대진을 누르면 회차마다 내 팀과 상대 팀이 마주 보게 나오고, 내 이름은 늘 맨 앞에 진하게 보여요"]]];
+ ["club","내 대진 보기 쉽게","이름이나 내 대진을 누르면 회차·시간·코트와 두 팀이 한 줄로 작게 정리돼 보여요. 팀 안에서는 포가 앞, 백이 뒤예요"]]];
 function pvSheet(){const o=(v,t,d)=>`<div class="card tap" data-a="pvGo" data-v="${v}" style="padding:14px 16px;margin:8px 0 0"><b>${t}</b><div class="sub">${d}</div></div>`;
  return `<div class="sh" data-a="pvNo"><div data-keep="1"><h3>어떤 화면으로 볼까요?</h3><div class="sub">미리보기 중에는 아무것도 저장되지 않아요</div>${o("member","일반 회원 화면","회원에게 보이는 그대로")}${o("staff","운영진 화면","운영진 권한으로 보이는 화면")}<button class="ghost" data-a="pvNo" style="margin-top:12px">취소</button></div></div>`}
 function newsItems(){const P=S.profile;if(!P||S.pv||S.newsX||(+P.newsSeen||0)>=NEWS.length)return[];const cm=S.screen==="clubHome"&&S.cur;
