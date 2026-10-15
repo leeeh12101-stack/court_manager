@@ -206,14 +206,15 @@ service cloud.firestore {
               : ((a.get('t', '') == '' && b.get('t', '') == me())
                  || (a.get('t', '') != '' && b.get('t', '') == '' && (a.get('t', '') == me() || isAdmin(c)))));
     }
+    // 바뀌는 항목 id는 앱이 ch에 적어 보냄(규칙의 Set에는 원소를 꺼내는 기능이 없음 — 1015-7)
     function pdItemsOk(c) {
       let o = resource == null ? {} : resource.data.items;
       let n = request.resource.data.items;
       let d = o.diff(n);
+      let k = request.resource.data.get('ch', '');
       return (d.addedKeys().size() == 0 && d.changedKeys().size() == 0)
-        || (d.addedKeys().size() == 1 && d.changedKeys().size() == 0 && d.removedKeys().size() == 0 && pdNew(d.addedKeys().toList()[0], n[d.addedKeys().toList()[0]]))
-        || (d.addedKeys().size() == 0 && d.changedKeys().size() == 1 && d.removedKeys().size() == 0
-            && pdChg(c, o[d.changedKeys().toList()[0]], n[d.changedKeys().toList()[0]]));
+        || (k != '' && d.addedKeys().size() == 1 && d.addedKeys().hasOnly([k]) && d.changedKeys().size() == 0 && d.removedKeys().size() == 0 && pdNew(k, n[k]))
+        || (k != '' && d.changedKeys().size() == 1 && d.changedKeys().hasOnly([k]) && d.addedKeys().size() == 0 && d.removedKeys().size() == 0 && pdChg(c, o[k], n[k]));
     }
     match /photoDays/{d} {
       allow get: if isActive(d.split('_')[0]);
@@ -221,7 +222,7 @@ service cloud.firestore {
       allow create, update: if isActive(request.resource.data.clubId)
         && request.resource.data.kind in ['park', 'group']
         && d == request.resource.data.clubId + '_' + request.resource.data.date + '_' + request.resource.data.kind
-        && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'n', 'items', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'n', 'items', 'updatedAt', 'ch'])
         && request.resource.data.n == request.resource.data.items.size()
         && request.resource.data.n <= (request.resource.data.kind == 'park' ? 30 : 3)
         && pdItemsOk(request.resource.data.clubId);
