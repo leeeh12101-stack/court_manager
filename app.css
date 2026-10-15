@@ -215,3 +215,32 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .mqc.op span{background:#EEF0F3;color:#3A403C}
 .mqc em{font-style:normal;font-size:10px;font-weight:700;margin-left:3px;opacity:.75}
 .mqc span.none{background:none;color:var(--sub);text-align:left;padding-left:2px}
+/* 1015-3 오늘 탭: 참석 카드 · 내 경기 카드 */
+.card.mac{padding:11px 14px;box-shadow:none;background:#EAF1EC;margin-bottom:8px}
+.card.mac.no{background:#EEF0EE}
+.mack{font-size:16px;color:var(--main)}.mac.no .mack{color:var(--sub)}
+.mach{flex:none;font-size:13.5px;color:var(--sub);padding:4px 0 4px 12px}
+.mgc{background:#EAF1EC;border-radius:14px;padding:11px 10px 11px 14px;display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.mgl{flex:1;min-width:0}
+.mgh{display:flex;align-items:center;gap:8px;font-size:13px;color:#3A403C;white-space:nowrap}
+.mgh b{color:var(--main)}
+.mgs{background:#D6E8DE;color:var(--main);font-weight:700;font-size:12px;border-radius:99px;padding:2px 10px;flex:none}
+.mgs.rs{background:#E4E7E5;color:var(--sub)}
+.mgsep{width:1px;height:14px;background:#C9D3CC;flex:none}
+.mgp{display:flex;align-items:center;gap:5px;margin-top:8px;min-width:0}
+.mgpl{border-radius:99px;padding:3px 8px;font-size:12px;white-space:nowrap;background:#E7E6EE;color:#3A403C}
+.mgpl.my{background:#D6E8DE;color:var(--main)}.mgpl.my small{font-size:11px;opacity:.8;margin-right:4px}.mgpl.my b{font-weight:700}
+.mgpl i{font-style:normal;color:#9AA39E;margin:0 2px}
+.mgvs{font-size:11px;color:var(--sub)}
+.mgb{flex:none;width:auto;margin:0;background:#fff;border-radius:12px;padding:8px 10px;font-weight:700;font-size:12.5px;color:var(--main);box-shadow:var(--sh);white-space:nowrap}
+/* 1015-3 대진 목록: 머리줄 · 지금 테두리 · 내 경기 줄 */
+.rh{justify-content:flex-start!important;gap:8px}
+.rh .rn{width:20px;height:20px;border-radius:50%;background:var(--main);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.rh .rtm{font-weight:700}
+.rh .rtag,.rh .rnx{margin-left:auto}
+.rh .rtag{background:var(--pt);color:var(--main)}
+.rh .rnx{color:#8A918D;font-size:12px;font-weight:600}
+.list.rnow{position:relative}
+.list.rnow::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1.5px var(--pt);pointer-events:none}
+.gr.mine{background:#E8F1EA}
+.gr .me,.rest.t span.me{background:none!important;color:var(--main);font-weight:700}
