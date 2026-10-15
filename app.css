@@ -262,3 +262,12 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .dpk .tx small{display:block;font-size:12px;font-weight:400;color:var(--sub);margin-top:1px}
 .dpk .ct{font-size:13px;color:var(--sub);white-space:nowrap;flex:none}.dpk .ct b{color:var(--main);font-size:14px}
 .dpk .ar{color:var(--sub);flex:none}
+/* 1015-6 내 대진 점수 */
+.mqh h3 span b{color:var(--main);font-weight:700}
+.mqb.sc .mq{grid-template-columns:18px 32px 28px minmax(0,1fr) 40px;column-gap:4px}
+.mqb.sc .mqn{width:18px;height:18px}
+.mqb.sc .mqtm{font-size:11px}.mqb.sc .mqct{font-size:10.5px}
+.mqsc{text-align:right;white-space:nowrap;font-size:11.5px;font-weight:700;color:var(--main);padding-right:2px}
+.mqsc small{font-size:10px;margin-left:2px}
+.mqsc.l{color:#A0A6A2;font-weight:600}.mqsc.d{color:var(--sub)}
+.dme{cursor:pointer}
