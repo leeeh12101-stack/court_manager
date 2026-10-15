@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-15 · **BUILD `1015-3`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-15 · **BUILD `1015-4`** · 버전 표기 `v0.1`
 
 ---
 
@@ -24,7 +24,7 @@
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
-| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v35`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
+| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v36`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
 | `tests/core.test.mjs` | core.js 테스트 147개 |
@@ -96,6 +96,7 @@
 - **1014-8 왔던 게스트 목록**: 참석자 추가의 '이 클럽에 왔던 게스트'는 화면 열 때 `gpLoad`가 이 클럽 sessionParticipants(통계와 같은 폰 저장본 `${uid}_cp_${클럽}`)에서 core `guestRecent`(guest·in·오늘까지, 이름별 마지막 날짜, 최근 순)로 만듦(`S.gl`). 칩 아래 `agoLab`(오늘·어제·n일 전·n주 전·n달 전). 처음 6명, 나머지는 `lim` → `게스트 더 보기 (n명)`(`gpMore`, `.pkmore`, 펼치면 `showIn('#pkgx')`)·접기. 마지막으로 온 지 90일 넘은 게스트와 참석 기록 없는 `gOk` 이름은 `hid` → 찾기로만(찾기는 전체 대상, 숨은 게스트가 있으면 찾기 칸 항상 보임). 고른 칩은 접거나 찾기를 지워도 보임. 불러오는 동안 작은 로딩 원(`.pksp`). 경기 기록(`S.games`)에서 게스트를 모으던 방식은 없앰.
 - **1014-9 참석자 추가 간단하게**: 이름 칸 하나(`#gpq` '이름 찾기 또는 새 게스트', 늘 보임). 친 이름과 띄어쓰기 무시로 정확히 같은 사람이 없으면 결과 맨 위 `+ '이름' 새 게스트로 추가`(`.pkadd`, `gAddQ` — 회원 이름이면 예전처럼 확인·`splitName`). '게스트 직접 입력' 줄(`#gn`, `gAddN`)은 없앰. 시간·포지션은 접이식 한 줄(`acc` 클래스, `data-acc="gs"`, `S.form.acc_gs`, 요약 `gsvTxt()` → `#gsv`: 시간 · 포지션 · 게스트 고르면 성별), 펼치면 시간·게스트 성별·포지션. 시간 입력은 `S.form.st/et`에 바로 저장(접어도 유지), `addGuest`는 칸이 없으면 S.form 값, 시간이 잘못되면 펼치고 알림.
 - **1015-3 오늘 탭 정리**: 진한 모임 카드(`heroFull`)는 모임 정보·알약·주차권/사진 칩·다른 일정만(`heroMe` 삭제, 카드 안 첫 경기 없음). 모임 전·당일 모두 `staffBar` 아래 `myCard(m)`(S.done이면 없음): 참석 카드 `.mac`(✓ 참석/✕ 불참 · 시간·포지션 · 변경 ›, 미응답·마감은 예전 카드) + 내 경기 카드 `.mgc`(단계 칩 `.mgs` 첫 경기/이번 회차/다음 경기(쉬는 중, 회색)/오늘 경기 끝(승패) │ `n회차 · 시간 · 코트`, 아래 `파트너 이름`(연초록) vs 상대(연보라회색, `pOrd` 포→백, `n3` 3글자), 오른쪽 흰 `내 대진 ›` `.mgb`). 공통 도우미 `n3`·`PO`·`pOrd`는 전역(dn 옆). 대진 목록 `rList` 머리줄 = 원 숫자 `.rn` + 시간 `.rtm` + 오른쪽 `지금` 칩(`.rtag`, 카드 연두 테두리 `.list.rnow::after`)/`다음`(`.rnx`), 진한 머리 띠 없앰. 내 경기 줄 전체 연초록 `.gr.mine`(tp일 때만, 줄 순서는 코트순 그대로), 내 이름은 바탕 없이 굵은 초록(`.gr .me`, 휴식 줄도).
+- **1015-4 오늘 탭 배열**(사용자 시안): 모임 카드 라벨 줄 오른쪽에 알약(`heroPills` → `.hpl`), 아래 줄(`.hbot`) 왼쪽 `수정 ›`(운영진)·오른쪽 주차권/사진(`.hchs`, 테두리 없는 글자). 주차권은 `cpBtn`이 `남은 n / 올라온 m`(park만, 하나도 없으면 '주차권'). 참석 카드 `.mac` 안에 내 경기 카드 `.mgc`가 들어감(한 카드). 대진 표는 세로선 없이(사용자 결정).
 - **참석 마감(1013-1)**: 이름 '응답 마감'→'참석 마감'. `mClosed(m)` = sched.reopen 아니고 (sched.closed 또는 자동 마감 시각 지남). 자동 `clubs.rclose{t:'none'|'h'|'d',n,at}`(설정 › 모임 일정, 규칙 schedule 키에 rclose), `autoAt`·`closeLab`. 마감 시 확인, 다시 열면 `reopen:true`. 참석자 목록 포지션 빈 값은 '포or백', 시간 칸은 전체가 아닌 사람만. 경기 결과 삭제는 경기 편집의 '이 경기 결과 삭제'(확인+되돌리기).
 - **아래 창 그리는 위치**: 전적 창(`sSheet`)은 clubHome, 상대 카드(`pmSheet`)는 personal 화면 맨 아래에서 그림(탭과 무관).
 - 개인: 홈 최근 5경기, 상대 카드(만난 경기 수·파트너/상대 따로·최근 경기·포지션별 접기·메모, 이름 띄어쓰기 무시), 경기 탭 보기 방식 `pgv`(전체/날짜별/클럽·대회별, core `groupLabel`).

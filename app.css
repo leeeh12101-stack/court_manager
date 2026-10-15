@@ -244,3 +244,13 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .list.rnow::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1.5px var(--pt);pointer-events:none}
 .gr.mine{background:#E8F1EA}
 .gr .me,.rest.t span.me{background:none!important;color:var(--main);font-weight:700}
+/* 1015-4 오늘 탭 배열 */
+.hpl{display:flex;gap:5px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.hpl .pill,.hpl .hpill{font-size:11.5px;padding:2px 9px;font-weight:700;white-space:nowrap}
+.hbot .hchs{display:flex;gap:4px;margin-left:auto;flex:none}
+.hbot .hchip{border:0;padding:4px 0 4px 10px;font-size:13px;color:#fff}
+.hbot .hchip b{font-weight:700}.hbot .hchip small{opacity:.6;font-size:12px}
+.card.mac{padding:6px;background:#E6EFE8;border-radius:16px}
+.card.mac>.row{padding:5px 8px 7px}
+.card.mac.no>.row{padding:5px 8px}
+.card.mac .mgc{background:#F1F6F2;border-radius:12px;margin:0;padding:10px 8px 10px 12px}
