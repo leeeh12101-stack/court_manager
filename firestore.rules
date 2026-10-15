@@ -195,6 +195,26 @@ service cloud.firestore {
     }
     // 주차권(모임당 30장, 당일 자정/끝난 뒤 3시간 삭제, 가져가기)·모임 사진(3장, 7일): 날짜·종류별 목록 + 사진 1장당 문서 1개
     function clubOn(c, f) { return get(/databases/$(db)/documents/clubs/$(c)).data.get(f, false) == true; }
+    // 1015-5: 목록 항목은 한 번에 하나만 바뀜(올리기=추가 1개, 가져가기·돌려놓기·메모·다시 읽기=1개 수정, 지우기=삭제만)
+    function pdNew(k, i) { return i.by == me() && !('t' in i) && !('q' in i) && !exists(/databases/$(db)/documents/clubPhotos/$(k)); }
+    function pdChg(c, a, b) {
+      return a.by == b.by && a.at == b.at && a.exp == b.exp
+        && (a.get('qh', '') == b.get('qh', '') || a.by == me())
+        && a.get('q', '') == b.get('q', '')
+        && (a.get('t', '') == b.get('t', '')
+              ? (a.get('t', '') == me() || a.by == me() || isAdmin(c))
+              : ((a.get('t', '') == '' && b.get('t', '') == me())
+                 || (a.get('t', '') != '' && b.get('t', '') == '' && (a.get('t', '') == me() || isAdmin(c)))));
+    }
+    function pdItemsOk(c) {
+      let o = resource == null ? {} : resource.data.items;
+      let n = request.resource.data.items;
+      let d = o.diff(n);
+      return (d.addedKeys().size() == 0 && d.changedKeys().size() == 0)
+        || (d.addedKeys().size() == 1 && d.changedKeys().size() == 0 && d.removedKeys().size() == 0 && pdNew(d.addedKeys().toList()[0], n[d.addedKeys().toList()[0]]))
+        || (d.addedKeys().size() == 0 && d.changedKeys().size() == 1 && d.removedKeys().size() == 0
+            && pdChg(c, o[d.changedKeys().toList()[0]], n[d.changedKeys().toList()[0]]));
+    }
     match /photoDays/{d} {
       allow get: if isActive(d.split('_')[0]);
       allow list: if isActive(resource.data.clubId);
@@ -203,11 +223,18 @@ service cloud.firestore {
         && d == request.resource.data.clubId + '_' + request.resource.data.date + '_' + request.resource.data.kind
         && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'n', 'items', 'updatedAt'])
         && request.resource.data.n == request.resource.data.items.size()
-        && request.resource.data.n <= (request.resource.data.kind == 'park' ? 30 : 3);
+        && request.resource.data.n <= (request.resource.data.kind == 'park' ? 30 : 3)
+        && pdItemsOk(request.resource.data.clubId);
       allow delete: if isActive(resource.data.clubId);
     }
     match /clubPhotos/{p} {
-      allow read: if isActive(resource.data.clubId);
+      // 주차권 사진·QR은 가져간 사람만(올린 사람은 QR 다시 읽기용으로 자기 것만)
+      allow read: if isActive(resource.data.clubId)
+        && (resource.data.kind != 'park' || resource.data.by == me()
+          || get(/databases/$(db)/documents/photoDays/$(resource.data.clubId + '_' + resource.data.date + '_park')).data.items[p].get('t', '') == me());
+      allow update: if authed() && resource.data.by == me()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qr'])
+        && request.resource.data.qr is string && request.resource.data.qr.size() <= 2000;
       allow create: if authed() && request.resource.data.by == me()
         && request.resource.data.keys().hasOnly(['clubId', 'date', 'kind', 'by', 'byName', 'exp', 'data', 'w', 'h', 'at', 'qr'])
         && request.resource.data.get('qr', '').size() <= 2000

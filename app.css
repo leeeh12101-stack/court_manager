@@ -254,3 +254,11 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .card.mac>.row{padding:5px 8px 7px}
 .card.mac.no>.row{padding:5px 8px}
 .card.mac .mgc{background:#F1F6F2;border-radius:12px;margin:0;padding:10px 8px 10px 12px}
+/* 1015-5 결과 카드 주차권 줄 */
+.dpk{display:flex;align-items:center;gap:10px;background:#EAF1EC;border-radius:12px;padding:10px 12px;margin:10px 0 2px}
+.dpk .ic{font-size:16px;flex:none}
+.dpk .tx{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--main)}
+.dpk .tx b{font-weight:800}
+.dpk .tx small{display:block;font-size:12px;font-weight:400;color:var(--sub);margin-top:1px}
+.dpk .ct{font-size:13px;color:var(--sub);white-space:nowrap;flex:none}.dpk .ct b{color:var(--main);font-size:14px}
+.dpk .ar{color:var(--sub);flex:none}
