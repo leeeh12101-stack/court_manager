@@ -2,7 +2,7 @@
 """Court Manager 점검 스크립트 — 저장소 루트에서: python3 tests/check.py
 1) 문법  2) core.js 테스트  3) 정의되지 않은 이름(TypeScript)  4) 버튼 연결·이름표 겹침·화면·뒤로가기
 """
-import json, os, re, shutil, subprocess, sys, tempfile, glob
+import os, json, os, re, shutil, subprocess, sys, tempfile, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
@@ -94,6 +94,10 @@ print(f"[연결] 동작 {len(keys)}개 · 연결 안 됨 {missing} · 중복 {du
 print(f"[이름표] 클릭 분기 속성 {branch} · 겹침 {clash}")
 print(f"[화면] 없는 화면 {noscr} · 뒤로가기 없음 {noback}")
 ok &= not (missing or dups or clash or noscr or noback)
+swt=open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"sw.js"),encoding="utf-8").read()
+swok=bool(re.search(r"const V = 'cm-v\d+'",swt)) and "addEventListener('fetch'" in swt
+print(f"[서비스 워커] sw.js {'정상' if swok else '비었거나 깨짐!'} ({len(swt)}자)")
+ok &= swok
 print("BUILD:", re.search(r'BUILD="([^"]+)"', js).group(1))
 print("\n✅ 모두 통과" if ok else "\n❌ 확인 필요")
 sys.exit(0 if ok else 1)
