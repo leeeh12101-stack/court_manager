@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-15 · **BUILD `1015-7`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-16 · **BUILD `1016-1`** · 버전 표기 `v0.1`
 
 ---
 
@@ -24,7 +24,7 @@
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
-| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v39`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
+| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v40`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
 | `tests/core.test.mjs` | core.js 테스트 147개 |
@@ -100,6 +100,8 @@
 - **1015-5 주차권 보안·결과 카드**: QR은 **가져간 사람만** 봄(전체 목록 `보기`·`cpPeek` 삭제, 관리자도 못 봄 — 사용자 결정, '가져가기'만이 보는 길이라 가져간 사람 수 = 사용 수). 새로 올리는 주차권은 목록 항목에 QR 내용 대신 해시 `qh`(`qhOf`, 중복 검사용), 내용은 `clubPhotos.qr`에만(예전 항목의 `q`는 그날 지나면 사라짐, `hasQ(p)`로 둘 다 인식). 가져간 본인은 `cpImgs`가 사진 문서에서 `P.qr`를 받아 `cpQr`. QR 다시 읽기는 **내가 올린 것만**(clubPhotos.qr 업데이트 + 목록 qh). 규칙: `clubPhotos` 읽기 = 모임 사진이거나 올린 사람이거나 photoDays 항목 `t`가 나; `clubPhotos` 업데이트는 올린 사람의 `qr`만; `photoDays` 쓰기는 `pdItemsOk`(추가 1개=내가 올린 새 항목·같은 id 사진 문서 없음 / 수정 1개=`pdChg`: by·at·exp 그대로, t는 비었음→나, 나→비움, 관리자→비움 / 삭제만). 돌려놓기 확인에 '저장·보낸 주차권은 돌려놓지 마세요'. 저장·보내기 사진 `qrCard`(흰 바탕 1080×1350, QR 490px, 위 '주차권', 아래 클럽·날짜), 앱 안 QR 최대 220px. 결과 카드 맨 위 `donePark(D)`(내 주차권 n장 보기 / 남은 n / m, 버튼 줄의 주차권 버튼은 뺌), 그날 주차권이 살아 있는 동안 다음 모임 카드의 주차권 칩 숨김. `doneMeeting`: 자정이 지나도 어제 모임 주차권이 살아 있으면 결과 카드 유지(제목 '모임 결과').
 - **1015-6 내 경기 결과**: `mSheet`에 회차별 점수(`.mqsc`, 같은 줄 `6:3 승` / 패 회색 / 무), 점수가 하나라도 있으면 5칸 격자(`.mqb.sc`), 머리줄 `· n승 n패`. 점수는 대진 자리 id(`클럽_날짜_r회차_c코트`) 경기에서 내 팀 기준. 결과 카드 `나` 칸(`.dme`) 누르면 끝난 모임 대진(`S.done.rs`, `S.mdtD=1`, `data-mk="done"` — ⚠ `data-r`은 클릭 분기 속성이라 못 씀)으로 같은 창. 오늘 진행 중이면 `S.tg` 점수.
 - **1015-7 주차권 규칙 수정**: 1015-5 규칙이 `Set.toList()`(규칙에 없는 기능)를 써서 가져가기·올리기·돌려놓기·메모가 거절됐음(게시는 성공으로 나옴 — 실행 시 오류). 이제 앱이 photoDays를 바꿀 때 바꾸는 항목 id를 최상위 `ch`에 같이 씀(올리기 `pr.id`, 가져가기·돌려놓기·메모·다시 읽기 `id`), 규칙 `pdItemsOk`는 `addedKeys()/changedKeys().hasOnly([ch])`로 확인. ⚠ 규칙 바꿀 땐 에뮬레이터로 꼭 시험(이 환경은 npm 막힘). 내 주차권 카드 제목 `내 주차권 1 / 2 · 메모`.
+- **1016-1 주차권 묶음·취소 / 내 승패 숨기기**: 코트 예약 취소 대응. 새로 올리는 주차권 항목에 같이 올린 묶음 `bt`. 주차권 창 '내가 올린 주차권'(`cpMine`·`cpBatches`: bt 우선, 예전 것은 같은 사람 2분 안), 묶음 머리 `n월 n일 (요) HH:MM 올림 · n장`, 펼침 `cpBt`(`P.bo`), `이 묶음 지우기`(`cpBtDel`): 남은 장은 transaction으로 삭제(+clubPhotos), 가져간 장은 `items.id.x=1`(취소 표시, ch 포함) → 가져간 사람 카드 '쓸 수 없는 주차권이에요'·`확인했어요`(`cpXok` → `xs:1`, 내 주차권에서 빠짐). 가져가기는 x 제외. 전체 목록 둘째 줄 `.cpl2` = 올린 사람 M/D HH:MM 올림 · 상태(취소됨/가져감/남음). 규칙 변경 없음(pdChg가 올린 사람의 x, 가져간 사람의 xs 허용). 승패 숨기기: `users.hideWL`(`hideWL()`), 결과 카드 숫자 아래 `내 승패 숨기기/보기`(`wlTog`), 숨기면 '나' 칸·내 경기 카드 'n경기', 내 대진 창 점수·머리줄 승패 숨기고 `결과 보기`(`S.mdtShow`), 개인 설정 › 내 정보 맨 위 ON/OFF. 통계·전적 창은 그대로.
+- **보류(사용자: 다음에)**: 포백 결과 클럽 공개(회원 전적 창 포백 카드+궁합 보기, 통계 '우리 클럽 포백' 카드 — 예시 화면까지 만듦, 공개 스위치·clubMembers 규칙 필요)
 - **참석 마감(1013-1)**: 이름 '응답 마감'→'참석 마감'. `mClosed(m)` = sched.reopen 아니고 (sched.closed 또는 자동 마감 시각 지남). 자동 `clubs.rclose{t:'none'|'h'|'d',n,at}`(설정 › 모임 일정, 규칙 schedule 키에 rclose), `autoAt`·`closeLab`. 마감 시 확인, 다시 열면 `reopen:true`. 참석자 목록 포지션 빈 값은 '포or백', 시간 칸은 전체가 아닌 사람만. 경기 결과 삭제는 경기 편집의 '이 경기 결과 삭제'(확인+되돌리기).
 - **아래 창 그리는 위치**: 전적 창(`sSheet`)은 clubHome, 상대 카드(`pmSheet`)는 personal 화면 맨 아래에서 그림(탭과 무관).
 - 개인: 홈 최근 5경기, 상대 카드(만난 경기 수·파트너/상대 따로·최근 경기·포지션별 접기·메모, 이름 띄어쓰기 무시), 경기 탭 보기 방식 `pgv`(전체/날짜별/클럽·대회별, core `groupLabel`).
