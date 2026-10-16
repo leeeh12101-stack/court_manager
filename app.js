@@ -1,6 +1,6 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut,deleteUser,reauthenticateWithPopup} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc as _setDoc,collection,query,where,getDocs,writeBatch as _writeBatch,serverTimestamp,limit,onSnapshot,runTransaction,Timestamp,increment,updateDoc as _updateDoc,deleteDoc as _deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc as _setDoc,collection,query,where,getDocs,writeBatch as _writeBatch,serverTimestamp,limit,onSnapshot,runTransaction,Timestamp,increment,deleteField,updateDoc as _updateDoc,deleteDoc as _deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js";
 import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken as getACToken,onTokenChanged as onACChange} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
 import {firebaseConfig} from "./firebase-config.js";
@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1016-2",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1016-3",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -580,7 +580,8 @@ const NEWS=[[
  ["park","모임 끝난 뒤에도 주차권","모임이 끝나도 결과 카드 맨 위에서 내 주차권을 바로 열 수 있어요"]],[
  ["club","내 경기 결과 한눈에","내 대진 창에 회차별 점수와 승패가 보여요. 결과 카드의 '나'를 눌러도 열려요"]],[
  ["park","올린 주차권 묶음","내가 올린 주차권을 올린 시각별로 묶어 보여줘요. 코트 예약을 취소하면 그 묶음을 한 번에 지울 수 있어요"],
- ["club","내 승패 숨기기","오늘 탭에서 내 승패를 보고 싶지 않으면 결과 카드의 '내 승패 숨기기'를 눌러요"]]];
+ ["club","내 승패 숨기기","오늘 탭에서 내 승패를 보고 싶지 않으면 결과 카드의 '내 승패 숨기기'를 눌러요"]],[
+ ["park","주차권 통째로 지우기","올린 주차권이 묶음 한 줄로 보여요. 코트 예약을 취소하면 통째로 지우고, 이미 가져간 사람은 앱을 열 때 새 주차권으로 바꿔 줘요"]]];
 function pvSheet(){const o=(v,t,d)=>`<div class="card tap" data-a="pvGo" data-v="${v}" style="padding:14px 16px;margin:8px 0 0"><b>${t}</b><div class="sub">${d}</div></div>`;
  return `<div class="sh" data-a="pvNo"><div data-keep="1"><h3>어떤 화면으로 볼까요?</h3><div class="sub">미리보기 중에는 아무것도 저장되지 않아요</div>${o("member","일반 회원 화면","회원에게 보이는 그대로")}${o("staff","운영진 화면","운영진 권한으로 보이는 화면")}<button class="ghost" data-a="pvNo" style="margin-top:12px">취소</button></div></div>`}
 function newsItems(){const P=S.profile;if(!P||S.pv||S.newsX||(+P.newsSeen||0)>=NEWS.length)return[];const cm=S.screen==="clubHome"&&S.cur;
@@ -997,7 +998,6 @@ const A={
  cpU(el){const [k,id]=el.dataset.v.split(":"),a=[...cpUv(k)];S.cpu={...(S.cpu||{}),[k]:a.includes(id)?a.filter(x=>x!==id):[...a,id]};keepR()},
  async cpOpen(el){const c=S.cur,k=el.dataset.v,dk=el.dataset.dk;S.cph={k,dk,x:+el.dataset.e||0,img:{}};keepR();await cpFresh(c,dk,k);cpNeed();keepR()},
  cpX(){S.cph=null;S.still=1;render();S.still=0},
- cpAllT(){if(S.cph){S.cph.all=!S.cph.all;keepR()}},
  cpAdd(){const P=S.cph;if(!P||P.up)return;if(S.pv)return pop("미리보기 중에는 올릴 수 없어요.");const room=CPN[P.k]-cpItems(P.dk,P.k).length;if(room<=0)return pop(`${CPN[P.k]}장이 다 찼어요. 지우고 올려 주세요.`);const i=document.createElement("input");i.type="file";i.accept="image/*";if(P.k==="park")i.multiple=true;i.onchange=()=>{const fs=[...(i.files||[])];if(fs.length)cpUp(P.k,P.dk,fs,P.x)};i.click()},
  async cpRescan(){const P=S.cph,c=S.cur;if(!P||P.up||S.pv)return;const L=cpItems(P.dk,"park").filter(p=>!hasQ(p)&&p.by===S.user.uid);if(!L.length)return;let n=0;
   try{P.up="QR 읽기 준비 중…";keepR();await TO(loadJs(JSQR,"jsQR"),15000,"qr-load");
@@ -1007,14 +1007,12 @@ const A={
     await TO(updateDoc(doc(db,"clubPhotos",id),{qr:q}),20000,"save");await TO(updateDoc(doc(db,"photoDays",`${c.id}_${P.dk}_park`),{[`items.${id}.qh`]:qhOf(q),ch:id,updatedAt:Date.now()}),20000,"save");n++}
    await cpFresh(c,P.dk,"park");P.up="";keepR();pop(n?`${n}장의 QR을 읽었어요.${L.length>n?`\n${L.length-n}장은 여전히 읽지 못했어요.`:""}`:"QR을 읽지 못했어요. 주차권을 더 또렷하게 다시 찍어 올려 주세요.")}
   catch(e){P.up="";keepR();pop("QR을 다시 읽지 못했습니다."+`\n(오류: ${String(e&&(e.code||e.message))})`)}},
- cpBt(el){const P=S.cph;if(!P)return;P.bo={...(P.bo||{}),[el.dataset.id]:!(P.bo||{})[el.dataset.id]};keepR()},
- async cpBtDel(el){const P=S.cph,c=S.cur,u=S.user.uid;if(!P||S.pv)return;const b=cpBatches(cpItems(P.dk,"park").filter(p=>p.by===u)).find(x=>x.id===el.dataset.id);if(!b)return;
+ async cpBtDel(el){const P=S.cph,c=S.cur,u=S.user.uid,adm=c.role==="admin";if(!P||S.pv)return;const b=cpBatches(cpItems(P.dk,"park").filter(p=>adm||p.by===u)).find(x=>x.id===el.dataset.id);if(!b)return;
   const rm=b.L.filter(p=>!p.t),tk=b.L.filter(p=>p.t&&!p.x);if(!rm.length&&!tk.length)return;
-  if(!await ask(`${cpLong(b.L[0].at)}에 올린 주차권을 지울까요?\n\n남은 ${rm.length}장은 바로 지워져요.${tk.length?`\n${[...new Set(tk.map(p=>p.tn||"회원"))].join(", ")}님이 가져간 ${tk.length}장은 '쓸 수 없는 주차권'으로 알려 줘요.`:""}`,"지우기","취소"))return;
-  const dr=doc(db,"photoDays",`${c.id}_${P.dk}_park`);
-  try{for(const p of tk)await updateDoc(dr,{[`items.${p.id}.x`]:1,ch:p.id,updatedAt:Date.now()});
-   if(rm.length)await runTransaction(db,async t=>{const s0=await t.get(dr);if(!s0.exists())return;const x=s0.data(),items={...x.items};rm.forEach(p=>{if(items[p.id]&&!items[p.id].t)delete items[p.id]});const n=Object.keys(items).length;if(n)t.set(dr,{...x,n,items,updatedAt:Date.now()});else t.delete(dr);rm.forEach(p=>t.delete(doc(db,"clubPhotos",p.id)))});
-   await cpFresh(c,P.dk,"park");keepR();toast("지웠어요")}catch(e){await cpFresh(c,P.dk,"park");keepR();pop("지우지 못했습니다."+`\n(오류: ${String(e&&(e.code||e.message))})`)}},
+  if(!await ask(`${b.L[0].bn&&b.L[0].by!==u?b.L[0].bn+"님이 ":""}${cpLong(b.L[0].at)}에 올린 ${b.L.length}장을 통째로 지울까요?\n\n남은 ${rm.length}장은 바로 지워져요.${tk.length?`\n${[...new Set(tk.map(p=>p.tn||"회원"))].join(", ")}님이 가져간 ${tk.length}장은 취소로 표시돼요. 그 사람이 앱을 열면 남은 주차권으로 자동으로 바꿔 줘요.`:""}`,"통째로 지우기","취소"))return;
+  const dr=doc(db,"photoDays",`${c.id}_${P.dk}_park`);let st="목록";
+  try{const bad=await cpRm(c,P.dk,"park",rm.map(p=>p.id));st="취소 표시";for(const p of tk)await updateDoc(dr,{[`items.${p.id}.x`]:1,ch:p.id,updatedAt:Date.now()});
+   await cpFresh(c,P.dk,"park");keepR();toast(bad?`지웠어요 (사진 ${bad}장은 나중에 정리돼요)`:"지웠어요")}catch(e){await cpFresh(c,P.dk,"park");keepR();pop("지우지 못했습니다."+cpErr(e.step||st,e))}},
  async cpXok(el){const P=S.cph,c=S.cur;if(!P||S.pv)return;try{await updateDoc(doc(db,"photoDays",`${c.id}_${P.dk}_park`),{[`items.${el.dataset.id}.xs`]:1,ch:el.dataset.id,updatedAt:Date.now()});await cpFresh(c,P.dk,"park");keepR()}catch(e){pop("처리하지 못했습니다.")}},
  cpView(el){S.cpv={dk:el.dataset.dk,id:el.dataset.id};keepR()},
  cpvX(){S.cpv=null;S.still=1;render();S.still=0},
@@ -1027,8 +1025,8 @@ const A={
  cpOrig(el){const P=S.cph;if(!P)return;P.orig={...(P.orig||{}),[el.dataset.id]:!(P.orig||{})[el.dataset.id]};keepR();cpNeed()},
  cpSave(el){const P=S.cph;if(!P)return;const id=el.dataset.id,qi=(P.qcard||{})[id]||(P.qimg||{})[id],d=(P.img||{})[id],h=qi||(d?"data:image/jpeg;base64,"+d:"");if(!h)return;const a=document.createElement("a");a.href=h;a.download=`${P.k==="park"?"주차권":"모임사진"}_${P.dk}.${qi?"png":"jpg"}`;document.body.appendChild(a);a.click();a.remove()},
  async cpTake(){const P=S.cph,c=S.cur,u=S.user.uid,nm=myNm();if(!P||S.pv)return;const dr=doc(db,"photoDays",`${c.id}_${P.dk}_park`);
-  try{await runTransaction(db,async t=>{const s=await t.get(dr);if(!s.exists())throw new Error("none");const x=s.data(),now=Date.now(),L=Object.entries(x.items||{}).filter(([,i])=>i.exp>now&&!i.t&&!i.x).sort((a,b)=>(a[1].at||0)-(b[1].at||0));if(!L.length)throw new Error("none");const id=L[0][0];t.set(dr,{...x,items:{...x.items,[id]:{...x.items[id],t:u,tn:nm,tt:now}},ch:id,updatedAt:now})});
-   await cpFresh(c,P.dk,"park");cpNeed();keepR();toast("주차권을 가져왔어요")}catch(e){await cpFresh(c,P.dk,"park");keepR();pop(String(e&&e.message)==="none"?"남은 주차권이 없어요.":"가져오지 못했습니다. 잠시 뒤 다시 해 주세요.")}},
+  try{await runTransaction(db,async t=>{const s=await t.get(dr);if(!s.exists())throw new Error("none");const x=s.data(),now=Date.now(),L=Object.entries(x.items||{}).filter(([,i])=>i.exp>now&&!i.t&&!i.x).sort((a,b)=>(a[1].at||0)-(b[1].at||0));if(!L.length)throw new Error("none");const id=L[0][0];t.update(dr,{[`items.${id}.t`]:u,[`items.${id}.tn`]:nm,[`items.${id}.tt`]:now,ch:id,updatedAt:now})});
+   await cpFresh(c,P.dk,"park");cpNeed();keepR();toast("주차권을 가져왔어요")}catch(e){await cpFresh(c,P.dk,"park");keepR();pop(String(e&&e.message)==="none"?"남은 주차권이 없어요.":"가져오지 못했습니다. 잠시 뒤 다시 해 주세요."+cpErr("가져가기",e))}},
  async cpMemo(el){const P=S.cph,id=el.dataset.id;if(!P||S.pv)return;const cur=(cpItems(P.dk,"park").find(p=>p.id===id)||{}).m||"";const v=await askText("누구에게 줄 주차권인가요?\n예: 게스트 홍길동 (비우면 메모 지우기)",cur);if(v===null)return;const m=v.trim().slice(0,20);if(m===cur)return;if(await cpSetM(id,m))toast(m?"메모를 남겼어요":"메모를 지웠어요")},
  cpGPick(el){const i=$("#cpgn");if(i)i.value=el.dataset.n;document.querySelectorAll(".cpgc span").forEach(x=>x.classList.toggle("on",x===el))},
  async cpSend(el){const P=S.cph,id=el.dataset.id;if(!P||S.pv)return;const qi=(P.qcard||{})[id]||(P.qimg||{})[id],d=(P.img||{})[id],h=qi||(d?"data:image/jpeg;base64,"+d:"");if(!h)return pop("주차권 사진을 불러오는 중이에요. 잠시 뒤 다시 눌러 주세요.");
@@ -1039,10 +1037,9 @@ const A={
   let sp=null;try{if(navigator.canShare&&navigator.canShare({files:[f]}))sp=navigator.share({files:[f],title:"주차권"})}catch(e){}
   cpSetM(id,m);if(sp)sp.catch(()=>{});else{A.cpSave(el);toast("주차권 사진을 저장했어요. 카톡에서 보내 주세요")}},
  async cpRet(el){const P=S.cph,c=S.cur,id=el.dataset.id;if(!P||S.pv||!await ask("이 주차권을 돌려놓을까요?\n다른 회원이 가져갈 수 있게 돼요.\n\n⚠ 저장했거나 카톡으로 보낸 주차권은 돌려놓지 마세요. 저장한 사진으로 같은 주차권이 두 번 쓰일 수 있어요.","돌려놓기","취소"))return;const dr=doc(db,"photoDays",`${c.id}_${P.dk}_park`);
-  try{await runTransaction(db,async t=>{const s=await t.get(dr);if(!s.exists())return;const x=s.data(),i={...((x.items||{})[id]||{})};if(!i.by)return;delete i.t;delete i.tn;delete i.tt;delete i.m;t.set(dr,{...x,items:{...x.items,[id]:i},ch:id,updatedAt:Date.now()})});await cpFresh(c,P.dk,"park");keepR();toast("돌려놓았어요")}catch(e){pop("돌려놓지 못했습니다.")}},
+  try{await runTransaction(db,async t=>{const s=await t.get(dr);if(!s.exists())return;const x=s.data(),i=(x.items||{})[id]||{};if(!i.by)return;t.update(dr,{[`items.${id}.t`]:deleteField(),[`items.${id}.tn`]:deleteField(),[`items.${id}.tt`]:deleteField(),[`items.${id}.m`]:deleteField(),ch:id,updatedAt:Date.now()})});await cpFresh(c,P.dk,"park");keepR();toast("돌려놓았어요")}catch(e){pop("돌려놓지 못했습니다."+cpErr("돌려놓기",e))}},
  async cpDel(el){const P=S.cph,id=el.dataset.id,c=S.cur;if(!P||S.pv||!await ask("이 사진을 지울까요?","지우기","취소"))return;const dr=doc(db,"photoDays",`${c.id}_${P.dk}_${P.k}`);
-  try{await runTransaction(db,async t=>{const s=await t.get(dr),x=s.exists()?s.data():null;if(x){const items={...x.items};delete items[id];const n=Object.keys(items).length;if(n)t.set(dr,{...x,n,items,updatedAt:Date.now()});else t.delete(dr)}t.delete(doc(db,"clubPhotos",id))});
-   await cpFresh(c,P.dk,P.k);if(P.img)delete P.img[id];if(P.peek===id)P.peek=null;keepR();toast("지웠어요")}catch(e){pop("지우지 못했습니다.")}},
+  try{await cpRm(c,P.dk,P.k,[id]);await cpFresh(c,P.dk,P.k);if(P.img)delete P.img[id];keepR();toast("지웠어요")}catch(e){pop("지우지 못했습니다."+cpErr(e.step||"",e))}},
 
 async login(){try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){pop("로그인하지 못했습니다. 팝업 차단을 해제하고 다시 시도해 주세요.")}},
 async logout(){localStorage.removeItem("cm_mode");await signOut(auth)},
@@ -1689,7 +1686,7 @@ const parkOpen=dk=>Date.now()>=dkDate(dk).getTime()-CPDAY,grpOpen=dk=>{const t=y
 const myNm=()=>(S.mem.find(m=>m.uid===S.user.uid)||{}).displayName||S.profile.name||"";
 const cpDay=(dk,k)=>S.cpdC===S.cur.id?(S.cpd||{})[dk+"_"+k]:null;
 async function cpSetM(id,m){const P=S.cph,c=S.cur,u=S.user.uid;if(!P)return false;const dr=doc(db,"photoDays",`${c.id}_${P.dk}_park`);
- try{await runTransaction(db,async t=>{const s=await t.get(dr);if(!s.exists())return;const x=s.data(),i={...((x.items||{})[id]||{})};if(i.t!==u)throw new Error("not");if(m)i.m=m;else delete i.m;t.set(dr,{...x,items:{...x.items,[id]:i},ch:id,updatedAt:Date.now()})});await cpFresh(c,P.dk,"park");keepR();return true}catch(e){pop("메모를 저장하지 못했습니다.");return false}}
+ try{await runTransaction(db,async t=>{const s=await t.get(dr);if(!s.exists())return;const x=s.data(),i=(x.items||{})[id]||{};if(i.t!==u)throw new Error("not");t.update(dr,{[`items.${id}.m`]:m?m:deleteField(),ch:id,updatedAt:Date.now()})});await cpFresh(c,P.dk,"park");keepR();return true}catch(e){pop("메모를 저장하지 못했습니다."+cpErr("메모",e));return false}}
 const cpItems=(dk,k)=>{const d=cpDay(dk,k);if(!d)return[];const now=Date.now();return Object.entries(d.items||{}).filter(([,x])=>x.exp>now).map(([id,x])=>({id,...x})).sort((a,b)=>(a.at||0)-(b.at||0))};
 const cpBtn=(k,dk,x,hero)=>{const L=cpItems(dk,k),n=k==="park"?L.filter(i=>!i.t).length:L.length;return `<button${hero?"":' class="sm ghost"'} data-a="cpOpen" data-v="${k}" data-dk="${dk}"${x?` data-e="${x}"`:""}${hero?' class="hchip"':""}>${CPL[k]}${L.length?(k==="park"?` <b>${n}</b><small> / ${L.length}</small>`:" "+n):""}${hero?" ›":""}</button>`};
 const parkB=(dk,st,en,hero)=>{if(!S.cur.parkOn)return"";const x=parkExp(dk,st,en);return parkOpen(dk)&&Date.now()<x?cpBtn("park",dk,x,hero):""};
@@ -1716,8 +1713,14 @@ async function cpTh(ids){S.cpThumb=S.cpThumb||{};S.cpThL=S.cpThL||{};const need=
  await Promise.all(need.map(id=>getDoc(doc(db,"clubPhotos",id)).then(d=>{S.cpThumb[id]=d.exists()?d.data().data:""}).catch(()=>{S.cpThumb[id]=""})));if(S.screen==="clubHome")keepR()}
 function cpViewer(){const V=S.cpv,L=cpItems(V.dk,"group"),i=L.findIndex(p=>p.id===V.id),p=L[i];if(!p)return"";const d=(S.cpThumb||{})[p.id],u=S.user.uid,adm=S.cur.role==="admin";
  return `<div class="phv" data-keep="1"><div class="phvtop"><span style="opacity:.8">${i+1} / ${L.length}</span><span class="tap" data-a="cpvX" style="font-size:22px;padding:2px 6px" aria-label="닫기">✕</span></div><div class="phvimg" id="pvimg">${d?`<img src="data:image/jpeg;base64,${d}" alt="모임 사진">`:'<div class="spin"></div>'}${i>0?`<span class="phvnav l" data-a="cpvGo" data-v="${L[i-1].id}">‹</span>`:""}${i<L.length-1?`<span class="phvnav r" data-a="cpvGo" data-v="${L[i+1].id}">›</span>`:""}</div><div class="phvbot"><span style="opacity:.7;font-size:13px">${esc(p.bn||"")} · ${cpT(p.at)}</span><span style="display:flex;gap:20px;font-size:15px"><span class="tap" data-a="cpvSave">저장</span>${!S.pv&&(p.by===u||adm)?'<span class="tap" data-a="cpvDel" style="color:#F2A99B">삭제</span>':""}</span></div></div>`}
-async function cpDelete(dk,k,id){const c=S.cur,dr=doc(db,"photoDays",`${c.id}_${dk}_${k}`);
- await runTransaction(db,async t=>{const s=await t.get(dr),x=s.exists()?s.data():null;if(x){const items={...x.items};delete items[id];const n=Object.keys(items).length;if(n)t.set(dr,{...x,n,items,updatedAt:Date.now()});else t.delete(dr)}t.delete(doc(db,"clubPhotos",id))});
+// 목록에서 여러 장 빼기(1016-3): 문서를 통째로 다시 쓰지 않고 그 칸만 지움 → 사진 문서는 따로 지움(실패해도 기한 지나면 정리됨)
+async function cpRm(c,dk,k,ids){const dr=doc(db,"photoDays",`${c.id}_${dk}_${k}`);if(!ids.length)return;
+ try{await runTransaction(db,async t=>{const s=await t.get(dr);if(!s.exists())return;const x=s.data(),it=x.items||{},rm=ids.filter(id=>it[id]);if(!rm.length)return;
+  if(Object.keys(it).length-rm.length<=0)t.delete(dr);else{const u={n:increment(-rm.length),updatedAt:Date.now()};rm.forEach(id=>u[`items.${id}`]=deleteField());t.update(dr,u)}})}catch(e){e.step="목록";throw e}
+ let bad=0;for(const id of ids){try{await deleteDoc(doc(db,"clubPhotos",id))}catch(e){bad++}}return bad}
+const cpErr=(st,e)=>`\n(${st?st+" · ":""}오류: ${String(e&&(e.code||e.message))})`;
+async function cpDelete(dk,k,id){const c=S.cur;
+ await cpRm(c,dk,k,[id]);
  await cpFresh(c,dk,k);if(S.cpThumb)delete S.cpThumb[id]}
 const cpRow=d=>{if(!S.cur.photoOn)return"";const n=cpItems(d,"group").length;if(!n&&!(grpOpen(d)&&can("photo")))return"";return `<div class="li tap noar" data-a="cpOpen" data-v="group" data-dk="${d}"><span class="nm sub" style="font-weight:500;color:var(--main)">${n?`모임 사진 ${n}장 보기`:"모임 사진 올리기"}</span></div>`};
 const cpT=ms=>{if(!ms)return"";const d=new Date(ms);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
@@ -1733,7 +1736,7 @@ function cpSheet(){const P=S.cph,c=S.cur,k=P.k,u=S.user.uid,L=cpItems(P.dk,k),ad
   body=`<div class="sub" style="margin:2px 0 8px">남은 주차권 <b style="color:var(--main)">${left}</b> / ${L.length}장</div>${L.length?`<div class="cpsum"><span>올린 사람</span><div>${ups}</div>${tks?`<span>가져간 사람</span><div>${tks}</div>`:""}</div>`:""}`+cpMine(BG)+mine.map((p,mi)=>p.x?`<div class="card" style="padding:10px;margin:0 0 10px;box-shadow:none;border:1.5px solid #F0C9C0"><div class="row" style="margin-bottom:6px"><b>내 주차권${mine.length>1?` <span style="color:var(--main)">${mi+1}</span><span class="sub" style="font-weight:500"> / ${mine.length}</span>`:""}</b><span class="lnk" data-a="cpXok" data-id="${p.id}" style="font-size:13px;flex:none">확인했어요</span></div><div class="cxl"><b>쓸 수 없는 주차권이에요</b>올린 사람이 코트 예약을 취소했어요. 다른 주차권을 가져가 주세요.</div></div>`:`<div class="card" style="padding:10px;margin:0 0 10px;box-shadow:none;border:1.5px solid var(--pt)"><div class="row" style="margin-bottom:6px"><b style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">내 주차권${mine.length>1?` <span style="color:var(--main)">${mi+1}</span><span class="sub" style="font-weight:500"> / ${mine.length}</span>`:""}${p.m?`<span class="sub" style="font-weight:500"> · ${esc(p.m)}</span>`:""}</b><span style="display:flex;gap:12px;font-size:13px;flex:none;margin-left:8px"><span class="lnk" data-a="cpMemo" data-id="${p.id}">${p.m?"메모 수정":"＋ 메모"}</span><span class="lnk" data-a="cpSave" data-id="${p.id}">저장</span><span class="lnk" data-a="cpRet" data-id="${p.id}">돌려놓기</span></span></div>${tk(p)}<button class="ghost" data-a="cpSend" data-id="${p.id}" style="margin-top:10px">카톡으로 게스트에게 보내기</button></div>`).join("")
    +(left?`<button data-a="cpTake">${mine.length?"주차권 하나 더 가져가기":"주차권 가져가기"}</button>`:L.length?'<div class="card sub center">남은 주차권이 없어요</div>':'<div class="sub center" style="padding:20px 0">아직 올린 주차권이 없어요</div>')
    +(L.some(p=>!hasQ(p)&&p.by===u)&&!P.up?`<div class="center" style="margin-top:10px;font-size:13px"><span class="lnk" data-a="cpRescan">QR을 못 읽은 주차권 ${L.filter(p=>!hasQ(p)&&p.by===u).length}장 다시 읽기</span></div>`:"")
-   +(mgr&&L.length?`<div class="list" style="margin-top:12px"><div class="li tap noar" data-a="cpAllT"><span class="nm"><b>전체 주차권</b> <span class="sub">${L.length}장</span></span><span class="sub">${P.all?"▴":"▾"}</span></div>${P.all?L.map((p,i)=>`<div class="li" style="min-height:40px"><span class="nm">${i+1}번${hasQ(p)?"":' <span class="pill" style="background:var(--bg);color:var(--sub)">사진</span>'}<span class="cpl2">${esc(p.bn||"")} ${cpMD(p.at)} 올림 · ${p.x?'<b style="color:#B4432F">취소됨</b>':p.t?`${esc(p.tn||"")} 가져감 ${cpT(p.tt)}${p.m?` · ${esc(p.m)}`:""}`:"남음"}</span></span><span style="display:flex;gap:12px;font-size:13px;flex:none">${p.t&&adm?`<span class="lnk" data-a="cpRet" data-id="${p.id}">돌려놓기</span>`:""}${p.by===u||adm?`<span class="lnk warn" data-a="cpDel" data-id="${p.id}">삭제</span>`:""}</span></div>`).join(""):""}${P.all?'<div class="sub" style="font-size:12px;padding:8px 12px">주차권 QR은 가져간 사람만 볼 수 있어요</div>':""}</div>`:"")
+   +(adm&&L.length?cpAllB(L):"")
    +'<div class="sub center" style="font-size:12px;margin:10px 0 8px">모임 당일 자정(늦게 끝나면 끝난 뒤 3시간)에 지워져요</div>'}
  const upB=k==="group"?(P.up?`<button disabled><span class="spin" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:-2px;margin-right:6px"></span>${P.up}</button>`:""):P.up?`<button disabled><span class="spin" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:-2px;margin-right:6px"></span>${P.up}</button>`:up?`<button class="${L.length?"ghost":""}" data-a="cpAdd"${full?" disabled":""}>${CPL[k]} 올리기 <span style="opacity:.7">${L.length}/${CPN[k]}</span></button>`:"";
  return `<div class="sh" data-a="cpX"><div data-keep="1" style="max-height:90vh"><div class="row"><h3>${CPL[k]} · ${dlab(P.dk)}</h3><span class="tap sub" data-a="cpX" style="padding:4px 0 4px 12px">✕</span></div>${body}${upB}</div></div>`}
@@ -1742,10 +1745,19 @@ async function cpImgs(ids){const P=S.cph;if(!P)return;P.img=P.img||{};P.ld=P.ld|
  P.qr=P.qr||{};await Promise.all(need.map(id=>getDoc(doc(db,"clubPhotos",id)).then(d=>{P.img[id]=d.exists()?d.data().data:null;if(d.exists()&&d.data().qr)P.qr[id]=d.data().qr}).catch(()=>{P.img[id]=null})));if(P.k==="park")need.forEach(id=>{if(P.qr[id])cpQr(id,P.qr[id])});if(P.k==="group"){S.cpThumb=S.cpThumb||{};need.forEach(id=>{if(P.img[id])S.cpThumb[id]=P.img[id]})}if(S.cph===P)keepR()}
 const cpNeed=()=>{const P=S.cph;if(!P)return;const L=cpItems(P.dk,P.k),u=S.user.uid;if(P.k==="group")return cpImgs(L.map(p=>p.id));const sh=L.filter(p=>p.t===u);cpImgs([...sh.filter(p=>!p.q).map(p=>p.id),...Object.keys(P.orig||{}).filter(id=>P.orig[id])]);sh.filter(p=>p.q).forEach(p=>cpQr(p.id,p.q))};
 async function cpDays(c,force){S.cpAt=S.cpAt||{};if(!force&&S.cpAt[c.id]&&Date.now()-S.cpAt[c.id]<60000)return;S.cpAt[c.id]=Date.now();
- try{const r=await getDocs(query(collection(db,"photoDays"),where("clubId","==",c.id))),m={};r.docs.forEach(d=>{const x=d.data();m[x.date+"_"+x.kind]=x});if(!S.cur||S.cur.id!==c.id)return;S.cpd=m;S.cpdC=c.id;if(S.screen==="clubHome")keepR();
+ try{const r=await getDocs(query(collection(db,"photoDays"),where("clubId","==",c.id))),m={};r.docs.forEach(d=>{const x=d.data();m[x.date+"_"+x.kind]=x});if(!S.cur||S.cur.id!==c.id)return;S.cpd=m;S.cpdC=c.id;if(S.screen==="clubHome")keepR();if(!S.pv)cpReplace(c,m);
   if(!S.pv&&!(S.cpCl||{})[c.id]){S.cpCl={...(S.cpCl||{}),[c.id]:1};await cpClean(c,m)}}catch(e){}}
+// 코트 예약 취소로 지워진 주차권을 가져갔던 사람(1016-3): 앱을 열 때 남은 주차권으로 자동 교체, 없으면 알림
+async function cpReplace(c,m){const u=S.user.uid,msg=[],dk=new Set();S.cpRp=S.cpRp||{};
+ for(const d of Object.values(m)){if(d.kind!=="park")continue;for(const [id,i] of Object.entries(d.items||{})){if(i.t!==u||!i.x||i.xs||i.exp<Date.now()||S.cpRp[id])continue;S.cpRp[id]=1;dk.add(d.date);
+  const dr=doc(db,"photoDays",`${c.id}_${d.date}_park`);let nid=null;
+  try{await runTransaction(db,async t=>{const s0=await t.get(dr);if(!s0.exists())return;const L=Object.entries(s0.data().items||{}).filter(([,z])=>z.exp>Date.now()&&!z.t&&!z.x).sort((a,b)=>(a[1].at||0)-(b[1].at||0));if(!L.length)return;nid=L[0][0];
+   const up={[`items.${nid}.t`]:u,[`items.${nid}.tn`]:myNm(),[`items.${nid}.tt`]:Date.now(),ch:nid,updatedAt:Date.now()};if(i.m)up[`items.${nid}.m`]=i.m;t.update(dr,up)})}catch(e){nid=null}
+  try{await updateDoc(dr,{[`items.${id}.xs`]:1,ch:id,updatedAt:Date.now()})}catch(e){}
+  msg.push(nid?`코트 예약 취소로 ${dlab(d.date)} 주차권이 새것으로 바뀌었어요.\n저장하거나 보낸 예전 사진은 쓸 수 없어요.${i.m?`\n'${i.m}'에게 새 주차권을 다시 보내 주세요.`:""}`:`코트 예약 취소로 ${dlab(d.date)} 주차권이 취소됐어요.\n남은 주차권이 없어요.`)}}
+ if(!msg.length)return;for(const x of dk)await cpFresh(c,x,"park");if(S.screen==="clubHome")keepR();pop(msg.join("\n\n"))}
 async function cpClean(c,m){const now=Date.now();for(const [key,d] of Object.entries(m)){const ex=Object.entries(d.items||{}).filter(([,x])=>x.exp<now).map(([id])=>id);if(!ex.length)continue;
- try{const left={...d.items};ex.forEach(id=>delete left[id]);const n=Object.keys(left).length,b=writeBatch(db),dr=doc(db,"photoDays",`${c.id}_${d.date}_${d.kind}`);ex.forEach(id=>b.delete(doc(db,"clubPhotos",id)));if(n)b.set(dr,{...d,n,items:left,updatedAt:now});else b.delete(dr);await b.commit();if(n)m[key]={...d,n,items:left};else delete m[key]}catch(e){}}}
+ try{await cpRm(c,d.date,d.kind,ex);const left={...d.items};ex.forEach(id=>delete left[id]);const n=Object.keys(left).length;if(n)m[key]={...d,n,items:left};else delete m[key]}catch(e){}}}
 const loadJs=(src,g)=>window[g]?Promise.resolve():new Promise((ok,no)=>{const t=document.createElement("script");t.src=src;t.onload=ok;t.onerror=no;document.head.appendChild(t)}),JSQR="vendor/jsQR.js",QRIOUS="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js";
 // 주차권 QR(1012-12): 올릴 때 사진 속 QR 내용을 읽어 items[id].q·clubPhotos.qr에 저장 → 볼 때 흰 바탕에 새로 그림(원본 사진은 링크로)
 const qrRead=f=>new Promise(ok=>{if(!window.jsQR)return ok("");const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{URL.revokeObjectURL(u);let r=null;for(const mx of [1000,1600,700]){const k=Math.min(1,mx/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(im,0,0,cv.width,cv.height);const d=cx.getImageData(0,0,cv.width,cv.height);try{r=window.jsQR(d.data,d.width,d.height,{inversionAttempts:"attemptBoth"})}catch(e){r=null}if(r&&r.data)break}ok(r&&r.data?String(r.data).slice(0,2000):"")};im.onerror=()=>{URL.revokeObjectURL(u);ok("")};im.src=u});
@@ -1754,12 +1766,13 @@ async function cpQr(id,q){const P=S.cph;if(!P)return;P.qimg=P.qimg||{};P.qcard=P
 function qrCard(qc,dk){const W=1080,H=1350,s=490,cv=document.createElement("canvas");cv.width=W;cv.height=H;const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,W,H);x.imageSmoothingEnabled=false;x.drawImage(qc,(W-s)/2,380,s,s);
  x.fillStyle="#174A43";x.textAlign="center";x.font="700 44px -apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif";x.fillText("주차권",W/2,300);x.fillStyle="#5C635F";x.font="400 34px -apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif";x.fillText(`${(S.cur&&S.cur.name)||""} · ${dlab(dk)}`,W/2,960);return cv.toDataURL("image/png")}
 // 내가 올린 주차권 묶음(1015-8): bt(같이 올린 표시) 우선, 예전 것은 같은 사람이 2분 안에 올린 것끼리
-function cpBatches(L){const g=[];L.slice().sort((a,b)=>(a.at||0)-(b.at||0)).forEach(p=>{const l=g[g.length-1],k=p.bt||"";if(l&&(k?l.k===k:(!l.k&&p.at-l.last<=120000)))l.L.push(p);else g.push({k,id:k||("t"+p.at),L:[p]});g[g.length-1].last=p.at});return g}
+function cpBatches(L){const g=[];L.slice().sort((a,b)=>(a.at||0)-(b.at||0)).forEach(p=>{const l=g[g.length-1],k=p.bt||"";if(l&&(k?l.k===k:(!l.k&&p.at-l.last<=120000)))l.L.push(p);else g.push({k,id:(k||("t"+p.at))+"_"+p.by,L:[p]});g[g.length-1].last=p.at});return g}
 const cpMD=ms=>{if(!ms)return"";const d=new Date(ms);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
 const cpLong=ms=>{const d=new Date(ms);return `${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]}) ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
-function cpMine(BG){if(!BG.length)return"";const P=S.cph,all=BG.flatMap(b=>b.L),tk=all.filter(p=>p.t&&!p.x).length,op=P.bo||{};
- return `<div class="mup"><div class="h"><b>내가 올린 주차권</b><span>${all.length}장 · 가져감 ${tk} · 남음 ${all.filter(p=>!p.t).length}</span></div>${BG.map(b=>{const n=b.L.filter(p=>!p.t).length,t=b.L.filter(p=>p.t&&!p.x).length,x=b.L.filter(p=>p.x).length,o=!!op[b.id],L0=cpItems(P.dk,"park");
-  return `<div class="bt"><div class="r1 tap" data-a="cpBt" data-id="${b.id}"><span class="tm">${cpLong(b.L[0].at)} 올림<small>${b.L.length}장</small></span><span class="ar">${o?"▴":"▾"}</span></div><div class="r2"><span>남음 <b>${n}</b>${t?` · 가져감 ${t}`:""}${x?` · 취소 ${x}`:""}</span>${n||t?`<span class="del tap" data-a="cpBtDel" data-id="${b.id}">이 묶음 지우기</span>`:""}</div>${o?`<div class="ls">${b.L.map(p=>`<div>${L0.findIndex(q=>q.id===p.id)+1}번<span>${p.x?"취소됨":p.t?`${esc(p.tn||"")} 가져감 ${cpT(p.tt)}`:"남음"}</span></div>`).join("")}</div>`:""}</div>`}).join("")}</div>`}
+function cpBl(b,who){const n=b.L.length,us=b.L.filter(p=>p.t&&!p.x),x=b.L.filter(p=>p.x).length,nm=[...new Set(us.map(p=>p.tn||"회원"))],can1=b.L.some(p=>!p.t)||us.length;
+ return `<div class="bl"><div class="t"><b>${who?esc(b.L[0].bn||"")+" · ":""}${cpLong(b.L[0].at)}${who?"":" 올림"}</b><span>${n}장 중 <em>${us.length}장</em> 사용${nm.length?` · ${nm.map(esc).join(", ")}`:""}${x?` · 취소 ${x}`:""}</span></div>${can1?`<span class="d tap" data-a="cpBtDel" data-id="${b.id}">통째로 지우기</span>`:""}</div>`}
+function cpMine(BG){if(!BG.length)return"";const all=BG.flatMap(b=>b.L);return `<div class="mup"><div class="h"><b>내가 올린 주차권</b><span>${all.length}장 · 사용 ${all.filter(p=>p.t&&!p.x).length}</span></div>${BG.map(b=>cpBl(b)).join("")}</div>`}
+function cpAllB(L){const by={};L.forEach(p=>{(by[p.by]=by[p.by]||[]).push(p)});const B=Object.values(by).flatMap(cpBatches).sort((a,b)=>a.L[0].at-b.L[0].at);return B.length?`<div class="mup" style="margin-top:12px;background:#F7F8F7"><div class="h"><b>전체 주차권</b><span>관리자만 · ${L.length}장</span></div>${B.map(b=>cpBl(b,1)).join("")}</div>`:""}
 const qhOf=q=>"h"+hsh(String(q))+"_"+String(q).length,hasQ=p=>!!(p&&(p.q||p.qh));
 // 시간 제한(1012-13): 멈추지 않고 단계별 오류 코드로 끝나게
 const TO=(p,ms,code)=>Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(Object.assign(new Error(code),{code})),ms))]);

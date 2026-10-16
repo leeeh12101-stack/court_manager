@@ -22,8 +22,9 @@ const ok = (d, w) => { const x = d[w.f]; const v = typeof x === "object" && x &&
 export const getDoc = async r => { await 0; return snap(r.coll, r.id); };
 export const getDocs = async q => { await 0; const c = col(q.coll); const docs = Object.keys(c).filter(id => (q.w || []).every(w => ok(c[id], w))).map(id => snap(q.coll, id)); return { docs, size: docs.length, empty: !docs.length, forEach: f => docs.forEach(f) }; };
 const fix = o => { const r = {}; for (const k in o) { const v = o[k]; r[k] = v && v.__ts ? { ms: now(), toMillis: () => now() } : v; } return r; };
-const isObj = v => v && typeof v === "object" && !Array.isArray(v) && !v.__ts && !v.__inc && !v.ms;
-const mergeIn = (o, d) => { for (const k in d) { const v = d[k]; if (k.includes(".")) { const ks = k.split("."); let t = o; for (const x of ks.slice(0, -1)) t = t[x] = isObj(t[x]) ? { ...t[x] } : {}; t[ks[ks.length - 1]] = v; continue; }
+const isObj = v => v && typeof v === "object" && !Array.isArray(v) && !v.__ts && !v.__inc && !v.__del && !v.ms;
+const mergeIn = (o, d) => { for (const k in d) { const v = d[k]; if (k.includes(".")) { const ks = k.split("."); let t = o; for (const x of ks.slice(0, -1)) t = t[x] = isObj(t[x]) ? { ...t[x] } : {}; if (v && v.__del) delete t[ks[ks.length - 1]]; else t[ks[ks.length - 1]] = v; continue; }
+  if (v && v.__del) { delete o[k]; continue; }
   if (v && v.__inc) o[k] = (typeof o[k] === "number" ? o[k] : 0) + v.__inc; else if (isObj(v) && isObj(o[k])) o[k] = mergeIn({ ...o[k] }, v); else o[k] = v; } return o; };
 const put = (r, data, merge) => { const c = col(r.coll); const d = fix(data); c[r.id] = merge ? mergeIn({ ...(c[r.id] || {}) }, d) : mergeIn({}, d); };
 export const setDoc = async (r, d, o) => put(r, d, o && o.merge);
@@ -33,6 +34,7 @@ export const writeBatch = () => { const ops = []; return { set: (r, d, o) => ops
 export const serverTimestamp = () => ({ __ts: 1 });
 export const onSnapshot = (r, cb) => { setTimeout(() => cb(snap(r.coll, r.id)), 5); return () => {}; };
 export const increment = n => ({ __inc: n });
+export const deleteField = () => ({ __del: 1 });
 export const runTransaction = async (db, fn) => fn({ get: getDoc, set: (r, d) => put(r, d), update: (r, d) => put(r, d, true), delete: r => { delete col(r.coll)[r.id]; } });
 export const Timestamp = { fromMillis: ms => ({ toMillis: () => ms }), now: () => ({ toMillis: () => now() }) };
 // ai / app check

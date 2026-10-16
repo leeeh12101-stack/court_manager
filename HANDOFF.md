@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-16 · **BUILD `1016-2`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-16 · **BUILD `1016-3`** · 버전 표기 `v0.1`
 
 ---
 
@@ -24,7 +24,7 @@
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
-| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v41`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
+| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v42`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
 | `tests/core.test.mjs` | core.js 테스트 147개 |
@@ -103,6 +103,7 @@
 - **1016-1 주차권 묶음·취소 / 내 승패 숨기기**: 코트 예약 취소 대응. 새로 올리는 주차권 항목에 같이 올린 묶음 `bt`. 주차권 창 '내가 올린 주차권'(`cpMine`·`cpBatches`: bt 우선, 예전 것은 같은 사람 2분 안), 묶음 머리 `n월 n일 (요) HH:MM 올림 · n장`, 펼침 `cpBt`(`P.bo`), `이 묶음 지우기`(`cpBtDel`): 남은 장은 transaction으로 삭제(+clubPhotos), 가져간 장은 `items.id.x=1`(취소 표시, ch 포함) → 가져간 사람 카드 '쓸 수 없는 주차권이에요'·`확인했어요`(`cpXok` → `xs:1`, 내 주차권에서 빠짐). 가져가기는 x 제외. 전체 목록 둘째 줄 `.cpl2` = 올린 사람 M/D HH:MM 올림 · 상태(취소됨/가져감/남음). 규칙 변경 없음(pdChg가 올린 사람의 x, 가져간 사람의 xs 허용). 승패 숨기기: `users.hideWL`(`hideWL()`), 결과 카드 숫자 아래 `내 승패 숨기기/보기`(`wlTog`), 숨기면 '나' 칸·내 경기 카드 'n경기', 내 대진 창 점수·머리줄 승패 숨기고 `결과 보기`(`S.mdtShow`), 개인 설정 › 내 정보 맨 위 ON/OFF. 통계·전적 창은 그대로.
 - **보류(사용자: 다음에)**: 포백 결과 클럽 공개(회원 전적 창 포백 카드+궁합 보기, 통계 '우리 클럽 포백' 카드 — 예시 화면까지 만듦, 공개 스위치·clubMembers 규칙 필요)
 - **1016-2 sw.js 복구**: 1014-9부터 sw.js가 0바이트로 올라가 있었음(파이썬 `open("sw.js","w").write(open("sw.js").read()…)` — 쓰기로 먼저 열려 비워짐). 빈 SW는 fetch 처리 없이 브라우저 저장분(Pages max-age 10분)을 써서 배포가 늦게 보였음. 예전 내용으로 복구(`cm-v41`), `check.py`에 sw.js 검사 추가. ⚠ 파일 고칠 땐 읽고 → 따로 쓰기.
+- **1016-3 주차권 쓰기 방식·묶음 한 줄·자동 교체**: 묶음 지우기 `permission-denied`(목록 문서를 통째로 다시 쓰는 방식이 원인으로 추정 — 에뮬레이터 없어 미확정) → photoDays 쓰기를 모두 **칸 단위**로: 가져가기·돌려놓기·메모 `t.update(field path / deleteField())`, 지우기는 공통 `cpRm`(transaction으로 `items.id` deleteField + `n: increment(-k)`, 다 빠지면 문서 삭제 → clubPhotos는 따로 deleteDoc, 실패 수만 알림), 기한 정리 `cpClean`도 cpRm. 오류 창에 단계 표시 `cpErr(단계,e)`. UI: 장별 목록·펼치기·전체 목록 줄 삭제 → 묶음 한 줄 `cpBl`(`n월 n일 (요) HH:MM 올림` / `n장 중 m장 사용 · 가져간 사람` / `통째로 지우기`), 올린 사람은 '내가 올린 주차권'(`cpMine`), 관리자는 '전체 주차권'(`cpAllB`, 사람별 묶음, 관리자도 통째로 지우기). `cpBtDel`: 남은 장 먼저 지우고 → 가져간 장 `x:1`. `cpReplace`(cpDays 뒤): 내가 가져간 x 주차권이 있으면 남은 것 하나 자동으로 가져오고(메모 옮김) 예전 것 `xs:1`, 알림창(새것으로 바뀜 / 남은 게 없음). 가짜 Firebase(`tests/smoke/fb.js`)에 `deleteField` 추가.
 - **참석 마감(1013-1)**: 이름 '응답 마감'→'참석 마감'. `mClosed(m)` = sched.reopen 아니고 (sched.closed 또는 자동 마감 시각 지남). 자동 `clubs.rclose{t:'none'|'h'|'d',n,at}`(설정 › 모임 일정, 규칙 schedule 키에 rclose), `autoAt`·`closeLab`. 마감 시 확인, 다시 열면 `reopen:true`. 참석자 목록 포지션 빈 값은 '포or백', 시간 칸은 전체가 아닌 사람만. 경기 결과 삭제는 경기 편집의 '이 경기 결과 삭제'(확인+되돌리기).
 - **아래 창 그리는 위치**: 전적 창(`sSheet`)은 clubHome, 상대 카드(`pmSheet`)는 personal 화면 맨 아래에서 그림(탭과 무관).
 - 개인: 홈 최근 5경기, 상대 카드(만난 경기 수·파트너/상대 따로·최근 경기·포지션별 접기·메모, 이름 띄어쓰기 무시), 경기 탭 보기 방식 `pgv`(전체/날짜별/클럽·대회별, core `groupLabel`).
