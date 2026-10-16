@@ -210,7 +210,8 @@ service cloud.firestore {
     function pdItemsOk(c) {
       let o = resource == null ? {} : resource.data.items;
       let n = request.resource.data.items;
-      let d = o.diff(n);
+      // n.diff(o): addedKeys = 새로 생긴 칸, removedKeys = 지운 칸 (방향 주의 — 1016-4)
+      let d = n.diff(o);
       let k = request.resource.data.get('ch', '');
       return (d.addedKeys().size() == 0 && d.changedKeys().size() == 0)
         || (k != '' && d.addedKeys().size() == 1 && d.addedKeys().hasOnly([k]) && d.changedKeys().size() == 0 && d.removedKeys().size() == 0 && pdNew(k, n[k]))
