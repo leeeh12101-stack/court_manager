@@ -19,7 +19,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1016-3",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1019-1",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -408,7 +408,7 @@ const nmOf=k=>{const p=S.parts.find(q=>key(q)===k);return (p&&(dnp(p)||p.name))|
 const nmj=l=>l.map(x=>esc(x.n)).join("·"),md=d=>d.slice(4,6)+"."+d.slice(6);
 const gTeams=g=>{const w=g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0,f=(l,i)=>w===i?`<b>${nmj(l)}</b>`:nmj(l);return `${f(g.t1,1)} <span class="sub">vs</span> ${f(g.t2,2)}`};
 const isUnk=p=>{const c=S.cur;if(!c||!p||!p.k||S.screen==="personal")return false;const k=ck(p);return !S.mem.some(m=>mkey(m)===k)&&!(c.gOk||[]).includes(p.n)};
-const nm3=(l,w,i)=>l.map(p=>`<span${w===i?' style="font-weight:700"':""}${isUnk(p)?' class="nx"':""}>${esc(dn(p))}</span>`).join("");
+const nm3=(l,w,i)=>pOrd(l).map(p=>`<span${w===i?' style="font-weight:700"':""}${isUnk(p)?' class="nx"':""}><em>${esc(n3(dn(p)))}</em>${p.p==="fore"?'<b class="bd f">포</b>':p.p==="back"?'<b class="bd b">백</b>':""}</span>`).join("");
 const rowS=(lab,t1,t2,w,sc,at,pst)=>`<div class="gr s ${at?"tap":""}" ${at||""}><span class="ct">${lab}</span><div class="tg">${nm3(t1,w,1)}</div><span class="vs">vs</span><div class="tg">${nm3(t2,w,2)}</div><span class="pill sc"${pst||""}>${sc}</span></div>`;
 const gLab=(g,k)=>k==="q"?(g.round?g.round+"번째":"–"):cLab(g),gmR=k=>g=>rowS(gLab(g,k),g.t1,g.t2,g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0,`${g.scoreA} : ${g.scoreB}`,can("result")?`data-a="gedit" data-id="${g.id}"`:"");
 const gm=g=>rowS(md(g.date),g.t1,g.t2,g.scoreA>g.scoreB?1:g.scoreA<g.scoreB?2:0,`${g.scoreA} : ${g.scoreB}`,can("result")?`data-a="gedit" data-id="${g.id}"`:"");
@@ -581,7 +581,8 @@ const NEWS=[[
  ["club","내 경기 결과 한눈에","내 대진 창에 회차별 점수와 승패가 보여요. 결과 카드의 '나'를 눌러도 열려요"]],[
  ["park","올린 주차권 묶음","내가 올린 주차권을 올린 시각별로 묶어 보여줘요. 코트 예약을 취소하면 그 묶음을 한 번에 지울 수 있어요"],
  ["club","내 승패 숨기기","오늘 탭에서 내 승패를 보고 싶지 않으면 결과 카드의 '내 승패 숨기기'를 눌러요"]],[
- ["park","주차권 통째로 지우기","올린 주차권이 묶음 한 줄로 보여요. 코트 예약을 취소하면 통째로 지우고, 이미 가져간 사람은 앱을 열 때 새 주차권으로 바꿔 줘요"]]];
+ ["park","주차권 통째로 지우기","올린 주차권이 묶음 한 줄로 보여요. 코트 예약을 취소하면 통째로 지우고, 이미 가져간 사람은 앱을 열 때 새 주차권으로 바꿔 줘요"]],[
+ ["club","경기 기록에 포·백 표시","경기 기록의 이름 옆에 포·백 배지가 붙어요. 포를 앞에, 백을 뒤에 써요"]]];
 function pvSheet(){const o=(v,t,d)=>`<div class="card tap" data-a="pvGo" data-v="${v}" style="padding:14px 16px;margin:8px 0 0"><b>${t}</b><div class="sub">${d}</div></div>`;
  return `<div class="sh" data-a="pvNo"><div data-keep="1"><h3>어떤 화면으로 볼까요?</h3><div class="sub">미리보기 중에는 아무것도 저장되지 않아요</div>${o("member","일반 회원 화면","회원에게 보이는 그대로")}${o("staff","운영진 화면","운영진 권한으로 보이는 화면")}<button class="ghost" data-a="pvNo" style="margin-top:12px">취소</button></div></div>`}
 function newsItems(){const P=S.profile;if(!P||S.pv||S.newsX||(+P.newsSeen||0)>=NEWS.length)return[];const cm=S.screen==="clubHome"&&S.cur;

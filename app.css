@@ -288,3 +288,10 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .mup .bl{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;margin-top:8px;padding:9px 10px;box-shadow:0 1px 2px rgba(23,74,67,.06)}
 .mup .bl .t{flex:1;min-width:0}.mup .bl .t b{display:block;font-size:13.5px}.mup .bl .t span{display:block;font-size:12px;color:var(--sub);margin-top:1px}.mup .bl .t span em{font-style:normal;color:var(--main);font-weight:700}
 .mup .bl .d{flex:none;font-size:12.5px;color:#B4432F;font-weight:600;border-bottom:1px dashed #E3B3A8;cursor:pointer}
+
+/* 1019-1 경기 기록 포·백 배지: vs·배지 세로줄 정렬 */
+.gr.s:not(.p){padding:7px 8px;align-items:center}.gr.s:not(.p) .ct{width:auto;min-width:24px;margin-right:6px}.gr.s:not(.p) .vs{width:auto;margin:0 5px}.gr.s:not(.p) .sc{padding:4px 8px}
+.gr.s:not(.p) .tg{display:flex;gap:5px;font-size:14px}
+.gr.s:not(.p) .tg span{display:grid;grid-template-columns:3em 1em;align-items:baseline;overflow:visible}.gr.s:not(.p) .tg em{font-style:normal;overflow:hidden;white-space:nowrap}
+.tg b.bd{justify-self:start;font-size:9px;font-weight:700;border-radius:4px;padding:1px 2px;margin-left:2px;position:relative;top:-1px;line-height:1.2}.tg b.bd.f{background:#DDEEE5;color:#174A43}.tg b.bd.b{background:#E2E7F4;color:#3D5A86}
+@media (max-width:370px){.gr.s:not(.p){padding:7px 5px}.gr.s:not(.p) .ct{min-width:19px;margin-right:3px;font-size:11px}.gr.s:not(.p) .tg{gap:4px;font-size:13.5px}.gr.s:not(.p) .vs{margin:0 4px;font-size:10px}.gr.s:not(.p) .sc{padding:3px 5px;font-size:12.5px}.tg b.bd{padding:0 1.5px;font-size:8.5px;margin-left:1.5px}}
