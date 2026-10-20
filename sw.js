@@ -1,5 +1,5 @@
-const V = 'cm-v43';
-const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'core.js', 'ft.js', 'ft-core.js', 'ft-data.js', 'privacy.html', 'firebase-config.js', 'manifest.webmanifest', 'icon-192.png'];
+const V = 'cm-v44';
+const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'core.js', 'ft.js', 'ft-core.js', 'ft-data.js', 'tips.js', 'privacy.html', 'firebase-config.js', 'manifest.webmanifest', 'icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== V).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
