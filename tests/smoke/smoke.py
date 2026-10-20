@@ -12,7 +12,7 @@ srv = S2(("127.0.0.1", 0), functools.partial(Q, directory=ROOT)); threading.Thre
 VAR = {"기본": "", "순번제": "__DB.clubs.c1.mode='queue';", "결과만 기록": "__DB.clubs.c1.mode='record';",
        "대진 없음": "__DB.sessions={};", "코트 번호 없음": "delete __DB.clubs.c1.cnum;", "모임 끝남": "__DB.clubs.c1.regularEndTime='00:01';",
        "불참": "Object.values(__DB.sessionParticipants).forEach(x=>{if(x.uid==='u1')x.status='out'});",
-       "모임 없는 날": "__DB.clubs.c1.regularDays=[(new Date().getDay()+3)%7];", "개인 모드": "localStorage.setItem('cm_mode','personal');", "포백 테스트(로그인 전)": "globalThis.__USER=null;"}
+       "모임 없는 날": "__DB.clubs.c1.regularDays=[(new Date().getDay()+3)%7];", "개인 모드": "localStorage.setItem('cm_mode','personal');", "포백 테스트(로그인 전)": "globalThis.__USER=null;", "사용법 투어": "globalThis.__TOUR=1;"}
 errs = []
 def run(b, vn, vs):
     pg = b.new_page(viewport={"width": 390, "height": 844}); cur = ["시작"]
@@ -33,7 +33,18 @@ def run(b, vn, vs):
             el.click()
         pg.wait_for_timeout(wait)
         if pg.locator("#app .spin").count(): errs.append(f"[{vn} · {name}] 로딩 원이 계속 보임")
-    if vn.startswith("포백"):
+    def tour(name, need=True):
+        cur[0] = name; k = 0
+        while pg.locator("#tour").count() and k < 8:
+            k += 1; pg.locator("#tour [data-t=n]").click(); pg.wait_for_timeout(300)
+        if need and not k: errs.append(f"[{vn} · {name}] 사용법이 안 뜸")
+        if pg.locator("#tour").count(): errs.append(f"[{vn} · {name}] 사용법이 안 닫힘")
+    if vn == "사용법 투어":
+        step("클럽 열기", "[data-a=club]", 2000); tour("오늘 탭")
+        step("회원 탭", ".nav [data-k=members]", 1200); tour("회원 탭")
+        step("오늘 탭", ".nav [data-k=today]", 1200); tour("다시 안 뜸", False)
+        if pg.evaluate("()=>(JSON.parse(localStorage.getItem('cm_tour')||'[]')).length") < 3: errs.append(f"[{vn}] 본 단계가 저장 안 됨")
+    elif vn.startswith("포백"):
         step("배너", "[data-a=ftOpen]"); step("시작", "[data-a=ftGo]"); step("손", "[data-a=ftAns]"); step("이전", "[data-a=ftPrev]")
     elif vn == "개인 모드":
         for t in ["home", "games", "stats", "settings"]: step("개인 " + t, f".nav [data-k={t}]")
