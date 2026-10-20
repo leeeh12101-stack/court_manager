@@ -98,6 +98,20 @@ swt=open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 swok=bool(re.search(r"const V = 'cm-v\d+'",swt)) and "addEventListener('fetch'" in swt
 print(f"[서비스 워커] sw.js {'정상' if swok else '비었거나 깨짐!'} ({len(swt)}자)")
 ok &= swok
+# CSS 이름 겹침(1021-2): 같은 class를 서로 다른 화면에서 따로 정의하면 한쪽 모양이 다른 쪽에 묻어남(1014-7 .mc 사례)
+_css=re.sub(r"/\*.*?\*/","",open("app.css",encoding="utf-8").read(),flags=re.S);_st=[];_cur="";_sel=[]
+for _t in re.split(r"([{}])",_css):
+    if _t=="{":_st.append(_cur.strip());_cur=""
+    elif _t=="}":
+        _s=_st.pop() if _st else ""
+        if not _s.startswith("@") and not any(x.startswith("@") for x in _st):_sel+= [x.strip() for x in _s.split(",")]
+        _cur=""
+    else:_cur=_t
+from collections import Counter as _C
+CSS_OK={".li",".rh",".mn",".qm",".ftbar",".phvtop",".phvbot",".cxl",".dlv",".dlvr",".dlvn",".addh"}  # 의도한 덧씌우기(확인 후 여기에 추가)
+_dup=sorted(k for k,v in _C(x for x in _sel if re.fullmatch(r"\.[A-Za-z0-9_-]+",x)).items() if v>1 and k not in CSS_OK)
+print(f"[CSS] 같은 이름 따로 정의 {_dup}")
+ok &= not _dup
 print("BUILD:", re.search(r'BUILD="([^"]+)"', js).group(1))
 print("\n✅ 모두 통과" if ok else "\n❌ 확인 필요")
 sys.exit(0 if ok else 1)
