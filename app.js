@@ -20,7 +20,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1021-3",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1021-4",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -758,6 +758,7 @@ function drawImg(rs,meta,lr){const F='"Apple SD Gothic Neo","Noto Sans KR","Malg
  x.restore();x.strokeStyle=LN;x.lineWidth=1;x.beginPath();x.roundRect(X0+.5,T0+.5,TW-1,BH-1,14);x.stroke();return cv}
 function dxpCv(lr){const c=S.cur,pv=S.screen==="preview",rs=pv?S.dr&&S.dr.plan&&S.dr.plan.rounds:S.sess&&S.sess.rounds;if(!rs||!rs.length)return null;const ds=pv?nextMeeting(c):null,d=pv?ds.date:new Date(+S.sess.date.slice(0,4),+S.sess.date.slice(4,6)-1,+S.sess.date.slice(6)),memo=(nextMeeting(c)||{}).memo||"",cn=Math.max(1,...rs.flatMap(r=>r.games.map(g=>g.court)));
  const meta={title:`${c.name} · ${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]}) 대진표`,sub:`${rs[0].time} 시작 · ${rs.length}회차 · ${cn}코트${memo?" · "+memo:""}`},cv=drawImg(rs,meta,lr);cv.meta=meta;return cv}
+const prtClr=()=>{for(const x of document.querySelectorAll("#prt,#prtst"))x.remove()};
 function dxpSheet(){const v=dLay(),P=S.dxpI||(S.dxpI={});if(!P[v]){try{const cv=dxpCv(v==="lr");P[v]=cv?cv.toDataURL("image/png"):""}catch(e){P[v]=""}}return `<div class="sh" data-a="dxpX"><div data-keep="1"><div class="row"><h3>대진표 이미지</h3><span class="tap sub" data-a="dxpX" style="padding:4px 0 4px 12px">✕</span></div><div class="k">팀 배치</div><div class="seg dxs" data-k="dlay">${[["lr","좌우","왼쪽 팀 vs 오른쪽 팀"],["ud","위아래","위 팀 / 아래 팀"]].map(([k,t,d])=>`<div data-v="${k}" class="${v===k?"on":""}">${t}<small>${d}</small></div>`).join("")}</div>${P[v]?`<div class="k">미리보기</div><img class="dxpv" src="${P[v]}" data-a="dxpZoom" alt="대진표 미리보기">`:""}<div class="pbr"><button class="ghost" data-a="dxpPrint">인쇄</button><button data-a="dxpGo">저장 · 공유</button></div></div></div>`}
 const dLay=()=>{if(S.form.dlay)return S.form.dlay;try{return localStorage.getItem("cm_dlay")||"lr"}catch(e){return "lr"}};
 async function relink(ok,real){const c=S.cur,uid=real.uid,q=n=>getDocs(query(collection(db,n),where("clubId","==",c.id))).then(r=>r.docs),fx=l=>l.map(p=>p.k===ok?{...p,k:uid,n:real.displayName}:p),has=l=>l.some(p=>p.k===ok);
@@ -1302,14 +1303,14 @@ async dpAnalyze(f){if(!f)return;const D=S.dp,rr=()=>{S.still=1;render();S.still=
 async impOut(el){const p=S.parts.find(x=>x.name===el.dataset.n&&x.status==="in");if(!p)return;try{await setDoc(doc(db,"sessionParticipants",p._id),{status:"out",updatedAt:serverTimestamp()},{merge:true});load()}catch(e){pop("처리하지 못했습니다.")}},
 exportDraw(){S.dxp=1;S.dxpI=null;S.still=1;render();S.still=0},
 dxpZoom(){const v=dLay();if(!S.dxpI||!S.dxpI[v])return;S.exp=S.dxpI[v];S.expPlain=1;S.still=1;render();S.still=0},
-dxpX(){S.dxp=0;S.dxpI=null;S.still=1;render();S.still=0},
+dxpX(){prtClr();S.dxp=0;S.dxpI=null;S.still=1;render();S.still=0},
 async dxpGo(){const lr=dLay()==="lr";try{localStorage.setItem("cm_dlay",lr?"lr":"ud")}catch(e){}S.dxp=0;S.still=1;render();S.still=0;await A.exportGo(lr)},
 async exportGo(lr){const cv=dxpCv(lr);if(!cv)return;const meta=cv.meta;
   cv.toBlob(async b=>{const f=new File([b],"대진표.png",{type:"image/png"});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:meta.title});return}}catch(e){if(e&&e.name==="AbortError")return}S.expPlain=0;S.exp=cv.toDataURL("image/png");S.still=1;render();S.still=0},"image/png")},
 dxpPrint(){const v=dLay();let u=(S.dxpI||{})[v];if(!u){const c=dxpCv(v==="lr");u=c?c.toDataURL("image/png"):""}if(!u)return;
   if(navigator.standalone===true||typeof print!=="function")return pop("이 화면에서는 바로 인쇄가 안 돼요.\n'저장 · 공유'로 이미지를 저장한 뒤 사진 앱에서 인쇄해 주세요.");
-  try{localStorage.setItem("cm_dlay",v)}catch(e){}for(const x of document.querySelectorAll("#prt,#prtst"))x.remove();
-  const b=document.createElement("div");b.id="prt";const im=new Image();im.alt="대진표";im.onload=()=>{const st=document.createElement("style");st.id="prtst";st.textContent=`@page{size:${im.width>=im.height?"landscape":"portrait"};margin:8mm}`;document.head.append(st);const done=()=>{b.remove();st.remove();removeEventListener("afterprint",done)};addEventListener("afterprint",done);setTimeout(()=>{try{print()}catch(e){done();pop("인쇄 창을 열지 못했어요.\n'저장 · 공유'로 이미지를 저장해 주세요.")}},60)};b.append(im);document.body.append(b);im.src=u},
+  try{localStorage.setItem("cm_dlay",v)}catch(e){}prtClr();
+  const b=document.createElement("div");b.id="prt";const im=new Image();im.alt="대진표";im.onload=()=>{const st=document.createElement("style");st.id="prtst";const L=im.width>=im.height;st.textContent=`@page{size:A4 ${L?"landscape":"portrait"};margin:8mm}#prt img{max-height:${L?185:270}mm}`;document.head.append(st);setTimeout(()=>{try{print()}catch(e){prtClr();pop("인쇄 창을 열지 못했어요.\n'저장 · 공유'로 이미지를 저장해 주세요.")}},60)};b.append(im);document.body.append(b);im.src=u},
 expx(){S.exp=null;S.expPlain=0;S.still=1;render();S.still=0},
 editName(){go("nameEdit")},
 async saveNewName(){const n=$("#nn").value.trim();if(!n)return pop("이름을 입력해 주세요.");if(n===S.profile.name)return A.toMode();
