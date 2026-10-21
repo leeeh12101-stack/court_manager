@@ -130,3 +130,5 @@ export function monthRecap(rows,ym){const st=m=>{const o={g:0,w:0,l:0,d:0};(rows
 export function guestRecent(ap,td){const L={};(ap||[]).forEach(p=>{if(!p||!p.guest||p.status!=="in"||!p.date||p.date>td)return;const n=String(p.name||"").trim();if(n&&(!L[n]||p.date>L[n]))L[n]=p.date});return Object.entries(L).map(([n,last])=>({n,last})).sort((a,b)=>b.last.localeCompare(a.last)||(a.n<b.n?-1:a.n>b.n?1:0))}
 // 며칠 전 표시: 오늘·어제·n일 전(~6일)·n주 전(~29일)·n달 전
 export function agoLab(dk,td){const d=Math.round(dayDiff(dk,td));return d<1?"오늘":d<2?"어제":d<7?`${d}일 전`:d<30?`${Math.floor(d/7)}주 전`:`${Math.floor(d/30)}달 전`}
+// 사진 포/백 표시 → 팀 포지션 번호(0=포·백, 1=백·포, 2=없음). 한 사람만 적혔으면 짝은 반대, 둘이 같으면 없음(1021-11)
+export const phPos=a=>{if(!Array.isArray(a))return 2;const v=[0,1].map(i=>/포|^f|fore|듀스|deuce/i.test(String(a[i]||""))?"f":/백|^b|back|애드|ad/i.test(String(a[i]||""))?"b":"");return (v[0]==="f"&&v[1]!=="f")||(v[0]===""&&v[1]==="b")?0:(v[0]==="b"&&v[1]!=="b")||(v[0]===""&&v[1]==="f")?1:2};

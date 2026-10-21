@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-21 · **BUILD `1021-10`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-21 · **BUILD `1021-11`** · 버전 표기 `v0.1`
 > **이 파일만 처음에 읽기.** BUILD별 상세 기록은 `HISTORY.md`(통째로 읽지 말고 검색).
 
 ---
@@ -28,7 +28,7 @@
 | `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v55`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
-| `tests/core.test.mjs` | core.js 테스트 147개 |
+| `tests/core.test.mjs` | core.js 테스트 155개 |
 | `tests/check.py` | **점검 한 번에 돌리기**: 기본 = 코드 점검(약 5초), `--ui` 화면 점검 추가, `--draw` 대진 점검 추가, `--all` 전부(동시 실행, 약 20초). 통과하면 한 줄, 실패하면 자세히(`-v`는 늘 자세히) |
 | `tests/shot.py` | **360·390 캡처 한 장**: `python3 tests/shot.py 이름 "[data-a=club]" ".nav [data-k=stats]"` (누를 곳 순서대로, `js:코드`·`wait:ms`, `--init "JS"` 가짜 데이터 바꾸기, `--h`·`--full`·`--el 선택자`, **`--cmp` = 마지막 커밋과 바꾼 뒤를 위아래로**). 가로 넘침 자동 검사. 결과 `tests/out/이름.png`(git 제외) |
 | `tests/smoke/h.py` | 점검 공통: 앱 서버·가짜 Firebase 연결·`idle()`(고정 대기 대신 로딩 원 없고 화면 변화가 0.25초 멈추면 진행) |
@@ -47,10 +47,10 @@
 5. 계산 로직은 가능하면 **core.js에 넣고 테스트 추가**.
 6. 점검 통과 후 **저장소 `main`에 바로 커밋·푸시**(GitHub Pages 자동 반영, 실패 시에만 바뀐 파일 zip 전달). **Pages 배포 완료를 기다리지 않음**(크레딧·속도; 사용자가 앱을 열어 BUILD로 확인). sw.js는 `cache:'no-cache'`라 푸시 1~2분 뒤 앱을 다시 열면 새 버전. 바로 이어서 코딩할 땐 중간 파일 만들지 않기, 규칙은 푸시하면 자동 게시되니 Actions 성공(`gh run list --workflow firestore-rules.yml`)만 확인.
 6-1. **작업 기록**: BUILD마다 `HISTORY.md` 맨 아래 `## 새 기록`에 한두 줄. HANDOFF.md에는 구조·규칙·주의·보류가 바뀔 때만 고침(길게 늘리지 않기). 화면 캡처는 `tests/shot.py`(즉석 스크립트 만들지 않기).
-7. **화면에 보이는 기능을 바꾸면 `NEWS`(app.js) 맨 아래에 새 묶음 추가**: `[대상, 제목, 한 줄 설명]`, 대상은 all·club·personal·권한 키. 사람마다 `users.newsSeen`(본 묶음 수)까지 건너뛰고 밀린 항목을 한 번에 보여 줌. 새 가입자는 처음부터 본 것으로 처리.
+7. **새 기능이 생기면 `NEWS`(app.js) 맨 아래에 새 묶음 추가** — **큰 기능만**(버튼 위치·문구 같은 작은 변경은 넣지 않음, 1021-11). 알림은 7일에 한 번(`users.newsAt`), 최근 3개만 먼저. 묶음을 지우지 말 것(개수가 줄면 `newsSeen`이 어긋남 → 비우기 `[]`): `[대상, 제목, 한 줄 설명]`, 대상은 all·club·personal·권한 키. 사람마다 `users.newsSeen`(본 묶음 수)까지 건너뛰고 밀린 항목을 한 번에 보여 줌. 새 가입자는 처음부터 본 것으로 처리.
 8. **누를 수 있는 곳 표시 규칙**: 목록 줄은 `.li.tap`이면 자동으로 `›`(이동이 아닌 줄은 `noar`), 문장 속 글자는 `.lnk`(주의는 `.lnk.warn`) 점선 밑줄, 아래 창은 제목+닫기 머리줄·바깥 누르기·뒤로가기로 닫힘.
 9. Python으로 패치할 때 문자열 정확히 일치 확인(실패 목록 출력) → 실패 0이어야 함.
-10. **Windows PC(코드 모드)**: Python은 `%LOCALAPPDATA%\Programs\Python\Python312\python.exe`(`python`/`python3`는 스토어 바로가기라 안 됨), 실행 전 `PYTHONUTF8=1`(한글 깨짐 방지). Playwright·Chromium·Pillow 설치됨(1021-10).
+10. **Windows PC(코드 모드)**: Python은 `%LOCALAPPDATA%\Programs\Python\Python312\python.exe`(`python`/`python3`는 스토어 바로가기라 안 됨), 실행 전 `PYTHONUTF8=1`(한글 깨짐 방지). Playwright·Chromium·Pillow·TypeScript 설치됨(1021-10·11).
 
 ## 4. 코드 구조 (app.js)
 
