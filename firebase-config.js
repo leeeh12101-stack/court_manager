@@ -17,4 +17,4 @@ export const aiConfig = {
   messagingSenderId: "546767926992",
   appId: "1:546767926992:web:087ea7a9ef9753fce990d5"
 };
-export const aiCheckKey = "6Lfjp_ktAAAAAO70vihdvGobQwe4CBSMnTaacU3u";
+export const aiCheckKey = "6Lfpp_ktAAAAANjeU-if4tm_R2uiDaPXuziYNihn";
