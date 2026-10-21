@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Court Manager 점검 스크립트 — 저장소 루트에서: python3 tests/check.py
 1) 문법  2) core.js 테스트  3) 정의되지 않은 이름(TypeScript)  4) 버튼 연결·이름표 겹침·화면·뒤로가기
+옵션: --ui 화면 점검(smoke.py)까지 / --draw 대진 점검(draw.py)까지 / --all 둘 다 / -v 통과해도 자세히
+통과하면 한 줄 요약만, 실패하면 전체 결과를 보여 줘요.
 """
 import os, json, os, re, shutil, subprocess, sys, tempfile, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 ok = True
+_ARGS = set(sys.argv[1:]); _LOG = []; _bp = print
+_ps = [subprocess.Popen([sys.executable, os.path.join("tests", "smoke", _s)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+       for _f, _s in (("--ui", "smoke.py"), ("--draw", "draw.py")) if _f in _ARGS or "--all" in _ARGS]   # 코드 점검과 동시에 실행
+def print(*a, **k): _LOG.append(" ".join(str(x) for x in a) if k.get("sep") is None else k["sep"].join(str(x) for x in a))
 
 def run(cmd):
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -113,5 +119,15 @@ _dup=sorted(k for k,v in _C(x for x in _sel if re.fullmatch(r"\.[A-Za-z0-9_-]+",
 print(f"[CSS] 같은 이름 따로 정의 {_dup}")
 ok &= not _dup
 print("BUILD:", re.search(r'BUILD="([^"]+)"', js).group(1))
-print("\n✅ 모두 통과" if ok else "\n❌ 확인 필요")
+_b = re.search(r'BUILD="([^"]+)"', js).group(1)
+if ok and "-v" not in _ARGS:
+    _n = lambda pat: (re.search(pat, "\n".join(_LOG)) or [None, "?"])[1]
+    _bp(f"✅ 코드 점검 통과 · BUILD {_b} · core {_n(r'core.test.mjs: .*?통과 (\d+)')} · ft {_n(r'ft.test.mjs: .*?통과 (\d+)')} · 동작 {_n(r'동작 (\d+)개')}")
+else:
+    _bp("\n".join(_LOG)); _bp("\n✅ 모두 통과" if ok else "\n❌ 확인 필요")
+# 화면·대진 점검 결과(맨 위에서 시작해 둠)
+for _p in _ps:
+    _o = _p.communicate()[0].strip().splitlines()
+    _bp("\n".join(_o if _p.returncode or "-v" in _ARGS else _o[-1:])); ok &= _p.returncode == 0
+if not ok and len(_ARGS - {"-v"}): _bp("❌ 확인 필요")
 sys.exit(0 if ok else 1)

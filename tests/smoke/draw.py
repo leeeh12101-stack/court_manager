@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """대진 만들기 점검: 사람별 출전·고정 페어 장면 + 무작위 설정 수백 개.
 '만들기 전 검사를 통과했는데 대진이 조건을 어기는' 경우가 하나라도 있으면 실패. 저장소 루트에서: python3 tests/smoke/draw.py"""
-import os, sys, http.server, threading, functools, datetime, json
+import os, sys, datetime, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from h import serve, setup, idle
 from playwright.sync_api import sync_playwright
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))); SM = os.path.join(ROOT, "tests", "smoke")
-class Q(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, *a): pass
-srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Q, directory=ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start(); port = srv.server_address[1]
+srv, URL = serve()
 # 12~3시, 40분, 2코트(4회차). 김나리 2시까지, 냥이 1시 20분까지
 N = [["김나리","14:00"],["강이","15:00"],["냥이","13:20"],["타냐","15:00"],["김가루","15:00"],["이수빈","15:00"],["이은현","15:00"],["고은지","15:00"],["윰이","15:00"],["김수정","15:00"],["박하늘","15:00"],["최유리","15:00"],["정다온","15:00"]]
 SEED = """(()=>{const td=Object.keys(__DB.sessions)[0].split("_")[1],ts=Object.values(__DB.games)[0].updatedAt;
@@ -25,14 +24,11 @@ with sync_playwright() as p:
     b = p.chromium.launch(); pg = b.new_page(viewport={"width": 390, "height": 844})
     pg.on("pageerror", lambda e: errs.append("오류: " + str(e)))
     pg.clock.install(time=datetime.datetime.now().replace(hour=9, minute=0, second=0, microsecond=0))
-    pg.route("https://www.gstatic.com/**", lambda r: r.fulfill(path=os.path.join(SM, "fb.js"), content_type="text/javascript"))
-    pg.route("**/firebase-config.js", lambda r: r.fulfill(path=os.path.join(SM, "fbcfg.js"), content_type="text/javascript"))
-    pg.route("**/sw.js", lambda r: r.fulfill(body="", content_type="text/javascript"))
-    pg.add_init_script(path=os.path.join(SM, "seed.js")); pg.add_init_script(SEED)
-    pg.goto(f"http://127.0.0.1:{port}/index.html"); pg.wait_for_timeout(1500)
-    pg.locator("[data-a=club]").first.click(); pg.wait_for_timeout(1500)
-    pg.locator("[data-a=toDraw]").first.click(); pg.wait_for_timeout(600)
-    W = lambda ms=150: pg.wait_for_timeout(ms)
+    setup(pg, SEED)
+    pg.goto(URL); idle(pg, 400)
+    pg.locator("[data-a=club]").first.click(); idle(pg)
+    pg.locator("[data-a=toDraw]").first.click(); idle(pg)
+    W = lambda ms=0: idle(pg, 30)   # 클릭 뒤 화면이 다시 그려질 때까지만
     def acc(v):
         if pg.locator(f'[data-a=accTog][data-v={v}] .accv').inner_text() == "▾": pg.locator(f'[data-a=accTog][data-v={v}] .accv').click(); W()
     def add_people(*names):
@@ -64,8 +60,8 @@ with sync_playwright() as p:
                 for t in g:
                     if any("강이" in x for x in t) and ri < 2: chk(any("냥이" in x for x in t) or not any("냥이" in x for gg in rd for tt in gg for x in tt), f"{ri+1}회차 강이·냥이가 갈라짐")
         pg.locator("[data-a=gen]").last.click(); W(220)
-    pg.go_back(); W(400)
-    if not pg.locator("[data-a=psAdd]").count(): pg.locator("[data-a=toDraw]").first.click(); W(500)
+    pg.go_back(); idle(pg)
+    if not pg.locator("[data-a=psAdd]").count(): pg.locator("[data-a=toDraw]").first.click(); idle(pg)
     out.append("장면 점검 끝")
     # 무작위
     NF=int(os.environ.get("DRAW_N","400")); r = pg.evaluate(FUZZ, NF); out.append(f"무작위 {NF}개: 통과 {r['pass']} · 미리 막음 {r['blocked']} · 어김 {len(r['bad'])}")
