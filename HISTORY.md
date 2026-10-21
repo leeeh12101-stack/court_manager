@@ -84,3 +84,4 @@
 ## 새 기록
 
 - **1021 점검 속도(BUILD 그대로 1021-6)**: 앱 코드 변경 없음. 화면 점검 고정 대기 → `idle()`(h.py) + 4개 동시 실행: 1분 51초 → 약 18초. 대진 점검 16초 → 12초. `check.py --ui/--draw/--all`(동시 실행, 전체 약 20초), 통과 시 한 줄. `tests/shot.py` 360·390 캡처(`--cmp` 전·후). HANDOFF를 핵심(약 18KB) + HISTORY.md로 나눔.
+- **1021-7**: ① 매월 모임 여러 주(`mwPick` 주 칩 여러 개+요일 칩+요약 줄 `.mwp/.mwr/.mwl/.mws`, 설정 `smW/smD`·클럽 만들기 `cwMW/cwMD`, 값은 `data-mv` — ⚠ `.seg div[data-v]`는 공통 처리가 S.form[data-k]로 가로챔). 저장 `schedM{week:첫 주,weeks,dow}`, 규칙 변경 없음. NEWS(schedule). ② 대진: 고정 페어 '같이 n게임'에 쓸 게임 수를 미리 떼어 둠(`pRes`: 남은 같이 게임 − 내 출전 확정 회차 중 짝이 올 수 있는 회차(`spare`) − 짝이 이번 회차 가능하면 1). draw.py에 페어 장면 3개(무작위 3000개 통과). ③ 사진 AI 전용 프로젝트 연결 준비(`aiBase`/`acX`, 설정 없으면 예전 그대로). sw `cm-v56`.

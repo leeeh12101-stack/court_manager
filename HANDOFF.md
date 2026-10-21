@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-21 · **BUILD `1021-6`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-21 · **BUILD `1021-7`** · 버전 표기 `v0.1`
 > **이 파일만 처음에 읽기.** BUILD별 상세 기록은 `HISTORY.md`(통째로 읽지 말고 검색).
 
 ---
@@ -23,7 +23,7 @@
 | `app.js` | 화면과 동작(약 286KB). 하나의 ES 모듈 |
 | `core.js` | **순수 계산**(Firebase·화면 무관) → 자동 테스트 대상 |
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
-| `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신) |
+| `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신). 사진 AI 전용 프로젝트 설정 `aiConfig`·`aiCheckKey`는 사용자가 직접 붙여 넣음(1021-7) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
 | `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v55`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
@@ -73,7 +73,7 @@
 
 컬렉션: `personalNotes, photoDays, clubPhotos, users, clubs, clubMembers, clubPrivate, inviteCodes, clubApplications, sessions, sessionParticipants, games, personalGames, personalPeople, aiUsage, aiDrawUsage, queues, feedback`
 
-**clubs 주요 필드**: `rankShow`, `mode`(round/queue/record), `qrule`, `schedType`(weekly/monthly/none), `schedM{week,dow}`, `regularDays`, 시간·코트, `noPlayEnabled`, `monthly{on,week,dow}`(월례대회 자동, 매주 클럽만), `mdays{yyyymmdd:bool}`, **`sched{yyyymmdd:{start,end,courts,title,memo,deadline,off,closed,ended}}`**(추가 모임·날짜별 변경·취소·응답 마감·모임 종료), `mtgOverride`(예전 방식, 호환 유지), `genderMode`(m/f/mixed), `memberView{tier,pos,gender}`, `tierEnabled`, `tiers`, `permissions`, `notice`, `gOk`(게스트로 인정한 이름), `lastBackupAt`, `visibility`, `joinMethod`.
+**clubs 주요 필드**: `rankShow`, `mode`(round/queue/record), `qrule`, `schedType`(weekly/monthly/none), `schedM{week,weeks[],dow}`(매월 여러 주 `weeks`, 예전 폰 호환용 `week`=첫 주, core `mWeeks`·`mWeeksLab`), `regularDays`, 시간·코트, `noPlayEnabled`, `monthly{on,week,dow}`(월례대회 자동, 매주 클럽만), `mdays{yyyymmdd:bool}`, **`sched{yyyymmdd:{start,end,courts,title,memo,deadline,off,closed,ended}}`**(추가 모임·날짜별 변경·취소·응답 마감·모임 종료), `mtgOverride`(예전 방식, 호환 유지), `genderMode`(m/f/mixed), `memberView{tier,pos,gender}`, `tierEnabled`, `tiers`, `permissions`, `notice`, `gOk`(게스트로 인정한 이름), `lastBackupAt`, `visibility`, `joinMethod`.
 **clubMembers**: `displayName, role, status, defaultPosition, tierId, gender, uid 또는 oid(미가입)`.
 **users**: `name, gender, dpos, sync, syncAsked, opts, hide, xlmap, imports, dupKeep`.
 **personalGames**: 직접 기록 + 클럽 경기 덧붙임(id `${uid}_${gameId}`: kind·court·mtype·note).
@@ -81,6 +81,8 @@
 **색인(콘솔에 생성 완료)**: games(clubId+updatedAt), games(clubId+pk 배열+updatedAt), sessionParticipants(clubId+updatedAt), personalGames(ownerUid+updatedAt).
 
 ## 6. Firebase·외부 설정 현황
+
+- **사진 AI 프로젝트 분리(1021-7, 진행 중)**: 모임 영상 때문에 원래 프로젝트를 Blaze로 바꾸면 Gemini Developer API가 유료(선불)로 바뀌어 사진 AI가 막힐 수 있음 → 사용자 결정: 사진 AI만 새 무료(Spark) 프로젝트 `court-manager-ai`로. 앱은 `aiConfig`가 있으면 첫 사진 읽기 때 `initializeApp(aiConfig,"ai")`+App Check(`aiCheckKey`)로 연결(`aiBase`/`acX`), 없거나 실패하면 원래 프로젝트. 사용 제한(aiUsage)은 원래 프로젝트. 개발자 'App Check 진단'에 AI 프로젝트·AI 토큰 줄. **순서**: 새 프로젝트 만들기(웹 앱·AI Logic Gemini Developer API·App Check reCAPTCHA Enterprise 키, 결제 연결 X) → firebase-config.js에 두 줄 → 진단·사진 입력 확인 → App Check 적용(AI Logic) → 그다음 원래 프로젝트 Blaze → 원래 프로젝트 Gemini(Generative Language) API 끄기. 2026-11-02부터 AI Logic은 App Check 적용 필수.
 
 - **App Check**: reCAPTCHA Enterprise 키는 **`court-manager-abcde` 프로젝트**에서 만든 것, 앱 등록·`firebase-config.js` 반영 완료. AI Logic **기준 보호 적용**, 재생 보호 **사용 안 함**, 토큰 TTL 1시간. 개발자 전용 `App Check 진단` 버튼 있음.
 - **AI 무료 한도(프로젝트 전체)**: 3.5 Flash 하루 약 20회, 3.5 Flash-Lite 약 500회(2026-09 기준 자료). 회원이 많아지면 종량제 검토.
@@ -109,7 +111,6 @@
 
 ## 9. 보류·다음 후보
 
-- **대진 버그(점검 중 발견, 1021 최적화 작업)**: 무작위 점검에서 드물게 실패하는 설정 — 고정 페어 `타냐·박하늘 같이 1게임`, 박하늘 `2회차 휴식·4회차 출전·1게임`, 타냐 `3회차 출전·2게임`. 가능한 답(4회차에 같이)이 있는데 `buildDraw`가 타냐를 1회차에 먼저 써 버려 40번 다시 뽑아도 매번 '같이 0게임'. 출전·게임 수가 꽉 찬 페어를 미리 맡아 두는 처리 필요(`drawRes`/`u.urg` 근처). 무작위 400개 중 가끔 걸려 `--draw`가 실패할 수 있음.
 
 - **실기기 확인 필요**: 1021-3 탭 밀기(사진 넘기기·가로 스크롤 칸과 안 겹치는지, 안드로이드 뒤로가기 제스처와 안 겹치는지), 대진표 인쇄(플레이 스토어 앱·크롬·아이폰에서 인쇄 창이 뜨는지, 용지 한 장에 맞는지)
 - **실기기 확인 필요**: 1021-1·2 사용법 투어(화면 들어갈 때만·본 단계 다시 안 뜸·'사용법 다시 보기'), 대진 미리보기 길게 누르기(글자 선택 메뉴 안 뜨는지·진동), 회원 탭 칸 모양 복구

@@ -77,6 +77,14 @@ with sync_playwright() as p:
     for n in (6, 8):
         bad = pg.evaluate(CAP, {"n": n, "T": 60}); out.append(f"4게임 제한 {n}명 · 5회차 3코트: 어김 {len(bad)}")
         chk(not bad, f"4게임 제한 {n}명인데 코트가 비거나 게임 수 초과: " + json.dumps(bad, ensure_ascii=False)[:300])
+    # 고정 페어 게임 수를 앞 회차에 다 써 버리던 경우(1021-7): 박하늘 4회차만·1게임, 타냐 3회차 출전·2게임, 둘이 같이 1게임 → 4회차에 같이
+    PR = {"mode": "pos", "excl": {}, "pairs": [["g:타냐", "g:박하늘", 1]], "ps": {"g:김수정": {"r": {"1": "in", "2": "out", "4": "out"}, "n": 0}, "g:박하늘": {"r": {"2": "out", "4": "in"}, "n": 1}, "g:타냐": {"r": {"3": "in"}, "n": 2}, "g:윰이": {"r": {}, "n": 0}}, "prio": ["pair", "pos", "opp"]}
+    # 같이 칠 게임을 '내 출전 확정 회차'에서 칠 수 있으면 중복으로 떼지 않음(수정 중 생긴 문제 2개)
+    PRS = [PR, {"mode": "pos", "excl": {}, "pairs": [["g:냥이", "g:김나리", 2], ["g:타냐", "g:이은현", 2]], "ps": {"g:냥이": {"r": {"2": "in", "3": "out"}, "n": 2}, "g:이은현": {"r": {"1": "in"}, "n": 0}, "g:윰이": {"r": {"3": "in"}, "n": 0}}, "prio": ["pair", "pos", "opp"]},
+           {"mode": "pos", "excl": {}, "pairs": [["g:김나리", "g:강이", 2]], "ps": {"g:김수정": {"r": {"3": "out", "4": "in"}, "n": 1}, "g:정다온": {"r": {"2": "out", "4": "in"}, "n": 1}, "g:김나리": {"r": {"2": "out", "3": "in"}, "n": 2}, "g:이수빈": {"r": {"4": "in"}, "n": 1}}, "prio": ["pair", "pos", "opp"]}]
+    for i, dr in enumerate(PRS):
+        f = pg.evaluate("(dr)=>{const {S,buildDraw,psViol}=__cm;let f=0;for(let t=0;t<60;t++){let ok=false;for(let i=0;i<40&&!ok;i++){const pl=buildDraw(S.parts,S.cur,dr);if(!psViol(pl.rounds,dr).length)ok=true}if(!ok)f++}return f}", dr)
+        out.append(f"페어 같이 게임 장면 {i+1} · 60번: 어김 {f}"); chk(not f, f"페어 같이 게임 장면 {i+1}에서 {f}번 어김")
     b.close()
 srv.shutdown()
 print("\n".join(out)); print("\n".join(errs) if errs else "✅ 대진 점검 통과"); sys.exit(1 if errs else 0)

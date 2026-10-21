@@ -41,9 +41,13 @@ export function mtOfP(t1,t2){if((t1||[]).length<2)return"single";const a=[...t1,
 // 매월 n번째 주(5=마지막 주) 요일인지
 export function nthDow(d,week,dow){if(d.getDay()!==+dow)return false;const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();return +week===5?d.getDate()+7>dim:Math.ceil(d.getDate()/7)===+week}
 // 정기 모임 날인지: 매주(요일들) / 매월(n번째 주 요일) / 비정기(없음)
-export function isRegDay(c,d){const t=(c&&c.schedType)||"weekly";if(t==="none")return false;if(t==="monthly"){const M=c.schedM||{};return !!+M.week&&nthDow(d,M.week,M.dow??6)}return ((c&&c.regularDays)||[]).includes(d.getDay())}
+// 매월 모임 주 목록(1~5, 5=마지막). 새 방식 weeks 배열, 예전 방식 week 하나도 읽음
+export function mWeeks(M){M=M||{};const w=Array.isArray(M.weeks)&&M.weeks.length?M.weeks:(+M.week?[M.week]:[]);return [...new Set(w.map(Number).filter(x=>x>=1&&x<=5))].sort((a,b)=>a-b)}
+// "매월 첫째·셋째 주 수요일"
+export function mWeeksLab(M){const W=mWeeks(M),N=["","첫째","둘째","셋째","넷째","마지막"];return W.length?`매월 ${W.map(x=>N[x]).join("·")} 주 ${"일월화수목금토"[+((M||{}).dow??6)]}요일`:""}
+export function isRegDay(c,d){const t=(c&&c.schedType)||"weekly";if(t==="none")return false;if(t==="monthly"){const M=c.schedM||{};return mWeeks(M).some(w=>nthDow(d,w,M.dow??6))}return ((c&&c.regularDays)||[]).includes(d.getDay())}
 // 정기 일정이 정해져 있는지(비정기는 정한 것으로 봄)
-export function schedSet(c){const t=(c&&c.schedType)||"weekly";return t==="none"||(t==="monthly"?!!+((c.schedM||{}).week):((c&&c.regularDays)||[]).length>0)}
+export function schedSet(c){const t=(c&&c.schedType)||"weekly";return t==="none"||(t==="monthly"?mWeeks(c.schedM).length>0:((c&&c.regularDays)||[]).length>0)}
 // 앞으로의 모임 목록: 정기 규칙 + 날짜별 일정(sched: 추가 모임·변경·취소) + 예전 방식의 다음 모임 수정(mtgOverride)
 export function meetingsAhead(c,now,days=60){const td=ymd(now),SC=(c&&c.sched)||{},ov=(c&&c.mtgOverride)||null,out=new Map(),D=k=>new Date(+k.slice(0,4),+k.slice(4,6)-1,+k.slice(6));
  for(let i=0;i<days;i++){const x=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);if(isRegDay(c,x)){const k=ymd(x);out.set(k,{dk:k,date:x,kind:"reg"})}}

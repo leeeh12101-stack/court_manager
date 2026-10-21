@@ -319,3 +319,10 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 .pbar{background:var(--bg);border-top:1px solid var(--line);padding-top:10px}.pbr{display:flex;gap:8px}.pbr button{flex:1;margin:0!important;padding:13px 4px;font-size:14.5px;white-space:nowrap}.pbr .pbm{flex:1.5}.sh .pbr{margin-top:12px}
 .swl{animation:swl .2s ease-out}.swr{animation:swr .2s ease-out}@keyframes swl{from{transform:translateX(26px);opacity:.4}}@keyframes swr{from{transform:translateX(-26px);opacity:.4}}@media(prefers-reduced-motion:reduce){.swl,.swr{animation:none}}
 #prt{display:none}@media print{body>*:not(#prt){display:none!important}#prt{display:block!important}#prt img{display:block;width:auto;max-width:100%;height:auto;margin:0 auto;object-fit:contain}}
+/* 매월 모임 주·요일 칩 (1021-7) */
+.mwp{margin-top:12px}
+.mwr{display:flex;align-items:center;gap:6px}
+.mwr+.mwr{margin-top:8px}
+.mwl{width:34px;flex:none;font-size:13px;color:var(--sub)}
+.mwr .seg{flex:1;gap:5px;margin:0}
+.mws{margin:10px 0 0 40px;font-size:13px;color:var(--main);font-weight:600}

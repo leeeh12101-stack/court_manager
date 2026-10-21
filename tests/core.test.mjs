@@ -63,6 +63,13 @@ eq("매주: 일요일 아님", C.isRegDay({ regularDays: [6] }, D(2026, 10, 11))
 eq("매월: 둘째 토요일", C.isRegDay({ schedType: "monthly", schedM: { week: 2, dow: 6 } }, D(2026, 10, 10)), true);
 eq("매월: 첫째 토요일은 아님", C.isRegDay({ schedType: "monthly", schedM: { week: 2, dow: 6 } }, D(2026, 10, 3)), false);
 eq("매월: 마지막 일요일", C.isRegDay({ schedType: "monthly", schedM: { week: 5, dow: 0 } }, D(2026, 10, 25)), true);
+eq("매월 여러 주: 1·3주 수요일 - 첫째", C.isRegDay({ schedType: "monthly", schedM: { week: 1, weeks: [1, 3], dow: 3 } }, D(2026, 10, 7)), true);
+eq("매월 여러 주: 1·3주 수요일 - 셋째", C.isRegDay({ schedType: "monthly", schedM: { week: 1, weeks: [1, 3], dow: 3 } }, D(2026, 10, 21)), true);
+eq("매월 여러 주: 1·3주 수요일 - 둘째는 아님", C.isRegDay({ schedType: "monthly", schedM: { week: 1, weeks: [1, 3], dow: 3 } }, D(2026, 10, 14)), false);
+eq("매월 여러 주: 예전 week만", C.mWeeks({ week: 2 }), [2]);
+eq("매월 여러 주: 정렬·중복 제거", C.mWeeks({ weeks: [3, 1, 3, 9] }), [1, 3]);
+eq("매월 여러 주: 요약", C.mWeeksLab({ weeks: [1, 3], dow: 3 }), "매월 첫째·셋째 주 수요일");
+eq("일정 설정됨: 매월 여러 주", C.schedSet({ schedType: "monthly", schedM: { week: 0, weeks: [1, 3] } }), true);
 eq("비정기: 요일이 있어도 정기 날 아님", C.isRegDay({ schedType: "none", regularDays: [6] }, D(2026, 10, 10)), false);
 eq("일정 설정됨: 비정기", C.schedSet({ schedType: "none" }), true);
 eq("일정 설정 안 됨: 매주 요일 없음", C.schedSet({ regularDays: [] }), false);
