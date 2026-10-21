@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-21 · **BUILD `1021-7`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-21 · **BUILD `1021-10`** · 버전 표기 `v0.1`
 > **이 파일만 처음에 읽기.** BUILD별 상세 기록은 `HISTORY.md`(통째로 읽지 말고 검색).
 
 ---
@@ -50,6 +50,7 @@
 7. **화면에 보이는 기능을 바꾸면 `NEWS`(app.js) 맨 아래에 새 묶음 추가**: `[대상, 제목, 한 줄 설명]`, 대상은 all·club·personal·권한 키. 사람마다 `users.newsSeen`(본 묶음 수)까지 건너뛰고 밀린 항목을 한 번에 보여 줌. 새 가입자는 처음부터 본 것으로 처리.
 8. **누를 수 있는 곳 표시 규칙**: 목록 줄은 `.li.tap`이면 자동으로 `›`(이동이 아닌 줄은 `noar`), 문장 속 글자는 `.lnk`(주의는 `.lnk.warn`) 점선 밑줄, 아래 창은 제목+닫기 머리줄·바깥 누르기·뒤로가기로 닫힘.
 9. Python으로 패치할 때 문자열 정확히 일치 확인(실패 목록 출력) → 실패 0이어야 함.
+10. **Windows PC(코드 모드)**: Python은 `%LOCALAPPDATA%\Programs\Python\Python312\python.exe`(`python`/`python3`는 스토어 바로가기라 안 됨), 실행 전 `PYTHONUTF8=1`(한글 깨짐 방지). Playwright·Chromium·Pillow 설치됨(1021-10).
 
 ## 4. 코드 구조 (app.js)
 

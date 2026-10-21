@@ -20,7 +20,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1021-9",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1021-10",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -607,7 +607,8 @@ const NEWS=[[
  ["all","사용법 안내","화면에 처음 들어가면 숨은 기능을 1, 2, 3 순서로 알려 줘요. 다시 보려면 오늘 탭·개인 설정 맨 아래 '사용법 다시 보기'"]],[
   ["all","옆으로 밀어서 탭 넘기기","화면을 왼쪽·오른쪽으로 밀면 옆 탭으로 넘어가요"],
   ["club","대진표 인쇄","대진표 '이미지로 저장'에서 바로 인쇄할 수 있어요"]],[
-  ["schedule","한 달에 두 번 모임","설정 › 모임 일정 › 매월에서 주를 여러 개 고를 수 있어요(예: 첫째·셋째 주 수요일)"]]];
+  ["schedule","한 달에 두 번 모임","설정 › 모임 일정 › 매월에서 주를 여러 개 고를 수 있어요(예: 첫째·셋째 주 수요일)"]],[
+  ["all","메인 화면 정리","내 이름·로그아웃은 오른쪽 위 '내 계정'으로, 의견 보내기는 맨 아래로 옮겼어요"]]];
 const tipSv=()=>(S.profile&&S.profile.tipSv)||[],tipOn=id=>tipSv().includes(id),tipChip=t=>`<span class="qk">${esc(t.c)}</span>`;
 function tipCard(){if(S.profile&&S.profile.tipOff)return"";const t=tipToday();return `<div class="qc"><div class="ql">오늘의 테니스 팁 ${tipChip(t)}</div><div class="qt">${esc(t.t)}</div>${t.a?`<div class="qa">${esc(t.a)}</div>`:""}<span class="qlk" data-a="tipOpen">팁 보관함${tipSv().length?` · ${tipSv().length}`:""} ›</span><button class="qh${tipOn(t.id)?" on":""}" data-a="tipTog" data-id="${t.id}" aria-label="팁 저장">${tipOn(t.id)?"♥":"♡"}</button></div>`}
 // 1021-1 사용법 투어: 화면에 들어갈 때 처음 보는 단계만(단계별 기록 users.tour). 대상이 화면에 있어야 보임 → 권한이 생기면 새 단계만 뜸
@@ -960,11 +961,11 @@ login:()=>`<div class="mid center"><img class="logo" src="icon-192.png" alt=""><
 name:()=>{let inv=false;try{inv=!!sessionStorage.getItem("cm_join")}catch(e){}return `<h1>${inv?"클럽 초대를 받았어요":"이름 설정"}</h1><div class="card"><div class="sub">Google 이름</div><b>${esc(S.profile.name||"(없음)")}</b></div>
 <p class="sub">${inv?"<b style=\"color:var(--tx)\">클럽에서 부르는 이름(실명)</b>으로 적어 주세요. 명단의 이름과 같아야 지난 기록이 이어져요.":"경기 기록이 누구 것인지 알아보기 쉽도록 실명 사용을 권장합니다. 나중에 바꿀 수 있습니다."}</p>
 <input id="nm" value="${esc(S.profile.name)}" maxlength="20"><div class="bar"><button data-a="saveName">시작하기</button></div>`},
-mode:()=>{const dv=isDev()&&!S.pvU,li=(a,t,sub,c)=>`<div class="li tap" data-a="${a}"><span class="nm" style="font-weight:500${c?";color:var(--main)":""}">${t}</span>${sub?`<span class="sub">${sub}</span>`:""}</div>`;return `<h1>안녕하세요, ${esc(S.profile.name)}님</h1><p class="hi" style="margin-bottom:10px">오늘은 어떤 모드로 시작할까요?</p><div class="card hero tap" data-a="modeClub" style="padding:19px 18px"><b style="font-size:18px">클럽·모임</b><div class="sub">정기 클럽부터 소모임·번개까지 함께 관리해요</div></div>
+mode:()=>{const dv=isDev()&&!S.pvU,li=(a,t,sub,c)=>`<div class="li tap" data-a="${a}"><span class="nm" style="font-weight:500${c?";color:var(--main)":""}">${t}</span>${sub?`<span class="sub">${sub}</span>`:""}</div>`;return `<div class="row" style="align-items:flex-start"><h1>안녕하세요, ${esc(S.profile.name)}님</h1><button class="link" data-a="meOpen" style="flex:none;margin-top:6px">내 계정</button></div><p class="hi" style="margin-bottom:10px">오늘은 어떤 모드로 시작할까요?</p><div class="card hero tap" data-a="modeClub" style="padding:19px 18px"><b style="font-size:18px">클럽·모임</b><div class="sub">정기 클럽부터 소모임·번개까지 함께 관리해요</div></div>
 <div class="card tap" data-a="modePersonal" style="padding:19px 18px"><b style="font-size:18px">개인</b><div class="sub">클럽 밖 경기까지 내 전적과 통계를 기록해요</div></div>${tipCard()}${FT.banner()}
-<div class="list" style="margin-top:10px">${S.profile&&S.profile.tipOff?li("tipOpen","오늘의 테니스 팁",tipSv().length?`저장 ${tipSv().length}`:""):""}${li("fbOpen","의견 보내기")}${li("editName","내 이름",esc(S.profile.name))}<div class="li tap noar" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div>
-${dv?`<div class="sub" style="margin:16px 4px 6px;font-size:12px">개발자 전용</div><div class="list">${li("pvUGo","일반 사용자 화면으로 보기","",1)}${li("fbAdminOpen","받은 의견","",1)}<div class="li noar" style="display:block"><span class="nm" style="font-weight:500;color:var(--main)">포백 테스트 참여</span><div class="sub ftst" style="margin-top:2px">${esc(S.ftStatsT||"불러오는 중…")}</div></div>${li("acDiag","App Check 진단","",1)}</div>`:""}<div class="row" style="justify-content:center;gap:16px;margin-top:8px"><span class="sub tap" data-a="privacy">개인정보처리방침</span><span class="sub tap" data-a="delAcct">계정 삭제</span></div>
-<div class="ver" style="margin-top:auto;padding:6px 0 calc(8px + env(safe-area-inset-bottom))">테스트 버전 ${APPV} · ${BUILD}</div>${S.tipSh?tipSheet():""}`},
+
+${dv?`<div class="sub" style="margin:16px 4px 6px;font-size:12px">개발자 전용</div><div class="list">${li("pvUGo","일반 사용자 화면으로 보기","",1)}${li("fbAdminOpen","받은 의견","",1)}<div class="li noar" style="display:block"><span class="nm" style="font-weight:500;color:var(--main)">포백 테스트 참여</span><div class="sub ftst" style="margin-top:2px">${esc(S.ftStatsT||"불러오는 중…")}</div></div>${li("acDiag","App Check 진단","",1)}</div>`:""}<div class="row" style="justify-content:center;gap:16px;margin-top:14px"><span class="sub tap" data-a="fbOpen">의견 보내기</span><span class="sub tap" data-a="privacy">개인정보처리방침</span></div>
+<div class="ver" style="margin-top:auto;padding:6px 0 calc(8px + env(safe-area-inset-bottom))">테스트 버전 ${APPV} · ${BUILD}</div>${S.tipSh?tipSheet():""}${S.meSh?`<div class="sh" data-a="meX"><div data-keep="1"><div class="row" style="align-items:center;margin-bottom:8px"><h3 style="margin:0">내 계정</h3><button class="link" data-a="meX" style="margin:0">닫기</button></div><div class="list">${S.profile&&S.profile.tipOff?li("tipOpen","오늘의 테니스 팁",tipSv().length?`저장 ${tipSv().length}`:""):""}${li("editName","내 이름",esc(S.profile.name))}<div class="li tap noar" data-a="logout"><span class="nm" style="font-weight:500;color:#B3402A">로그아웃</span></div></div><div class="row" style="justify-content:center;margin-top:10px"><span class="sub tap" data-a="delAcct">계정 삭제</span></div></div></div>`:""}`},
 clubs:()=>S.clubsReady?V.clubs0():V.boot(),
 clubs0:()=>`<div class="row"><h1>내 클럽</h1><button class="link" data-a="toMode">모드 변경</button></div>
 <p class="hi">가입 ${joined()}/${MAX_JOIN} · 생성 ${created()}/${MAX_CREATE}</p>
@@ -1049,7 +1050,7 @@ function pickSheet(){const L=pickL();if(!L.length)return"";return `<div class="s
 async function addMember(clubId,extra={}){try{localStorage.setItem("cm_wel_"+clubId,"1")}catch(e){}
   await setDoc(doc(db,"clubMembers",clubId+"_"+S.user.uid),{clubId,uid:S.user.uid,displayName:S.profile.name,photoURL:S.user.photoURL||"",role:"member",status:"active",defaultPosition:"either",tierId:null,joinedAt:serverTimestamp(),...extra});
 }
-const A={
+const A={meOpen(){S.meSh=1;keepR()},meX(){S.meSh=0;keepR()},
  snMe(){S.ptab="games";S.form.pv="memo";S.form.pmv="me";render();scrollTo(0,0)},
  snNew(el){const dk=(el&&el.dataset&&el.dataset.dk)||ymd(new Date());S.sne={id:null,date:dk,tag:"",text:""};if(S.screen==="personal")keepR()},
  snEdit(el){const n=(S.pn||[]).find(x=>x.id===el.dataset.id);if(!n)return;S.sne={id:n.id,date:n.date,tag:n.tag||"",text:n.text||""};keepR()},
@@ -1118,7 +1119,7 @@ const A={
   try{await cpRm(c,P.dk,P.k,[id]);await cpFresh(c,P.dk,P.k);if(P.img)delete P.img[id];keepR();toast("지웠어요")}catch(e){pop("지우지 못했습니다."+cpErr(e.step||"",e))}},
 
 async login(){try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){pop("로그인하지 못했습니다. 팝업 차단을 해제하고 다시 시도해 주세요.")}},
-async logout(){localStorage.removeItem("cm_mode");await signOut(auth)},
+async logout(){S.meSh=0;localStorage.removeItem("cm_mode");await signOut(auth)},
 async saveName(){const n=$("#nm").value.trim();if(!n)return pop("이름을 입력해 주세요.");
   S.profile={name:n,email:S.user.email||"",photoURL:S.user.photoURL||"",newsSeen:NEWS.length};
   await setDoc(doc(db,"users",S.user.uid),{uid:S.user.uid,...S.profile,createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});FT.sync();(await joinPending())||(await gsPending())||go("mode")},
@@ -1138,7 +1139,7 @@ selView(){const p=selKey(S.sel);if(!p)return;S.sel=null;S.mdt=p.k;S.mdtD=0;S.sti
 selX(){S.sel=null;S.still=1;render();S.still=0},
 tourReset(){try{localStorage.removeItem("cm_tour")}catch(e){}if(S.profile)S.profile.tour=[];if(!S.pv)_updateDoc(doc(db,"users",S.user.uid),{tour:[]}).catch(()=>{});toast("화면에 들어가면 사용법이 다시 떠요");scrollTo(0,0);tourLater()},
 async tipTog(el){const id=el.dataset.id,on=!tipOn(id),L=tipSv().filter(x=>x!==id);if(on)L.unshift(id);S.profile.tipSv=L;keepR();try{await _updateDoc(doc(db,"users",S.user.uid),{tipSv:L})}catch(e){}if(!S.tipSh)toast(on?"팁을 저장했어요":"저장을 취소했어요")},
-tipOpen(){S.tipSh={ids:[...tipSv()]};render();const e=$(".qsh");if(e)e.scrollIntoView({block:"end"})},
+tipOpen(){S.meSh=0;S.tipSh={ids:[...tipSv()]};render();const e=$(".qsh");if(e)e.scrollIntoView({block:"end"})},
 tipClose(){S.tipSh=null;S.still=1;render();S.still=0},
 async tipVis(){const v=!(S.profile.tipOff);S.profile.tipOff=v;keepR();try{await _updateDoc(doc(db,"users",S.user.uid),{tipOff:v})}catch(e){}},
 pvUGo(){S.pvU=1;scrollTo(0,0);render()},
@@ -1334,7 +1335,7 @@ dxpPrint(){const v=dLay();let u=(S.dxpI||{})[v];if(!u){const c=dxpCv(v==="lr");u
   try{localStorage.setItem("cm_dlay",v)}catch(e){}prtClr();
   const b=document.createElement("div");b.id="prt";const im=new Image();im.alt="대진표";im.onload=()=>{const st=document.createElement("style");st.id="prtst";const L=im.width>=im.height;st.textContent=`@page{size:A4 ${L?"landscape":"portrait"};margin:8mm}#prt img{max-height:${L?185:270}mm}`;document.head.append(st);setTimeout(()=>{try{print()}catch(e){prtClr();pop("인쇄 창을 열지 못했어요.\n'저장 · 공유'로 이미지를 저장해 주세요.")}},60)};b.append(im);document.body.append(b);im.src=u},
 expx(){S.exp=null;S.expPlain=0;S.still=1;render();S.still=0},
-editName(){go("nameEdit")},
+editName(){S.meSh=0;go("nameEdit")},
 async saveNewName(){const n=$("#nn").value.trim();if(!n)return pop("이름을 입력해 주세요.");if(n===S.profile.name)return A.toMode();
   try{await updateDoc(doc(db,"users",S.user.uid),{name:n,updatedAt:serverTimestamp()});S.profile.name=n;
    if(await ask("가입한 모든 클럽의 활동명도 '"+n+"'(으)로 바꿀까요?\n클럽마다 따로 정한 활동명이 있다면 '이 이름만'을 선택하세요.","모두 변경","이 이름만")){const ms=await getDocs(query(collection(db,"clubMembers"),where("uid","==",S.user.uid),where("status","==","active")));for(const d of ms.docs)await updateDoc(d.ref,{displayName:n})}
@@ -1519,7 +1520,7 @@ async invQR(){const code=S.invCode;if(!code)return pop("초대코드를 불러�
    S.qr=new window.QRious({value:`${location.origin}${location.pathname}?join=${code}`,size:480,level:"M"}).toDataURL();keepR()}catch(e){pop("QR을 만들지 못했어요. 인터넷 연결을 확인해 주세요.")}},
 qrx(){S.qr=null;keepR()},
 privacy(){window.open("privacy.html","_blank")},
-async delAcct(){const u=S.user.uid;
+async delAcct(){S.meSh=0;const u=S.user.uid;
   if(!await ask("계정을 삭제할까요?\n개인 기록, 사람 메모, 보낸 의견이 모두 지워지고 가입한 클럽에서 탈퇴돼요. 되돌릴 수 없어요.","계속","취소"))return;
   const t=await askText("확인을 위해 '삭제'라고 입력해 주세요","");if((t||"").trim()!=="삭제")return pop("입력이 달라서 취소했어요.");
   try{const ms=(await getDocs(query(collection(db,"clubMembers"),where("uid","==",u),where("status","==","active")))).docs;
@@ -1533,14 +1534,20 @@ async delAcct(){const u=S.user.uid;
    for(const d of ms)await updateDoc(d.ref,{status:"withdrawn",withdrawnAt:serverTimestamp(),displayName:"탈퇴한 회원",photoURL:""}).catch(()=>{});
    await deleteDoc(doc(db,"users",u));await IDB.clear();try{localStorage.clear();sessionStorage.clear()}catch(e){}
    await deleteUser(auth.currentUser);pop("계정을 삭제했어요. 그동안 이용해 주셔서 고마워요.")}catch(e){pop("계정을 삭제하지 못했어요. 잠시 후 다시 시도하거나 개인정보처리방침의 이메일로 요청해 주세요.")}},
-async acDiag(){const out=[`키: ${CFG.appCheckKey?String(CFG.appCheckKey).slice(0,6)+"…("+String(CFG.appCheckKey).length+"자)":"없음"}`,`주소: ${location.host}`,`reCAPTCHA: ${window.grecaptcha&&window.grecaptcha.enterprise?"로드됨":"로드 안 됨"}`];
+async acDiag(){toast("확인하는 중…");
+  // 단계마다 8초 제한(1021-10): 응답 없는 단계가 있어도 결과 창은 늘 뜸. 직접 확인은 키별 숨은 위젯으로(키 이름 execute는 Firebase 위젯과 섞여 멈춤)
+  const T=(p,l,ms=8000)=>Promise.race([p,new Promise((_,n)=>setTimeout(()=>n(new Error(`${l}: 응답 없음(${ms/1000}초)`)),ms))]),em=e=>`${(e&&e.code)||""} ${String((e&&e.message)||e).slice(0,300)}`.trim(),W=S.acW||(S.acW={});
+  const tok=async(ac,lab)=>{try{const r=await T(getACToken(ac,true),lab),tk=String((r&&r.token)||"");out.push(tk.length>200?`${lab}: 정상(${tk.length}자)`:`${lab}: 가짜 ${(()=>{try{return atob(tk).slice(0,60)}catch(e){return tk.slice(0,40)}})()}`)}catch(e){out.push(`${lab} 오류: ${em(e)}`)}};
+  const srv=async(key,fc,lab)=>{try{const g=window.grecaptcha&&window.grecaptcha.enterprise;if(!g)throw new Error("reCAPTCHA 없음");
+   const w=W[key]!=null?W[key]:(W[key]=await T(new Promise(ok=>g.ready(()=>{const d=document.createElement("div");d.style.display="none";document.body.appendChild(d);ok(g.render(d,{sitekey:key,size:"invisible"}))})),"reCAPTCHA 준비"));
+   const rt=await T(g.execute(w,{action:"fire_app_check"}),"reCAPTCHA 토큰");
+   const r=await T(fetch(`https://content-firebaseappcheck.googleapis.com/v1/projects/${fc.projectId}/apps/${fc.appId}:exchangeRecaptchaEnterpriseToken?key=${fc.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({recaptcha_enterprise_token:rt})}),"서버"),t=await r.text();
+   let msg=t;try{const j=JSON.parse(t);msg=j.error?`${j.error.status||""} ${j.error.message||""}`:(j.token?"정상 발급":t)}catch(e){}out.push(`${lab}: ${r.status} ${String(msg).slice(0,400)}`)}catch(e){out.push(`${lab} 확인 실패: ${String((e&&e.message)||e).slice(0,200)}`)}};
+  const out=[`키: ${CFG.appCheckKey?String(CFG.appCheckKey).slice(0,6)+"…("+String(CFG.appCheckKey).length+"자)":"없음"}`,`주소: ${location.host}`,`reCAPTCHA: ${window.grecaptcha&&window.grecaptcha.enterprise?"로드됨":"로드 안 됨"}`];
   if(S.acErr)out.push(`첫 오류: ${S.acErr}`);
-  if(!acI)out.push("App Check 초기화 안 됨");else try{const r=await getACToken(acI,true),tk=String((r&&r.token)||"");out.push(tk.length>200?`새 토큰: 정상(${tk.length}자)`:`새 토큰: 가짜 ${(()=>{try{return atob(tk).slice(0,60)}catch(e){return tk.slice(0,40)}})()}`)}catch(e){out.push(`새 토큰 오류: ${(e&&e.code)||""} ${String((e&&e.message)||e).slice(0,300)}`)}
-  try{const fc=CFG.firebaseConfig||{},rt=await new Promise((ok,no)=>{const g=window.grecaptcha&&window.grecaptcha.enterprise;if(!g)return no(new Error("reCAPTCHA 없음"));g.ready(()=>g.execute(CFG.appCheckKey,{action:"fire_app_check"}).then(ok,no))});
-   out.push(`reCAPTCHA 토큰: ${rt?String(rt).length+"자":"없음"}`);
-   const r=await fetch(`https://content-firebaseappcheck.googleapis.com/v1/projects/${fc.projectId}/apps/${fc.appId}:exchangeRecaptchaEnterpriseToken?key=${fc.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({recaptcha_enterprise_token:rt})}),t=await r.text();
-   let msg=t;try{const j=JSON.parse(t);msg=j.error?`${j.error.status||""} ${j.error.message||""}`:(j.token?"정상 발급":t)}catch(e){}out.push(`서버 응답: ${r.status} ${String(msg).slice(0,400)}`)}catch(e){out.push(`직접 확인 실패: ${String((e&&e.message)||e).slice(0,200)}`)}
-  {const c=CFG.aiConfig;if(!(c&&c.projectId&&c.appId))out.push("AI 프로젝트: 따로 없음(원래 프로젝트로 읽음)");else{const b=aiBase();out.push(`AI 프로젝트: ${b===app?"연결 실패(원래 프로젝트로 읽음)":c.projectId+" 연결됨"} · 키 ${CFG.aiCheckKey?"있음":"없음"}`);if(b!==app&&acA)try{const r=await getACToken(acA,true),tk=String((r&&r.token)||"");out.push(tk.length>200?`AI 토큰: 정상(${tk.length}자)`:`AI 토큰: 가짜 ${tk.slice(0,40)}`)}catch(e){out.push(`AI 토큰 오류: ${(e&&e.code)||""} ${String((e&&e.message)||e).slice(0,200)}`)}}}
+  if(!acI)out.push("App Check 초기화 안 됨");else await tok(acI,"새 토큰");
+  if(CFG.appCheckKey)await srv(CFG.appCheckKey,CFG.firebaseConfig||{},"서버 응답");
+  {const c=CFG.aiConfig;if(!(c&&c.projectId&&c.appId))out.push("AI 프로젝트: 따로 없음(원래 프로젝트로 읽음)");else{const b=aiBase();out.push(`AI 프로젝트: ${b===app?"연결 실패(원래 프로젝트로 읽음)":c.projectId+" 연결됨"} · 키 ${CFG.aiCheckKey?"있음":"없음"}`);if(b!==app&&acA){await tok(acA,"AI 토큰");await srv(CFG.aiCheckKey,c,"AI 서버 응답")}}}
   pop(out.join("\n"))},
 async setMG(el){const m=S.mem.find(x=>mid(x)===S.ms),g=el.dataset.g;if(!m)return;try{await updateDoc(doc(db,"clubMembers",`${S.cur.id}_${mid(m)}`),{gender:g});m.gender=g;keepR()}catch(e){pop("바꾸지 못했습니다.")}},
 bulkG(el){S.bulk.g=el.dataset.g;keepR()},
@@ -1909,7 +1916,7 @@ const FT=ftInstall({S,go,render:()=>render(),esc,toast,pop,ask,askText,login:()=
 Object.assign(V,FT.V);Object.assign(A,FT.A);Object.assign(BACK,FT.BACK);
 window.addEventListener("popstate",()=>{
   if(S.hSkip){S.hSkip=0;return}if(S.tourO){tourEnd();return}if(HPRE.includes(S.screen))return;
-  if(S.tipSh){A.tipClose()}else if(S.pvU&&S.screen==="mode"){A.pvUExit()}else if(S.gss){A.gsx()}else if(S.pvAsk){A.pvNo()}else if(S.pv&&S.screen==="clubHome"&&!(S.sd||S.mdt||S.pe||S.ms||S.nos||S.unr)){A.pvExit()}else if(newsItems().length&&!S.syncAsk&&S.cready!==false){A.newsOk()}else if(S.pick&&pickL().length){A.pickNo()}else if(S.addm||S.unr||S.nos||S.qr||S.pk||S.omrg||S.qarr||S.qend!=null||S.exp||S.dxp||S.pkr||S.mdt||S.sd||S.ms||S.pe||S.pmo||S.sne||S.cph||S.cpv||S.dm||(S.ph&&S.ph.zoom)){S.addm=false;if(!(S.exp&&S.dxp))S.dxp=0;S.unr=S.nos=S.qr=S.pk=S.omrg=S.exp=S.mdt=S.sd=S.ms=S.pe=S.pmo=S.sne=S.qend=S.dm=S.pkr=null;if(S.cpv)S.cpv=null;else S.cph=null;S.qarr=false;if(S.ph)S.ph.zoom=0;S.still=1;render();S.still=0}
+  if(S.tipSh){A.tipClose()}else if(S.meSh){A.meX()}else if(S.pvU&&S.screen==="mode"){A.pvUExit()}else if(S.gss){A.gsx()}else if(S.pvAsk){A.pvNo()}else if(S.pv&&S.screen==="clubHome"&&!(S.sd||S.mdt||S.pe||S.ms||S.nos||S.unr)){A.pvExit()}else if(newsItems().length&&!S.syncAsk&&S.cready!==false){A.newsOk()}else if(S.pick&&pickL().length){A.pickNo()}else if(S.addm||S.unr||S.nos||S.qr||S.pk||S.omrg||S.qarr||S.qend!=null||S.exp||S.dxp||S.pkr||S.mdt||S.sd||S.ms||S.pe||S.pmo||S.sne||S.cph||S.cpv||S.dm||(S.ph&&S.ph.zoom)){S.addm=false;if(!(S.exp&&S.dxp))S.dxp=0;S.unr=S.nos=S.qr=S.pk=S.omrg=S.exp=S.mdt=S.sd=S.ms=S.pe=S.pmo=S.sne=S.qend=S.dm=S.pkr=null;if(S.cpv)S.cpv=null;else S.cph=null;S.qarr=false;if(S.ph)S.ph.zoom=0;S.still=1;render();S.still=0}
   else if(S.screen==="mode"){if(!S.exitArm){S.exitArm=1;toast("한 번 더 누르면 종료돼요")}const d=(history.state&&history.state.d)||0;if(d>0){S.hSkip=1;history.go(-d)}}
   else if(S.screen==="clubHome"&&S.tab!=="today"&&!S.pv)A.tab({dataset:{k:"today"}});
   else if(S.screen==="personal"&&S.ptab&&S.ptab!=="home")A.ptab({dataset:{k:"home"}});

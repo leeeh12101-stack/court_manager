@@ -9,6 +9,7 @@ IDLE = "(q)=>!document.querySelector('#app .spin')&&performance.now()-(window.__
 class _Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 class _S(http.server.ThreadingHTTPServer):
+    request_queue_size = 128   # 기본 5 → Windows에서 동시 실행 시 파일 요청이 거절돼 CSS·JS가 빠짐
     def handle_error(self, *a): pass
 def serve(root=ROOT):
     srv = _S(("127.0.0.1", 0), functools.partial(_Q, directory=root)); threading.Thread(target=srv.serve_forever, daemon=True).start()

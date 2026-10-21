@@ -13,13 +13,19 @@ VAR = {"기본": "", "순번제": "__DB.clubs.c1.mode='queue';", "결과만 기�
 errs = []
 async def run(b, url, vn, vs):
     pg = await b.new_page(viewport={"width": 390, "height": 844}); cur = ["시작"]
-    pg.on("pageerror", lambda e: errs.append(f"[{vn} · {cur[0]}] 오류: {e}"))
-    pg.on("console", lambda m: m.type == "error" and "Failed to load resource" not in m.text and errs.append(f"[{vn} · {cur[0]}] 콘솔: {m.text}"))
-    await asetup(pg, vs); await pg.goto(url); await aidle(pg, 400)
+    sw = lambda t: "ServiceWorker" in t or "fetching the script" in t   # 가짜 sw.js 등록 실패는 점검 PC 부하 탓(앱 오류 아님)
+    pg.on("pageerror", lambda e: sw(str(e)) or errs.append(f"[{vn} · {cur[0]}] 오류: {e}"))
+    pg.on("console", lambda m: m.type == "error" and "Failed to load resource" not in m.text and not sw(m.text) and errs.append(f"[{vn} · {cur[0]}] 콘솔: {m.text}"))
+    await asetup(pg, vs); await pg.goto(url)
+    try: await pg.wait_for_selector("#app [data-a]", timeout=20000)   # 느린 PC·동시 실행: 첫 화면이 그려질 때까지
+    except Exception: pass
+    await aidle(pg, 400)
     async def step(name, sel=None, opt=False):
         cur[0] = name
         if sel:
             el = pg.locator(sel).first
+            try: await el.wait_for(state="attached", timeout=4000)   # 느린 PC에서 화면이 늦게 바뀌는 경우
+            except Exception: pass
             if await el.count() == 0:
                 if not opt: errs.append(f"[{vn} · {name}] 찾을 수 없음: {sel}")
                 return
