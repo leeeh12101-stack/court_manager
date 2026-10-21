@@ -20,7 +20,7 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1021-5",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1021-6",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -173,7 +173,7 @@ function cx2(R,full){const o=[],pc={},oc={},pr={},orr={},gc={},K=(a,b)=>a<b?a+"|
  S.parts.filter(p=>p.status==="in"&&!p.noPlay).forEach(p=>{const k=key(p),n=dnp(p);let run=0,s0=0;const end=()=>{if(run>=2)o.push({c:"rest",i:"😴",w:n,d:`${s0}~${s0+run-1}회차 연속 휴식`});run=0};R.forEach((r,ri)=>{const t=r.time?tmin(r.time):st+ri*iv,here=tmin(p.start)<=t&&tmin(p.end)>=t+iv&&psR(dr,k,r.n)!=="out";if(here&&!play[ri].has(k)){if(!run)s0=r.n;run++}else end()});end()});
  const ks=Object.keys(gc).filter(k=>S.parts.some(p=>key(p)===k&&!p.noPlay));if(ks.length>1){const mx=Math.max(...ks.map(k=>gc[k])),mn=Math.min(...ks.map(k=>gc[k]));if(mx-mn>=2){const a=ks.find(k=>gc[k]===mx),b=ks.find(k=>gc[k]===mn);o.push({c:"cnt",i:"⚖️",w:"경기 수",d:`${nm[a]} ${mx}경기 · ${nm[b]} ${mn}경기`})}}
  return o}
-const cxK=x=>x.i+x.w+x.d,CXN={hard:"꼭 고칠 것",pair:"같은 페어 반복",opp:"같은 상대 반복",pos:"포지션",tier:"Tier",gen:"성별",rest:"연속 휴식",cnt:"경기 수"};
+const cxK=x=>x.i+x.w+x.d,CXN={hard:"꼭 고칠 것",court:"빈 코트",pair:"같은 페어 반복",opp:"같은 상대 반복",pos:"포지션",tier:"Tier",gen:"성별",rest:"연속 휴식",cnt:"경기 수"};
 // 항목 목록 HTML: nw(새로 생긴 것) 굵게, 나머지는 흐리게
 const cxHtml=(L,nw)=>`<span class="cxl">${L.map(x=>{const n=!nw||nw.has(cxK(x));return `<span class="cxi${n?"":" old"}"><span>${x.i}</span><span><b>${esc(x.w)}</b><span class="sub">${esc(x.d)}</span></span></span>`}).join("")}</span>`;
 const askH=(h,ok,no)=>new Promise(r=>{$("#popmsg").innerHTML=h;$("#popok").textContent=ok;$("#popno").textContent=no||"";$("#popno").style.display=no?"block":"none";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
@@ -211,13 +211,23 @@ const psCheck=dr=>psIssues(dr).map(x=>({c:"hard",i:"⛔",w:x.w,d:x.d}));
 function psViol(R,dr){const o=[],on=R.map(r=>new Set(r.games.flatMap(g=>[...g.t1,...g.t2].map(x=>x.k))));
  psPl().forEach(k=>{let g=0;const av=avRs(k);R.forEach((r,i)=>{const st=av.includes(r.n)?psR(dr,k,r.n):"",pl=on[i].has(k);if(pl)g++;if(st==="in"&&!pl)o.push({c:"hard",i:"⛔",w:nmOf(k),d:`${r.n}회차 출전인데 빠졌어요`});if(st==="out"&&pl)o.push({c:"hard",i:"⛔",w:nmOf(k),d:`${r.n}회차는 휴식이에요`})});const c=psN(dr,k);if(c&&g>c)o.push({c:"hard",i:"⛔",w:nmOf(k),d:`${c}게임인데 ${g}게임이에요`})});
  (dr.pairs||[]).forEach(([a,b,m])=>{let tog=0;const sp=[];R.forEach(r=>{let ta=null,tb=null;r.games.forEach((g,gi)=>[g.t1,g.t2].forEach((t,ti)=>t.forEach(x=>{if(x.k===a)ta=gi+":"+ti;if(x.k===b)tb=gi+":"+ti})));if(ta&&tb){if(ta===tb)tog++;else sp.push(r.n)}});const w=`${nmOf(a)} · ${nmOf(b)}`;if(m){const mx=pairMax(dr,a,b).mx;if(tog<Math.min(m,mx))o.push({c:"hard",i:"⛔",w,d:`같이 ${m}게임인데 ${tog}게임만 같이 해요`})}else if(sp.length)o.push({c:"hard",i:"⛔",w,d:`${sp.join("·")}회차에 따로 쳐요`})});
+ const {tg}=drawRes(S.parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),s:tmin(p.start),e:tmin(p.end),c:psN(dr,key(p))})),dr,S.cur);
+ R.forEach(r=>{const t=tg[r.n];if(t&&r.games.length<t)o.push({c:"court",i:"⚠",w:`${r.n}회차`,d:`${t}코트를 채울 수 있는데 ${r.games.length}코트만 써요`})});
  return o}
+// 게임 수가 정해진 사람을 코트가 모자랄 회차에 미리 맡아 둠(뒤 회차부터, 남은 게임 많은 사람부터). tg=회차별 채울 수 있는 코트 수
+const drawRes=(pl,dr,c,rnd)=>{const {iv,st,R}=rinfo(c),cts=eff(c).courts,inT=(p,q)=>{const tq=st+(q-1)*iv;return p.s<=tq&&p.e>=tq+iv},res={},tg={},rem={},tb={};
+ pl.forEach(p=>{tb[p.k]=rnd?Math.random():0;if(p.c){let m=0;for(let q=1;q<=R;q++)if(inT(p,q)&&psR(dr,p.k,q)==="in")m++;rem[p.k]=p.c-m}});
+ for(let q=R;q>=1;q--){const av=pl.filter(p=>inT(p,q)&&psR(dr,p.k,q)!=="out"),need=Math.min(cts,Math.floor(av.length/4))*4;let got=av.filter(p=>!p.c||psR(dr,p.k,q)==="in").length;
+  av.filter(p=>p.c&&psR(dr,p.k,q)!=="in"&&rem[p.k]>0).sort((a,b)=>rem[b.k]-rem[a.k]||tb[a.k]-tb[b.k]||(a.k<b.k?-1:1)).forEach(p=>{if(got<need){(res[p.k]=res[p.k]||new Set).add(q);rem[p.k]--;got++}});
+  tg[q]=Math.min(cts,Math.floor(got/4))}
+ return{res,tg}};
 function buildDraw(parts,c,dr){
  const {iv,st,R}=rinfo(c),cts=eff(c).courts,pl=parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:dnp(p),p:p.position,s:tmin(p.start),e:tmin(p.end),g:0,c:psN(dr,key(p)),t:(()=>{const m=S.mem.find(x=>mkey(x)===key(p));return m&&m.tierId!=null&&m.tierId!==""?m.tierId:null})(),x:gOf(key(p),p)}));
+ const {res}=drawRes(pl,dr,c,1),rIn=(p,q)=>psR(dr,p.k,q)==="in"||!!(res[p.k]&&res[p.k].has(q));
  const pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a,cnt=(m,a,b)=>m[K(a,b)]||0,inc=(m,a,b)=>m[K(a,b)]=cnt(m,a,b)+1,rounds=[],W=dr.W||dW(dr.prio),fpc={};let rp=new Set();
  for(let r=0;r<R;r++){
-  const t=st+r*iv,n=r+1,inT=(p,q)=>{const tq=st+(q-1)*iv;return p.s<=tq&&p.e>=tq+iv},futM=p=>{let m=0;for(let q=n+1;q<=R;q++)if(inT(p,q)&&psR(dr,p.k,q)==="in")m++;return m};
-  const av0=pl.filter(p=>inT(p,n)&&psR(dr,p.k,n)!=="out"&&!(p.c&&p.g>=p.c)),must=new Set(av0.filter(p=>psR(dr,p.k,n)==="in").map(p=>p.k));
+  const t=st+r*iv,n=r+1,inT=(p,q)=>{const tq=st+(q-1)*iv;return p.s<=tq&&p.e>=tq+iv},futM=p=>{let m=0;for(let q=n+1;q<=R;q++)if(inT(p,q)&&rIn(p,q))m++;return m};
+  const av0=pl.filter(p=>inT(p,n)&&psR(dr,p.k,n)!=="out"&&!(p.c&&p.g>=p.c)),must=new Set(av0.filter(p=>rIn(p,n)).map(p=>p.k));
   const av=av0.filter(p=>must.has(p.k)||!p.c||p.g+1+futM(p)<=p.c),by=Object.fromEntries(av.map(p=>[p.k,p])),used=new Set();
   let units=[];dr.pairs.forEach(([a,b,m])=>{if(by[a]&&by[b]&&!(m&&(fpc[a+'|'+b]||0)>=m)){const u=[by[a],by[b]];if(m){let rem=0;for(let q=n;q<=R;q++)if(inT(by[a],q)&&inT(by[b],q)&&psR(dr,a,q)!=="out"&&psR(dr,b,q)!=="out")rem++;if(m-(fpc[a+'|'+b]||0)>=rem)u.urg=1}units.push(u);used.add(a);used.add(b)}});
   av.forEach(p=>{if(!used.has(p.k))units.push([p])});
@@ -1903,4 +1913,4 @@ document.addEventListener("touchend",e=>{const s=swS;swS=null;if(!s||!e.changedT
 let pvX=null;document.addEventListener("touchstart",e=>{pvX=S.cpv&&e.target.closest&&e.target.closest("#pvimg")?e.touches[0].clientX:null},{passive:true});document.addEventListener("touchend",e=>{if(pvX==null||!S.cpv)return;const dx=e.changedTouches[0].clientX-pvX;pvX=null;if(Math.abs(dx)<50)return;const L=cpItems(S.cpv.dk,"group"),i=L.findIndex(p=>p.id===S.cpv.id),j=dx<0?i+1:i-1;if(L[j]){S.cpv.id=L[j].id;keepR()}},{passive:true});setTimeout(verChk,4000);
 
 // 화면 점검 전용(가짜 Firebase로 띄웠을 때만): 대진 검사 함수를 tests/smoke/draw.py가 직접 부름
-if(globalThis.__DB)globalThis.__cm={S,buildDraw,psIssues,psViol,psRange,pairMax,nmMatch};
+if(globalThis.__DB)globalThis.__cm={S,buildDraw,psIssues,psViol,psRange,pairMax,nmMatch,key};

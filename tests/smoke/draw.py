@@ -71,6 +71,16 @@ with sync_playwright() as p:
     NF=int(os.environ.get("DRAW_N","400")); r = pg.evaluate(FUZZ, NF); out.append(f"무작위 {NF}개: 통과 {r['pass']} · 미리 막음 {r['blocked']} · 어김 {len(r['bad'])}")
     chk(not r["bad"], "검사를 통과했는데 조건을 어긴 설정: " + json.dumps(r["bad"], ensure_ascii=False)[:600])
     chk(r["pass"] > 100, f"통과한 설정이 너무 적어요({r['pass']})")
+    # 게임 수 제한(4게임)이 있어도 마지막 회차까지 코트를 다 채우는지: 15명(1명은 14:20에 감)·3코트·35분·5회차(1021-6, 예전엔 마지막 회차 2코트)
+    CAP = """(o)=>{const {S,buildDraw,key}=__cm,c={...S.cur,regularStartTime:"12:00",regularEndTime:"15:00",roundInterval:35,regularCourtCount:3},
+ parts=Array.from({length:15},(_,i)=>({status:"in",guest:true,uid:"",name:"사람"+i,start:"12:00",end:i===14?"14:20":"15:00",position:"either"})),ps={};
+ parts.slice(0,o.n).forEach(p=>ps[key(p)]={r:{},n:4});const dr={mode:"pos",excl:{},pairs:[],ps,prio:["pair","pos","opp"]},bad=[];
+ for(let t=0;t<o.T;t++){const pl=buildDraw(parts,c,dr),cts=pl.rounds.map(r=>r.games.length),g={};pl.rounds.forEach(r=>r.games.forEach(x=>[...x.t1,...x.t2].forEach(p=>g[p.k]=(g[p.k]||0)+1)));
+  const over=Object.keys(ps).filter(k=>(g[k]||0)>4);if(cts.length!==5||cts.some(x=>x!==3)||over.length)bad.push({cts,over})}
+ return bad.slice(0,3)}"""
+    for n in (6, 8):
+        bad = pg.evaluate(CAP, {"n": n, "T": 60}); out.append(f"4게임 제한 {n}명 · 5회차 3코트: 어김 {len(bad)}")
+        chk(not bad, f"4게임 제한 {n}명인데 코트가 비거나 게임 수 초과: " + json.dumps(bad, ensure_ascii=False)[:300])
     b.close()
 srv.shutdown()
 print("\n".join(out)); print("\n".join(errs) if errs else "✅ 대진 점검 통과"); sys.exit(1 if errs else 0)
