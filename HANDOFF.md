@@ -83,7 +83,7 @@
 
 ## 6. Firebase·외부 설정 현황
 
-- **사진 AI 프로젝트 분리(1021-7, 진행 중)**: 모임 영상 때문에 원래 프로젝트를 Blaze로 바꾸면 Gemini Developer API가 유료(선불)로 바뀌어 사진 AI가 막힐 수 있음 → 사용자 결정: 사진 AI만 새 무료(Spark) 프로젝트 `court-manager-ai`로. 앱은 `aiConfig`가 있으면 첫 사진 읽기 때 `initializeApp(aiConfig,"ai")`+App Check(`aiCheckKey`)로 연결(`aiBase`/`acX`), 없거나 실패하면 원래 프로젝트. 사용 제한(aiUsage)은 원래 프로젝트. 개발자 'App Check 진단'에 AI 프로젝트·AI 토큰 줄. **순서**: 새 프로젝트 만들기(웹 앱·AI Logic Gemini Developer API·App Check reCAPTCHA Enterprise 키, 결제 연결 X) → firebase-config.js에 두 줄 → 진단·사진 입력 확인 → App Check 적용(AI Logic) → 그다음 원래 프로젝트 Blaze → 원래 프로젝트 Gemini(Generative Language) API 끄기. 2026-11-02부터 AI Logic은 App Check 적용 필수.
+- **사진 AI 프로젝트 분리(1021-7~9, ✅ 완료 2026-10-27)**: 모임 영상 때문에 원래 프로젝트를 Blaze로 바꾸면 Gemini Developer API가 유료가 될 수 있어 사진 AI만 무료(Spark) 프로젝트 `court-manager-ai`로 분리. `firebase-config.js`의 `aiConfig`·`aiCheckKey`(이 프로젝트에서 만든 reCAPTCHA Enterprise 키 `6Lfpp_kt…`; 1021-8 키는 다른 GCP 프로젝트라 400이었음) → 첫 사진 읽기 때 `initializeApp(aiConfig,"ai")`+App Check(`aiBase`/`acX`), 실패하면 원래 프로젝트. 사용 제한(aiUsage)은 원래 프로젝트. AI 프로젝트 App Check: AI Logic **적용됨**(확인된 요청 100%), 개발자 'App Check 진단'에 AI 토큰·AI 서버 응답 200 확인. **남은 일(모임 영상 시작 때)**: 원래 프로젝트 Blaze 전환 → 원래 프로젝트의 Gemini(Generative Language) API 끄기(앱이 AI 프로젝트 실패 시 원래 프로젝트로 읽으므로 켜 두면 요금 가능).
 
 - **App Check**: reCAPTCHA Enterprise 키는 **`court-manager-abcde` 프로젝트**에서 만든 것, 앱 등록·`firebase-config.js` 반영 완료. AI Logic **기준 보호 적용**, 재생 보호 **사용 안 함**, 토큰 TTL 1시간. 개발자 전용 `App Check 진단` 버튼 있음.
 - **AI 무료 한도(프로젝트 전체)**: 3.5 Flash 하루 약 20회, 3.5 Flash-Lite 약 500회(2026-09 기준 자료). 회원이 많아지면 종량제 검토.
