@@ -53,13 +53,14 @@ def font(sz):
     for f in ("/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf", "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc"):
         if os.path.exists(f): return ImageFont.truetype(f, sz)
     import glob
-    for f in glob.glob("/usr/share/fonts/**/*CJK*.tt[cf]", recursive=True) + glob.glob("/usr/share/fonts/**/*Nanum*.ttf", recursive=True):
+    for f in glob.glob("/usr/share/fonts/**/*CJK*.tt[cf]", recursive=True) + glob.glob("/usr/share/fonts/**/*Nanum*.ttf", recursive=True) + glob.glob("C:/Windows/Fonts/malgun.ttf"):
         return ImageFont.truetype(f, sz)
     return ImageFont.load_default()
 rows = []
 if cmp_:
     d = tempfile.mkdtemp()
-    subprocess.run(f"git archive HEAD | tar -x -C {d}", shell=True, cwd=ROOT, check=True)
+    import zipfile, io   # tar 대신 zip(Windows 경로에서도 됨)
+    zipfile.ZipFile(io.BytesIO(subprocess.run(["git", "archive", "--format=zip", "HEAD"], cwd=ROOT, check=True, capture_output=True).stdout)).extractall(d)
     rows.append(("바꾸기 전", row(d)))
 rows.append(("바꾼 뒤" if cmp_ else "", row(ROOT)))
 G, T = 40, 56
