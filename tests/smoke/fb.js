@@ -3,7 +3,7 @@ const DB = (globalThis.__DB = globalThis.__DB || {});
 const now = () => Date.now();
 export const initializeApp = () => ({});
 // auth
-export const getAuth = () => ({});
+export const getAuth = () => ({}), initializeAuth = () => ({}), browserLocalPersistence = {}, indexedDBLocalPersistence = {}, browserPopupRedirectResolver = {};
 export class GoogleAuthProvider {}
 export const signInWithPopup = async () => {}, signOut = async () => {}, deleteUser = async () => {}, reauthenticateWithPopup = async () => {};
 export const onAuthStateChanged = (a, cb) => setTimeout(() => cb(globalThis.__USER), 10);

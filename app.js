@@ -1,5 +1,5 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut,deleteUser,reauthenticateWithPopup} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {initializeAuth,browserLocalPersistence,indexedDBLocalPersistence,browserPopupRedirectResolver,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut,deleteUser,reauthenticateWithPopup} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc as _setDoc,collection,query,where,getDocs,writeBatch as _writeBatch,serverTimestamp,limit,onSnapshot,runTransaction,Timestamp,increment,deleteField,updateDoc as _updateDoc,deleteDoc as _deleteDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js";
 import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken as getACToken,onTokenChanged as onACChange} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app-check.js";
@@ -20,7 +20,11 @@ function pop(msg){$("#popmsg").textContent=msg;$("#pop").style.display="flex"}
 const base=()=>$("#pop").style.display="none";$("#popok").onclick=base;
 const ask=(m,ok="확인",no="취소")=>new Promise(r=>{$("#popmsg").textContent=m;$("#popok").textContent=ok;$("#popno").textContent=no;$("#popno").style.display="block";$("#pop").style.display="flex";const d=v=>{base();$("#popok").textContent="확인";$("#popno").style.display="none";$("#popok").onclick=base;r(v)};$("#popok").onclick=()=>d(true);$("#popno").onclick=()=>d(false)});
 const askText=(m,v="")=>new Promise(r=>{const pi=$("#popin");$("#popmsg").textContent=m;pi.style.display="block";pi.value=v;$("#popok").textContent="확인";$("#popno").textContent="취소";$("#popno").style.display="block";$("#pop").style.display="flex";setTimeout(()=>pi.focus(),60);const d=x=>{base();pi.style.display="none";$("#popno").style.display="none";$("#popok").onclick=base;r(x)};$("#popok").onclick=()=>d(pi.value);$("#popno").onclick=()=>d(null)});
-const APPV="v0.1",BUILD="1026-1",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+// 사파리·아이폰(모든 iOS 브라우저는 WebKit): IndexedDB가 응답 없이 멈추는 일이 있어 로그인 저장은 localStorage만(1026-2)
+const SAFARI=(()=>{const u=navigator.userAgent;return /iP(hone|ad|od)/.test(u)||(/Safari/.test(u)&&!/Chrome|Chromium|Android|Edg/.test(u))||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)})();
+// 로딩 단계 기록(1026-2): 8초 넘으면 단계·다시 시도 표시, 15초 넘으면 기록을 남겼다가 다음에 정상으로 열릴 때 받은 의견(type slow)으로 보냄
+const LD={t0:Date.now(),st:"앱을 여는 중",on:1,log:[]},ld=s=>{LD.st=s;LD.on=1;LD.log.push([s,Math.round((Date.now()-LD.t0)/100)/10])};
+const APPV="v0.1",BUILD="1026-2",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -34,7 +38,7 @@ const HPRE=["boot","login","name"],HMAX=4;
 const hTop=()=>{if(HPRE.includes(S.screen))return;const ua=navigator.userActivation;if(ua&&!ua.isActive)return;let d=(history.state&&history.state.d)||0;while(d<HMAX){d++;history.pushState({r:2,d},"")}};
 const go=async(screen,extra={})=>{npHide();Object.assign(S,extra,{screen});if(screen!=="clubHome")qUnsub();hTop();if(screen!=="login"&&screen!=="name")localStorage.setItem("cm_screen",screen==="clubHome"?"clubs":screen);render()};
 
-try{ app=initializeApp(firebaseConfig);acI=null;if(CFG.appCheckKey)try{acI=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true});onACChange(acI,()=>{S.acErr=""},e=>{S.acErr=((e&&e.code)||"")+" "+String((e&&e.message)||e).slice(0,300)})}catch(e){console.warn(e)}auth=getAuth(app);db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
+try{ app=initializeApp(firebaseConfig);acI=null;if(CFG.appCheckKey)try{acI=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(CFG.appCheckKey),isTokenAutoRefreshEnabled:true});onACChange(acI,()=>{S.acErr=""},e=>{S.acErr=((e&&e.code)||"")+" "+String((e&&e.message)||e).slice(0,300)})}catch(e){console.warn(e)}auth=initializeAuth(app,{persistence:SAFARI?[browserLocalPersistence]:[indexedDBLocalPersistence,browserLocalPersistence],popupRedirectResolver:browserPopupRedirectResolver});db=getFirestore(app); }catch(e){ $("#app").innerHTML="<h1>설정 필요</h1><p>firebase-config.js 를 확인하세요.</p>"; }
 if(auth) {const sp=new URLSearchParams(location.search),jc=sp.get("join"),gsc=sp.get("gs"),ftc=sp.get("ft"),frc=sp.get("fr"),fcc=sp.get("fc");if(jc){try{sessionStorage.setItem("cm_join",jc.toUpperCase())}catch(e){}}if(gsc){try{sessionStorage.setItem("cm_gs",gsc.toUpperCase())}catch(e){}}try{if(ftc)sessionStorage.setItem("cm_ft",ftc);if(frc)sessionStorage.setItem("cm_fr",frc);if(fcc)sessionStorage.setItem("cm_fc",fcc)}catch(e){}if(jc||gsc||ftc||frc||fcc)history.replaceState(null,"",location.pathname)}
 async function gsPending(){let c=null;try{c=sessionStorage.getItem("cm_gs")}catch(e){}if(!c)return false;try{sessionStorage.removeItem("cm_gs")}catch(e){}
  try{const d=await getDoc(doc(db,"guestShares",c));const x=d.exists()?d.data():null;if(!x||(x.exp||0)<Date.now()){pop("링크가 만료됐거나 올바르지 않아요. 보낸 사람에게 다시 보내 달라고 해 주세요.");return false}
@@ -43,18 +47,26 @@ async function joinPending(){let jc=null;try{jc=sessionStorage.getItem("cm_join"
  try{const d=await getDoc(doc(db,"inviteCodes",jc));if(!d.exists()){pop("초대 링크가 올바르지 않아요. 초대코드를 다시 확인해 주세요.");return false}const cid=d.data().clubId,cs=await getDoc(doc(db,"clubs",cid)),nm=cs.exists()?cs.data().name:"클럽";
   const me=await getDoc(doc(db,"clubMembers",cid+"_"+S.user.uid)).catch(()=>null);localStorage.setItem("cm_mode","club");if(me&&me.exists()&&me.data().status==="active"){await goClub(cid);return true}
   if(!await ask(`'${nm}' 클럽에 가입할까요?`,"가입하기","취소"))return false;await addMember(cid,{viaCode:jc});await goClub(cid,1);toast(`'${nm}' 클럽에 가입했어요`);return true}catch(e){pop("가입하지 못했어요. 이미 가입한 클럽일 수 있어요.");return false}}
-onAuthStateChanged(auth,async u=>{
+ld("로그인 확인 중");
+onAuthStateChanged(auth,async u=>{ld("내 정보 받는 중");
   S.user=u; if(!u){S.profile=null;if(FT.isFt(S.screen)||(await FT.pending()))return;go("login");FT.checkInv();return}
   const snap=await getDoc(doc(db,"users",u.uid));
   if(!snap.exists()){S.profile={name:u.displayName||""};return go("name")}
-  S.profile=snap.data();FT.sync();
+  S.profile=snap.data();FT.sync();ld("화면 준비 중");slowSend();
   if(FT.isFt(S.screen))return render();setTimeout(()=>FT.checkInv(),1500);if(await FT.pending())return;
   if(await joinPending())return;if(await gsPending())return;
   const m=localStorage.getItem("cm_mode"); if(m==="club")return openClubs(); if(m==="personal")return A.modePersonal(); go("mode");
 });
 
 function pvEnd(){if(S.pv&&S.cur){S.cur.role=S.cur.realRole||S.cur.role;delete S.cur.realRole}S.pv=null}
-async function openClubs(){pvEnd();S.memAt=0;S.clubsReady=false;
+function slowSend(){let x=null;try{x=JSON.parse(localStorage.getItem("cm_slow")||"null");localStorage.removeItem("cm_slow")}catch(e){}if(!x||!S.user||S.pv)return;
+ setDoc(doc(collection(db,"feedback")),{uid:S.user.uid,name:(S.profile&&S.profile.name)||"",email:S.user.email||"",type:"slow",text:`로딩 ${x.total}초 · 멈춘 단계: ${x.stage}\n${(x.log||[]).map(([s,t])=>`${t}초 ${s}`).join("\n")}`.slice(0,2000),screen:"loading",club:"",ver:APPV+"·"+(x.ver||""),ua:String(x.ua||"").slice(0,200),status:"new",reply:"",at:serverTimestamp()}).catch(()=>{})}
+setInterval(()=>{const sp=LD.on&&document.querySelector("#app .spin"),now=Date.now();let el=document.getElementById("ldst");
+ if(!sp){if(LD.s0&&LD.rep){LD.rep.total=Math.round((now-LD.s0)/1000);try{localStorage.setItem("cm_slow",JSON.stringify(LD.rep))}catch(e){}}LD.s0=0;LD.rep=null;LD.on=0;if(el)el.style.display="none";return}
+ if(!LD.s0)LD.s0=Math.min(now,LD.log.length?now:LD.t0);const sec=Math.round((now-LD.s0)/1000);if(sec<8)return;
+ if(!el){el=document.createElement("div");el.id="ldst";el.innerHTML='<span></span><button data-a="ldRe">다시 시도</button>';document.body.appendChild(el)}el.firstChild.textContent=`${LD.st} · ${sec}초`;el.style.display="flex";
+ if(sec>=15){LD.rep={stage:LD.st,log:LD.log.slice(-10),ua:navigator.userAgent.slice(0,200),ver:BUILD,total:sec};try{localStorage.setItem("cm_slow",JSON.stringify(LD.rep))}catch(e){}}},1000);
+async function openClubs(){ld("클럽 목록 받는 중");pvEnd();S.memAt=0;S.clubsReady=false;
   await go("clubs");
   const ms=await getDocs(query(collection(db,"clubMembers"),where("uid","==",S.user.uid),where("status","==","active")));
   const list=[];
@@ -62,7 +74,7 @@ async function openClubs(){pvEnd();S.memAt=0;S.clubsReady=false;
   S.clubs=list;S.clubsReady=true; render();
 }
 async function memQ(id,q){if(S.memId===id&&S.memAt&&Date.now()-S.memAt<120000)return S.mem;const r=await q("clubMembers",["clubId",id],["status","active"]);S.memId=id;S.memAt=Date.now();return r}
-async function load(){const c=S.cur,id=c.id,q=(n,...w)=>getDocs(query(collection(db,n),...w.map(([f,v])=>where(f,"==",v)))).then(r=>r.docs.map(d=>({...d.data(),_id:d.id})).filter(x=>!x.deleted));
+async function load(){ld("클럽 기록 받는 중");const c=S.cur,id=c.id,q=(n,...w)=>getDocs(query(collection(db,n),...w.map(([f,v])=>where(f,"==",v)))).then(r=>r.docs.map(d=>({...d.data(),_id:d.id})).filter(x=>!x.deleted));
  if(c.parkOn||c.photoOn)cpDays(c);
  {const m0=nextMeeting(c);if(S.tab==="today"&&m0&&m0.today&&eff(c).mode==="queue")qSub(`${id}_${ymd(m0.date)}`);else qUnsub();if(S.tab==="today")upFetch(c)}
  if(S.tab==="today"){S.done=null;const dm=doneMeeting(c);if(dm)try{const [gq,pq,sd]=await Promise.all([getDocs(query(collection(db,"games"),where("clubId","==",id),where("date","==",dm.dk))),getDocs(query(collection(db,"sessionParticipants"),where("clubId","==",id),where("date","==",dm.dk))),getDoc(doc(db,"sessions",`${id}_${dm.dk}`)).catch(()=>null)]);
@@ -84,7 +96,7 @@ async function archiveClosed(clubs){const u=S.user.uid,ar={...(S.profile.archive
   ar[c.id]=true;ch=true}
  if(ch){S.profile.archived=ar;await updateDoc(doc(db,"users",u),{archived:ar}).catch(()=>{})}}
 const loadClubs=async()=>{const ms=await getDocs(query(collection(db,"clubMembers"),where("uid","==",S.user.uid),where("status","==","active"))),l=[];for(const m of ms.docs){const c=await getDoc(doc(db,"clubs",m.data().clubId));if(c.exists())l.push({id:c.id,...c.data()})}return l};
-async function pLoad(){const u=S.user.uid,clubs=await loadClubs(),sync=S.profile.sync||{},q=(n,f,v)=>getDocs(query(collection(db,n),where(f,"==",v))).then(r=>r.docs.map(d=>({id:d.id,...d.data()})));
+async function pLoad(){ld("내 기록 받는 중");const u=S.user.uid,clubs=await loadClubs(),sync=S.profile.sync||{},q=(n,f,v)=>getDocs(query(collection(db,n),where(f,"==",v))).then(r=>r.docs.map(d=>({id:d.id,...d.data()})));
  S.pclubs=clubs;{const sy0=S.profile.sync||{},ak=S.profile.syncAsked||{},nw=clubs.filter(c=>c.status!=="closed"&&!ak[c.id]&&sy0[c.id]===undefined).map(c=>c.id);if(nw.length&&!S.syncAsk)S.syncAsk={all:nw,on:[...nw]}}await archiveClosed(clubs);const [own,pe,pn]=await Promise.all([syncQ(`${u}_po`,"personalGames",[["ownerUid","==",u]]).then(a=>a.map(x=>({...x,id:x._id}))),q("personalPeople","ownerUid",u),q("personalNotes","ownerUid",u).catch(()=>[])]);S.pp=pe;S.pn=pn.map(n=>({...n,ca:n.createdAt&&n.createdAt.toMillis?n.createdAt.toMillis():0}));const notes={},out=[];
  own.forEach(g=>{if(g.sourceType==="club")notes[g.clubGameId]=g;else out.push({...g,src:"own",label:g.label||"기타",docId:g.id,cat:g.cat||(g.clubId?"club":"etc"),mtype:g.mtype||(g.t1&&g.t1.length===1?"single":"doubles"),kind:g.kind||"",court:g.court||"",order:g.order??null,stage:g.stage||""})});
  for(const c of clubs)if(sync[c.id]&&c.status!=="closed")(await syncQ(`${u}_pg_${c.id}`,"games",[["clubId","==",c.id]],[["clubId","==",c.id],["pk","array-contains",u]],g=>[...g.t1,...g.t2].some(p=>p.k===u))).map(x=>({...x,id:x.id||x._id})).forEach(g=>{const f=g.t1.some(p=>p.k===u),n=notes[g.id];out.push({id:"c_"+g.id,src:"club",clubGameId:g.id,clubId:c.id,label:c.name,date:g.date,t1:mf(f?g.t1:g.t2,u),t2:f?g.t2:g.t1,scoreA:f?g.scoreA:g.scoreB,scoreB:f?g.scoreB:g.scoreA,note:n?n.note:"",docId:n?n.id:null,cat:"club",kind:(n&&n.kind)||kindOf(c,g.date),mtype:(n&&n.mtype)||(g.mtype&&g.mtype!=="doubles"?g.mtype:"doubles"),court:(n&&n.court)||(S.profile.courtDef||{})[c.id]||"",order:g.round||null})});
@@ -856,8 +868,8 @@ function qPanel(){const me=S.user.uid,st=qStaff(),m=nextMeeting(S.cur),e=eff(S.c
  if(S.qarr){const busy=new Set([...x.q.map(z=>z.k),...cs.flatMap(z=>z.g?[...z.g.t1,...z.g.t2].map(p=>p.k):[])]),ls=S.parts.filter(p=>p.status==="in"&&!p.noPlay&&!busy.has(key(p)));
   h+=`<div class="sh" data-a="qax"><div data-keep="1"><div class="row"><h3>도착 체크</h3><button class="link" data-a="qax">닫기</button></div><div class="sub" style="margin-bottom:8px">참석 명단에서 도착한 사람을 누르세요. 명단에 없으면 참석자 추가부터 해 주세요.</div>${ls.length?`<div class="pills">${ls.map(p=>`<span data-a="qArrive" data-k="${esc(key(p))}">${esc(dnp(p))}</span>`).join("")}</div>`:'<div class="sub">체크할 사람이 없어요</div>'}</div></div>`}
  return h}
-const IDB=(()=>{let p;const op=()=>p||(p=new Promise((ok,no)=>{const tm=setTimeout(()=>no(new Error("idb-timeout")),3000);try{const r=indexedDB.open("cm_cache",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>{clearTimeout(tm);ok(r.result)};r.onerror=()=>{clearTimeout(tm);no(r.error)};r.onblocked=()=>{clearTimeout(tm);no(new Error("idb-blocked"))}}catch(e){clearTimeout(tm);no(e)}}),p.catch(()=>{}),p),
- tx=async(m,f)=>{try{const d=await op();return await new Promise(ok=>{const t=d.transaction("kv",m),q2=f(t.objectStore("kv"));t.oncomplete=()=>ok(q2&&q2.result);t.onerror=()=>ok(undefined)})}catch(e){return undefined}};
+const IDB=(()=>{let p,dead=0;const op=()=>p||(p=new Promise((ok,no)=>{const tm=setTimeout(()=>no(new Error("idb-timeout")),3000);try{const r=indexedDB.open("cm_cache",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>{clearTimeout(tm);ok(r.result)};r.onerror=()=>{clearTimeout(tm);no(r.error)};r.onblocked=()=>{clearTimeout(tm);no(new Error("idb-blocked"))}}catch(e){clearTimeout(tm);no(e)}}),p.catch(()=>{}),p),
+ tx=async(m,f)=>{if(dead)return undefined;try{const d=await op();return await new Promise(ok=>{let done=0;const fin=v=>{if(!done){done=1;clearTimeout(tm);ok(v)}},tm=setTimeout(()=>{dead=1;fin(undefined)},4000);try{const t=d.transaction("kv",m),q2=f(t.objectStore("kv"));t.oncomplete=()=>fin(q2&&q2.result);t.onerror=t.onabort=()=>fin(undefined)}catch(e){fin(undefined)}})}catch(e){return undefined}};
  return{get:k=>tx("readonly",o=>o.get(k)),set:(k,v)=>tx("readwrite",o=>{o.put(v,k)}),clear:()=>tx("readwrite",o=>{o.clear()})}})();
 async function syncQ(key,coll,full,delta,keep){const now=Date.now(),c=(await IDB.get(key))||{docs:{},last:0,full:0,next:0},mk=cs=>query(collection(db,coll),...cs.map(([f,o,v])=>where(f,o,v))),ms=x=>typeof x.updatedAt==="number"?x.updatedAt:0,
   take=(docs,rep)=>mergeDocs(c,docs.map(d=>({...d.data(),_id:d.id})),rep,keep);
@@ -911,7 +923,7 @@ ${F.mine&&F.mine.length?`<h2>보낸 의견</h2><div class="list">${F.mine.map(x=
 <div class="bar"><button data-a="fbSend">보내기</button></div></div>`},
 fbAdmin:()=>{const L=S.fbl||[],fl=S.form.fbf||"open",ls=L.filter(x=>fl==="all"||(fl==="open"?x.status!=="done":x.status==="done"));
  return `<div class="cmp"><button class="link bk" data-a="toMode"><span class="ar">←</span> 뒤로</button><h1>받은 의견</h1><div class="tabs">${[["open","처리 전"],["done","반영함"],["all","전체"]].map(([v,t])=>`<span data-a="fbFilter" data-v="${v}" class="${fl===v?"on":""}">${t} ${v==="all"?L.length:L.filter(x=>v==="open"?x.status!=="done":x.status==="done").length}</span>`).join("")}</div>
-${ls.length?ls.map(x=>`<div class="card" style="padding:12px 14px"><div class="row"><b style="font-size:14px">${esc(FBT[x.type]||"기타")} · ${esc(x.name||"")}</b><span class="sub">${x.at&&x.at.toDate?x.at.toDate().toLocaleDateString("ko-KR"):""}</span></div><div class="sub" style="margin:2px 0 6px">${esc(x.club?x.club+" · ":"")}${esc(x.screen||"")} · ${esc(x.ver||"")}</div><div style="white-space:pre-wrap;margin-bottom:8px">${esc(x.text)}</div>
+${ls.length?ls.map(x=>`<div class="card" style="padding:12px 14px"><div class="row"><b style="font-size:14px">${esc(x.type==="slow"?"느린 로딩(자동)":FBT[x.type]||"기타")} · ${esc(x.name||"")}</b><span class="sub">${x.at&&x.at.toDate?x.at.toDate().toLocaleDateString("ko-KR"):""}</span></div><div class="sub" style="margin:2px 0 6px">${esc(x.club?x.club+" · ":"")}${esc(x.screen||"")} · ${esc(x.ver||"")}</div><div style="white-space:pre-wrap;margin-bottom:8px">${esc(x.text)}</div>
 <div class="tgrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:6px">${Object.entries(FBS).map(([v,t])=>`<span data-a="fbSt" data-id="${x._id}" data-v="${v}" class="${x.status===v?"on":""}">${t}</span>`).join("")}</div><textarea id="rp_${x._id}" rows="2" placeholder="답변 (보낸 사람에게 보여요)">${esc(x.reply||"")}</textarea><button class="ghost" data-a="fbReply" data-id="${x._id}" style="margin:0">답변 저장</button></div>`).join(""):'<div class="card sub center">의견이 없어요</div>'}</div>`},
 xl:()=>{const X=S.xl,bk='<button class="link bk" data-a="xBack"><span class="ar">←</span> 뒤로</button>';
  if(X.saving)return `<div class="mid center"><div class="spin"></div><b>저장하는 중이에요</b></div>`;
@@ -1055,7 +1067,7 @@ function pickSheet(){const L=pickL();if(!L.length)return"";return `<div class="s
 async function addMember(clubId,extra={}){try{localStorage.setItem("cm_wel_"+clubId,"1")}catch(e){}
   await setDoc(doc(db,"clubMembers",clubId+"_"+S.user.uid),{clubId,uid:S.user.uid,displayName:S.profile.name,photoURL:S.user.photoURL||"",role:"member",status:"active",defaultPosition:"either",tierId:null,joinedAt:serverTimestamp(),...extra});
 }
-const A={meOpen(){S.meSh=1;keepR()},meX(){S.meSh=0;keepR()},
+const A={ldRe(){location.reload()},meOpen(){S.meSh=1;keepR()},meX(){S.meSh=0;keepR()},
  snMe(){S.ptab="games";S.form.pv="memo";S.form.pmv="me";render();scrollTo(0,0)},
  snNew(el){const dk=(el&&el.dataset&&el.dataset.dk)||ymd(new Date());S.sne={id:null,date:dk,tag:"",text:""};if(S.screen==="personal")keepR()},
  snEdit(el){const n=(S.pn||[]).find(x=>x.id===el.dataset.id);if(!n)return;S.sne={id:n.id,date:n.date,tag:n.tag||"",text:n.text||""};keepR()},
@@ -1952,4 +1964,4 @@ document.addEventListener("touchend",e=>{const s=swS;swS=null;if(!s||!e.changedT
 let pvX=null;document.addEventListener("touchstart",e=>{pvX=S.cpv&&e.target.closest&&e.target.closest("#pvimg")?e.touches[0].clientX:null},{passive:true});document.addEventListener("touchend",e=>{if(pvX==null||!S.cpv)return;const dx=e.changedTouches[0].clientX-pvX;pvX=null;if(Math.abs(dx)<50)return;const L=cpItems(S.cpv.dk,"group"),i=L.findIndex(p=>p.id===S.cpv.id),j=dx<0?i+1:i-1;if(L[j]){S.cpv.id=L[j].id;keepR()}},{passive:true});setTimeout(verChk,4000);
 
 // 화면 점검 전용(가짜 Firebase로 띄웠을 때만): 대진 검사 함수를 tests/smoke/draw.py가 직접 부름
-if(globalThis.__DB)globalThis.__cm={render,S,buildDraw,psIssues,psViol,psRange,pairMax,nmMatch,key};
+if(globalThis.__DB)globalThis.__cm={render,ld,S,buildDraw,psIssues,psViol,psRange,pairMax,nmMatch,key};
