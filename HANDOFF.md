@@ -69,7 +69,7 @@
 - 파이썬으로 파일 고칠 땐 **읽고 → 따로 쓰기**(같은 줄에서 `open(...,'w')`와 읽기를 섞으면 파일이 비워짐, 1016-2 sw.js 사고).
 - 삭제는 삭제 표시(`deleted:true`+`updatedAt`), 저장·수정 시 `updatedAt` 필수.
 - 공정성: 짧게 있는 사람을 자동으로 몰아 넣는 규칙 금지(사용자 결정, 1014-5).
-- **플레이 테스트 안내 띠(1027-1)**: 안드로이드 브라우저(플레이 앱 아님, `TWA`=첫 진입 referrer `android-app://…`로 판별)에서 홈·클럽 화면 위에 '앱으로 옮기기' → 그룹 가입(groups.google.com/g/court-manager)·테스트 참여·설치 3단계. **프로덕션 승인되면 `TESTB=0`으로 끄기**. ✕는 3일 숨김(`cm_tsb`). 테스터는 2026-10-27부터 이메일 목록 대신 구글 그룹 `court-manager@googlegroups.com`(전환 후 28명).
+- **플레이 테스트 안내 띠(1027-1)**: 안드로이드 브라우저(플레이 앱 아님, `TWA`=첫 진입 referrer `android-app://…` 또는 Start URL `?src=play`로 판별, 1027-2)에서 홈·클럽 화면 위에 '앱으로 옮기기' → 그룹 가입(groups.google.com/g/court-manager)·테스트 참여·설치 3단계. **프로덕션 승인되면 `TESTB=0`으로 끄기**. ✕는 3일 숨김(`cm_tsb`). 테스터는 2026-10-27부터 이메일 목록 대신 구글 그룹 `court-manager@googlegroups.com`(전환 후 28명).
 
 ## 5. 데이터 (Firestore)
 
