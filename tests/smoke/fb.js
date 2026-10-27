@@ -8,7 +8,7 @@ export class GoogleAuthProvider {}
 export const signInWithPopup = async () => {}, signOut = async () => {}, deleteUser = async () => {}, reauthenticateWithPopup = async () => {};
 export const onAuthStateChanged = (a, cb) => setTimeout(() => cb(globalThis.__USER), 10);
 // firestore
-export const getFirestore = () => ({});
+export const getFirestore = () => ({}), initializeFirestore = () => ({});
 let auto = 0;
 export const collection = (db, ...p) => ({ coll: p.join("/") });
 export const doc = (a, ...p) => a && a.coll ? { coll: a.coll, id: "auto" + (++auto) } : { coll: p.slice(0, -1).join("/"), id: p[p.length - 1] };

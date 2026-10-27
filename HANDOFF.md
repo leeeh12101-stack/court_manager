@@ -56,6 +56,7 @@
 
 - 상태 `S`, 동작 `A`(data-a로 연결, 약 252개), 화면 `V`(go("화면")), 클럽 탭 `T`(today·games·stats·members·settings), 개인 탭 `P`(home·games·stats·settings), 뒤로가기 `BACK`.
 - 렌더: `render()`, 입력 유지 재렌더 `keepR()`/`rer()`, 클럽 데이터 `load()`, 개인 데이터 `pLoad()`.
+- Firestore는 `initializeFirestore(…,{experimentalForceLongPolling:true})`(1027-3): 폰·앱 웹 화면에서 스트리밍 연결이 막혀 로딩이 몇 분 걸리던 문제(Play 심사에도 영향). 되돌리지 말 것.
 - 쓰기 함수 `setDoc/updateDoc/deleteDoc/writeBatch`는 **감싼 버전**(회원 화면 미리보기 중 저장 차단 + 회원 명단 캐시 무효화).
 - 폰 저장소 `IDB`는 3초 안에 안 열리거나 읽기·쓰기가 4초 넘으면(iOS IndexedDB 멈춤 대비) 그 실행 동안 저장 없이 서버에서 바로 받음(1012-9·1026-2). 사파리·iOS는 로그인 저장도 localStorage만(`SAFARI`, 1026-2). 느린 로딩은 받은 의견에 '느린 로딩(자동)'으로 쌓임(단계별 초). 개인 설정 클럽 동기화 줄에 가져온 경기 수·꺼짐 표시.
 - 회원 명단 2분 캐시 `memQ()`, 경기·출석·개인 기록은 **폰 저장 + 바뀐 것만 받기** `syncQ()`(IndexedDB, 30일 전체 갱신을 키별로 분산).
