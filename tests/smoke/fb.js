@@ -5,7 +5,7 @@ export const initializeApp = () => ({});
 // auth
 export const getAuth = () => ({}), initializeAuth = () => ({}), browserLocalPersistence = {}, indexedDBLocalPersistence = {}, browserPopupRedirectResolver = {};
 export class GoogleAuthProvider {}
-export const signInWithPopup = async () => {}, signOut = async () => {}, deleteUser = async () => {}, reauthenticateWithPopup = async () => {};
+export const signInWithPopup = async () => {}, signInWithRedirect = async () => {}, getRedirectResult = async () => null, signOut = async () => {}, deleteUser = async () => {}, reauthenticateWithPopup = async () => {};
 export const onAuthStateChanged = (a, cb) => setTimeout(() => cb(globalThis.__USER), 10);
 // firestore
 export const getFirestore = () => ({}), initializeFirestore = () => ({});

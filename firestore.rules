@@ -109,7 +109,9 @@ service cloud.firestore {
       allow list: if isActive(resource.data.clubId);
       allow create: if can(request.resource.data.clubId, 'draw', 'staff') || can(request.resource.data.clubId, 'meeting', 'staff');
       allow update: if can(request.resource.data.clubId, 'draw', 'staff') || can(request.resource.data.clubId, 'meeting', 'staff')
-        || (resource.data.get('drawWriterId', '') == me() && request.resource.data.get('drawWriterId', '') == me());
+        || (resource.data.get('drawWriterId', '') == me() && request.resource.data.get('drawWriterId', '') == me())
+        // 결과 입력 권한자는 안 한 경기 표시(skips)만(1029-1)
+        || (can(request.resource.data.clubId, 'result', 'staff') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['skips', 'updatedAt']));
     }
 
     match /games/{g} {
@@ -204,7 +206,9 @@ service cloud.firestore {
         && (a.get('t', '') == b.get('t', '')
               ? (a.get('t', '') == me() || a.by == me() || isAdmin(c))
               : ((a.get('t', '') == '' && b.get('t', '') == me())
-                 || (a.get('t', '') != '' && b.get('t', '') == '' && (a.get('t', '') == me() || isAdmin(c)))));
+                 || (a.get('t', '') != '' && b.get('t', '') == '' && (a.get('t', '') == me() || isAdmin(c)))
+                 // 주차권 권한자는 다른 사람에게 주기(1029-1)
+                 || (a.get('t', '') == '' && b.get('t', '') != '' && can(c, 'park', 'staff'))));
     }
     // 바뀌는 항목 id는 앱이 ch에 적어 보냄(규칙의 Set에는 원소를 꺼내는 기능이 없음 — 1015-7)
     function pdItemsOk(c) {

@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-26 · **BUILD `1026-2`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-29 · **BUILD `1029-1`** · 버전 표기 `v0.1`
 > **이 파일만 처음에 읽기.** BUILD별 상세 기록은 `HISTORY.md`(통째로 읽지 말고 검색).
 
 ---
@@ -23,7 +23,7 @@
 | `app.js` | 화면과 동작(약 286KB). 하나의 ES 모듈 |
 | `core.js` | **순수 계산**(Firebase·화면 무관) → 자동 테스트 대상 |
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
-| `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(App Check 키·개발자 이메일 포함, 저장소 것이 최신). 사진 AI 전용 프로젝트 설정 `aiConfig`·`aiCheckKey`는 사용자가 직접 붙여 넣음(1021-7) |
+| `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(1029-1부터 `authDomain`은 `leeeh12101-stack.github.io` — 로그인 도우미 파일이 보조 저장소 `/__/auth/`에 있음, 되돌리면 아이폰 홈 화면 앱 로그인 실패)(App Check 키·개발자 이메일 포함, 저장소 것이 최신). 사진 AI 전용 프로젝트 설정 `aiConfig`·`aiCheckKey`는 사용자가 직접 붙여 넣음(1021-7) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
 | `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v55`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
@@ -56,6 +56,8 @@
 
 - 상태 `S`, 동작 `A`(data-a로 연결, 약 252개), 화면 `V`(go("화면")), 클럽 탭 `T`(today·games·stats·members·settings), 개인 탭 `P`(home·games·stats·settings), 뒤로가기 `BACK`.
 - 렌더: `render()`, 입력 유지 재렌더 `keepR()`/`rer()`, 클럽 데이터 `load()`, 개인 데이터 `pLoad()`.
+- 원래 프로젝트 App Check는 시작 때 켜지 않음(`acMain()`, 1029-1): Firestore·Auth는 App Check 적용 안 함 상태여야 함. 나중에 Firestore에 App Check를 적용하려면 시작 때 켜는 것으로 되돌려야 함(그러면 느린 폰에서 첫 로딩이 늦어짐).
+- 주차권 필요·배분(1029-1): `sessionParticipants.park/parkAt`, `clubs.parkRest`, `pkState()`. 자동 배분은 아직.
 - Firestore는 `initializeFirestore(…,{experimentalForceLongPolling:true})`(1027-3): 폰·앱 웹 화면에서 스트리밍 연결이 막혀 로딩이 몇 분 걸리던 문제(Play 심사에도 영향). 되돌리지 말 것.
 - 쓰기 함수 `setDoc/updateDoc/deleteDoc/writeBatch`는 **감싼 버전**(회원 화면 미리보기 중 저장 차단 + 회원 명단 캐시 무효화).
 - 폰 저장소 `IDB`는 3초 안에 안 열리거나 읽기·쓰기가 4초 넘으면(iOS IndexedDB 멈춤 대비) 그 실행 동안 저장 없이 서버에서 바로 받음(1012-9·1026-2). 사파리·iOS는 로그인 저장도 localStorage만(`SAFARI`, 1026-2). 느린 로딩은 받은 의견에 '느린 로딩(자동)'으로 쌓임(단계별 초). 개인 설정 클럽 동기화 줄에 가져온 경기 수·꺼짐 표시.

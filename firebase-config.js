@@ -1,6 +1,6 @@
 export const firebaseConfig = {
   apiKey: "AIzaSyDPycFoHApQnJyxmMCseBH1Um46bzAKTbk",
-  authDomain: "court-manager-abcde.firebaseapp.com",
+  authDomain: "leeeh12101-stack.github.io",
   projectId: "court-manager-abcde",
   storageBucket: "court-manager-abcde.firebasestorage.app",
   messagingSenderId: "530145478667",
