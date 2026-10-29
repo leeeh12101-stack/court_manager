@@ -52,8 +52,11 @@ export function schedSet(c){const t=(c&&c.schedType)||"weekly";return t==="none"
 export function meetingsAhead(c,now,days=60){const td=ymd(now),SC=(c&&c.sched)||{},ov=(c&&c.mtgOverride)||null,out=new Map(),D=k=>new Date(+k.slice(0,4),+k.slice(4,6)-1,+k.slice(6));
  for(let i=0;i<days;i++){const x=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);if(isRegDay(c,x)){const k=ymd(x);out.set(k,{dk:k,date:x,kind:"reg"})}}
  for(const [k,e] of Object.entries(SC)){if(!e||k<td)continue;if(e.off){out.delete(k);continue}const cur=out.get(k);out.set(k,{...(cur||{}),...e,dk:k,date:D(k),kind:cur?"reg":"extra"})}
- if(ov){if(ov.from)out.delete(ov.from);if(!ov.off&&ov.date&&ov.date>=td){const k=ov.date,cur=out.get(k),x=D(k);out.set(k,{...(cur||{}),dk:k,date:x,kind:cur?cur.kind:(isRegDay(c,x)?"reg":"extra"),start:ov.start,end:ov.end,courts:ov.courts,memo:ov.memo||"",mode:ov.mode,qrule:ov.qrule})}}
+ if(ov){if(ov.from)out.delete(ov.from);if(!ov.off&&ov.date&&ov.date>=td){const k=ov.date,cur=out.get(k),x=D(k);out.set(k,{...(cur||{}),dk:k,date:x,kind:cur?cur.kind:(isRegDay(c,x)?"reg":"extra"),start:ov.start,end:ov.end,courts:ov.courts,memo:ov.memo||"",mode:ov.mode,qrule:ov.qrule,ct:Array.isArray(ov.ct)&&ov.ct.length?ov.ct:null,bon:ov.bon!==false})}}
  return [...out.values()].filter(m=>m.dk>=td).sort((a,b)=>a.dk<b.dk?-1:1).map(m=>({...m,today:m.dk===td,monthly:isMonthly(c,m.dk)}))}
+// 코트별 시간(1029-7): 회차 [t, t+iv] 동안 끝까지 쓸 수 있는 코트(full)와, 회차 도중에 끝나는 코트(part = 보너스 경기 자리). ct 없으면 n개 모두 full
+export function courtSlots(ct,n,t,iv){const all=[...Array(Math.max(0,n|0)).keys()];if(!Array.isArray(ct)||!ct.length)return{full:all,part:[]};const m=v=>{const x=String(v||"").split(":");return x.length===2?+x[0]*60+ +x[1]:null},full=[],part=[];
+ all.forEach(i=>{const c=ct[i]||{},s=m(c.s),e=m(c.e);if(s==null||e==null){full.push(i);return}if(s<=t&&e>=t+iv)full.push(i);else if(s<=t&&e>t)part.push(i)});return{full,part}}
 // 개인 기록의 모임 종류 자동 채우기
 export function kindOf(c,dk){if(isMonthly(c,dk))return"월례대회";const e=((c&&c.sched)||{})[dk];if(e&&!e.off&&!isRegDay(c,new Date(+dk.slice(0,4),+dk.slice(4,6)-1,+dk.slice(6))))return"";return isRegDay(c,new Date(+dk.slice(0,4),+dk.slice(4,6)-1,+dk.slice(6)))?"정기모임":""}
 // 개인 기록(own)과 클럽 동기화 기록(club)의 겹침 찾기: sure=날짜·사람·점수 같음, maybe=날짜 같고 사람 대부분 같음

@@ -85,6 +85,22 @@ with sync_playwright() as p:
     for i, dr in enumerate(PRS):
         f = pg.evaluate("(dr)=>{const {S,buildDraw,psViol}=__cm;let f=0;for(let t=0;t<60;t++){let ok=false;for(let i=0;i<40&&!ok;i++){const pl=buildDraw(S.parts,S.cur,dr);if(!psViol(pl.rounds,dr).length)ok=true}if(!ok)f++}return f}", dr)
         out.append(f"페어 같이 게임 장면 {i+1} · 60번: 어김 {f}"); chk(not f, f"페어 같이 게임 장면 {i+1}에서 {f}번 어김")
+    # 코트마다 시간이 다름(1029-7): 3코트 중 코트3은 14시까지 · 36분 5회차 → 1~3회차 3경기, 4회차 2경기+보너스 1, 5회차 2경기
+    # 보너스는 그 회차에 원래 쉬는 사람 중 게임 수 적은 사람 · 정상 경기 수는 고르게(차이 1 이하)
+    CT = """(o)=>{const {S,buildDraw,key}=__cm,td=Object.keys(__DB.sessions).length?Object.keys(__DB.sessions)[0].split("_")[1]:S.parts[0].date,
+ c={...S.cur,regularStartTime:"12:00",regularEndTime:"15:00",roundInterval:36,regularCourtCount:3,mtgOverride:{date:td,start:"12:00",end:"15:00",courts:3,off:false,mode:"round",ct:[{s:"12:00",e:"15:00"},{s:"12:00",e:"15:00"},{s:"12:00",e:"14:00"}],bon:o.bon}},
+ parts=Array.from({length:15},(_,i)=>({status:"in",guest:true,uid:"",name:"사람"+i,start:"12:00",end:"15:00",position:"either"})),dr={mode:"pos",excl:{},pairs:[],ps:{},prio:["pair","pos","opp"]},bad=[];
+ for(let t=0;t<o.T;t++){const pl=buildDraw(parts,c,dr),R=pl.rounds,nc=R.map(r=>r.games.filter(g=>!g.bonus).length),bc=R.map(r=>r.games.filter(g=>g.bonus).length),g={};let why="";
+  if(R.length!==5)why="회차 "+R.length;else if(nc.join()!=="3,3,3,2,2")why="정상 "+nc.join();else if(bc.join()!==(o.bon?"0,0,0,1,0":"0,0,0,0,0"))why="보너스 "+bc.join();
+  R.forEach((r,ri)=>{const on=new Set(r.games.filter(x=>!x.bonus).flatMap(x=>[...x.t1,...x.t2].map(p=>p.k)));
+   r.games.filter(x=>x.bonus).forEach(x=>{if(x.court!==3)why="보너스 코트 "+x.court;const bk=[...x.t1,...x.t2].map(p=>p.k);if(bk.some(k=>on.has(k)))why="보너스에 정상 경기 사람";
+    const rest=parts.map(p=>key(p)).filter(k=>!on.has(k)&&!bk.includes(k));if(Math.max(...bk.map(k=>g[k]||0))>Math.min(...rest.map(k=>g[k]||0),99))why="보너스가 게임 수 적은 순이 아님"});
+   r.games.filter(x=>!x.bonus).forEach(x=>[...x.t1,...x.t2].forEach(p=>g[p.k]=(g[p.k]||0)+1))});
+  const v=parts.map(p=>g[key(p)]||0);if(!why&&Math.max(...v)-Math.min(...v)>1)why="정상 게임 수 차이 "+(Math.max(...v)-Math.min(...v));if(why)bad.push(why)}
+ return bad.slice(0,3)}"""
+    for bon in (True, False):
+        bad = pg.evaluate(CT, {"bon": bon, "T": 80}); out.append(f"코트3 14시까지 · 보너스 {'켬' if bon else '끔'} · 80번: 어김 {len(bad)}")
+        chk(not bad, f"코트별 시간(보너스 {'켬' if bon else '끔'}) 어김: " + json.dumps(bad, ensure_ascii=False)[:300])
     b.close()
 srv.shutdown()
 print("\n".join(out)); print("\n".join(errs) if errs else "✅ 대진 점검 통과"); sys.exit(1 if errs else 0)
