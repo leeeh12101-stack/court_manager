@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-29 · **BUILD `1029-1`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-10-29 · **BUILD `1029-3`** · 버전 표기 `v0.1`
 > **이 파일만 처음에 읽기.** BUILD별 상세 기록은 `HISTORY.md`(통째로 읽지 말고 검색).
 
 ---
@@ -91,7 +91,7 @@
 
 - **App Check**: reCAPTCHA Enterprise 키는 **`court-manager-abcde` 프로젝트**에서 만든 것, 앱 등록·`firebase-config.js` 반영 완료. AI Logic **기준 보호 적용**, 재생 보호 **사용 안 함**, 토큰 TTL 1시간. 개발자 전용 `App Check 진단` 버튼 있음.
 - **AI 무료 한도(프로젝트 전체)**: 3.5 Flash 하루 약 20회, 3.5 Flash-Lite 약 500회(2026-09 기준 자료). 회원이 많아지면 종량제 검토.
-- **플레이 스토어 최신 .aab(2026-10-27)**: 버전 코드 **3**(버전 1.0.1, 코드 2는 예전에 써서 불가 → 다음은 4 이상), PWABuilder Start URL `/court_manager/?src=play`(플레이 앱 판별용), 10월 7일 키 Use mine. 프로덕션 신청 1차 거절(10-27: 테스터 앱 참여 부족·테스트 중 업데이트 없음) → 10-27부터 14일 다시, 테스트 중 .aab 2~3번 올리기.
+- **플레이 스토어 최신 .aab(2026-10-27)**: 버전 코드 **4**(버전 1.0.2, 2026-10-29 안내; 코드 2는 예전에 써서 불가 → **다음은 5**), PWABuilder Start URL `/court_manager/?src=play`(플레이 앱 판별용), 10월 7일 키 Use mine. 프로덕션 신청 1차 거절(10-27: 테스터 앱 참여 부족·테스트 중 업데이트 없음) → 10-27부터 14일 다시, 테스트 중 .aab 2~3번 올리기.
 - **플레이 스토어(2026-10-08)**: 비공개 테스트 버전 1 (1.0.0.1) 심사 전송. **업로드 키 = 10월 7일 PWABuilder 키**(SHA-1 7A:1E:17…, SHA-256 FA:4B:AC…), 10월 4일 키(87:F8…)는 사용 안 함. Play 앱 서명 키 SHA-256 4F:BD:AA…. assetlinks.json에 세 지문 등록. 새 .aab는 10월 7일 키로 Use mine + Version code 올리기(Package ID io.github.leeeh12101_stack.courtmanager).
 - (이전 기록) **플레이 스토어**: 개발자 계정 승인 대기. 패키지 `io.github.leeeh12101_stack.courtmanager`, PWABuilder 서명 키 보관 완료, `assetlinks.json`에 시험 서명 지문 등록. **남은 일**: 콘솔에서 앱 생성 → `.aab` 업로드 → **Play 앱 서명 SHA-256을 assetlinks.json에 추가**(배열에 2개) → 비공개 테스트·스토어 정보·데이터 보안 양식. 개인정보처리방침 URL `…/court_manager/privacy.html`, 계정 삭제 URL `…/privacy.html#delete`.
 
