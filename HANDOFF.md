@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-11-02 · **BUILD `1101-4`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-11-02 · **BUILD `1101-5`** · 버전 표기 `v0.1`
 > **이 파일만 처음에 읽기.** BUILD별 상세 기록은 `HISTORY.md`(통째로 읽지 말고 검색).
 
 ---
@@ -26,7 +26,7 @@
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(1029-1부터 `authDomain`은 `leeeh12101-stack.github.io` — 로그인 도우미 파일이 보조 저장소 `/__/auth/`에 있음, 되돌리면 아이폰 홈 화면 앱 로그인 실패)(App Check 키·개발자 이메일 포함, 저장소 것이 최신). 사진 AI 전용 프로젝트 설정 `aiConfig`·`aiCheckKey`는 사용자가 직접 붙여 넣음(1021-7) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
-| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v57`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
+| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v58`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
 | `tests/core.test.mjs` | core.js 테스트 160개(포백 `ft.test.mjs` 59개, 읽기 `rest.test.mjs` 41개) |
@@ -61,7 +61,7 @@
 - 주차권 필요·배분(1029-1): `sessionParticipants.park/parkAt`, `clubs.parkRest`(first 선착순 가져가기·staff 운영진만), `pkState()`. 자동 나눠 주기 `pzAuto`(1101-4, 응답 빠른 순, `pzGo` 재사용). 사용자 결정: 선착순 가져가기도 유지.
 - 대진 의견(1101-4): `drawNotes`(회원→대진 담당, 모임당 1개, 대진 확정 전까지). 읽기는 보낸 사람·`can draw`·그날 `drawWriterId`, `load()` 오늘 탭에서 함께 받음(`S.dn` 목록·`S.dnMine` 내 것). 앱의 '개발자에게 의견 보내기'(`feedback`)와 다름.
 - **읽기는 `fq`/`fd`/`fdm`으로(1101-2)**: REST 먼저·3초 안에 안 오면 SDK도·먼저 오는 쪽. 새로 `getDocs`/`getDoc`을 쓸 때 시작·화면 열기 경로면 이 도우미로(쓰기·트랜잭션·`onSnapshot`은 SDK 그대로). 느린 로딩 기록의 '읽기' 줄(`label ms rest|sdk`)로 어느 쪽이 빨랐는지 확인. 줄줄이 `await` 말고 `Promise.all`로 동시에. 저장본 먼저는 `cacheGet/cacheSet`(1101-3). 사진 AI·App Check 모듈은 `aiReady()`로 필요할 때만 받음, 로그인 창 resolver는 로그인 호출 때만 넘김(1101-1)
-- Firestore는 `initializeFirestore(…,{experimentalForceLongPolling:true,experimentalLongPollingOptions:{timeoutSeconds:10}})`(1027-3, 1101-2): 폰·앱 웹 화면에서 스트리밍 연결이 막혀 로딩이 몇 분 걸리던 문제(Play 심사에도 영향). 되돌리지 말 것.
+- Firestore는 `initializeFirestore(…,{experimentalForceLongPolling:true})`(1027-3). 1101-2의 timeoutSeconds 옵션은 검증 못 해 되돌림: 폰·앱 웹 화면에서 스트리밍 연결이 막혀 로딩이 몇 분 걸리던 문제(Play 심사에도 영향). 되돌리지 말 것.
 - 쓰기 함수 `setDoc/updateDoc/deleteDoc/writeBatch`는 **감싼 버전**(회원 화면 미리보기 중 저장 차단 + 회원 명단 캐시 무효화).
 - 폰 저장소 `IDB`는 3초 안에 안 열리거나 읽기·쓰기가 4초 넘으면(iOS IndexedDB 멈춤 대비) 그 실행 동안 저장 없이 서버에서 바로 받음(1012-9·1026-2). 사파리·iOS는 로그인 저장도 localStorage만(`SAFARI`, 1026-2). 느린 로딩은 받은 의견에 '느린 로딩(자동)'으로 쌓임(단계별 초). 개인 설정 클럽 동기화 줄에 가져온 경기 수·꺼짐 표시.
 - 회원 명단 2분 캐시 `memQ()`, 경기·출석·개인 기록은 **폰 저장 + 바뀐 것만 받기** `syncQ()`(IndexedDB, 30일 전체 갱신을 키별로 분산).
