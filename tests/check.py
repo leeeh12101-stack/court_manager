@@ -19,7 +19,7 @@ def run(cmd):
     return r.returncode, (r.stdout + r.stderr).strip()
 
 # 1. 문법
-for f in ["app.js", "core.js", "ft.js", "ft-core.js", "ft-data.js", "sw.js"]:
+for f in ["app.js", "core.js", "ft.js", "ft-core.js", "ft-data.js", "rest-core.js", "sw.js"]:
     # .js 그대로는 ES 모듈 문법 오류를 놓칠 수 있어 .mjs 사본으로 검사
     tmp = os.path.join(tempfile.mkdtemp(), os.path.basename(f) + (".mjs" if f != "sw.js" else ""))
     shutil.copy(f, tmp)
@@ -28,7 +28,7 @@ for f in ["app.js", "core.js", "ft.js", "ft-core.js", "ft-data.js", "sw.js"]:
     ok &= c == 0
 
 # 2. core.js 테스트
-for t in ["tests/core.test.mjs", "tests/ft.test.mjs"]:
+for t in ["tests/core.test.mjs", "tests/ft.test.mjs", "tests/rest.test.mjs"]:
     c, o = run(["node", t])
     print(f"[테스트] {t.split('/')[-1]}:", o.splitlines()[-1] if o else o)
     ok &= c == 0
@@ -38,12 +38,12 @@ tsc = shutil.which("tsc") or next(iter(glob.glob("/home/*/.npm-global/lib/node_m
                                           glob.glob("/usr/lib/node_modules/typescript/lib/tsc.js")), None)
 if tsc:
     d = tempfile.mkdtemp()
-    for f in ["app.js", "core.js", "ft.js", "ft-core.js", "ft-data.js"]:
+    for f in ["app.js", "core.js", "ft.js", "ft-core.js", "ft-data.js", "rest-core.js"]:
         shutil.copy(f, d)
     open(os.path.join(d, "firebase-config.js"), "w").write('export const firebaseConfig={};export const appCheckKey="";export const devEmail="";\n')
     json.dump({"compilerOptions": {"allowJs": True, "checkJs": True, "noEmit": True, "target": "es2022", "module": "es2022",
                "moduleResolution": "bundler", "lib": ["es2022", "dom", "dom.iterable"], "strict": False, "skipLibCheck": True},
-               "files": ["app.js", "core.js", "ft.js", "ft-core.js", "ft-data.js"]}, open(os.path.join(d, "tsconfig.json"), "w"))
+               "files": ["app.js", "core.js", "ft.js", "ft-core.js", "ft-data.js", "rest-core.js"]}, open(os.path.join(d, "tsconfig.json"), "w"))
     cmd = ["node", tsc, "-p", os.path.join(d, "tsconfig.json")] if tsc.endswith(".js") else [tsc, "-p", os.path.join(d, "tsconfig.json")]
     _, o = run(cmd)
     errs = [l for l in o.splitlines() if re.search(r"TS(2304|2552|2451|2300|1\d{3})\b", l)]

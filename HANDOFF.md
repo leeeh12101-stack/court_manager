@@ -1,7 +1,7 @@
 # Court Manager 인수인계 문서
 
 > Claude가 GitHub 저장소에 직접 연결돼 있어요. 새 대화에서 "court_manager 저장소에서 …"라고 요청하면 최신 파일을 저장소에서 바로 읽어요.
-> 기준 시점: 2026-10-29 · **BUILD `1029-3`** · 버전 표기 `v0.1`
+> 기준 시점: 2026-11-02 · **BUILD `1101-4`** · 버전 표기 `v0.1`
 > **이 파일만 처음에 읽기.** BUILD별 상세 기록은 `HISTORY.md`(통째로 읽지 말고 검색).
 
 ---
@@ -20,15 +20,16 @@
 |---|---|
 | `index.html` | 뼈대(시작 로고·로딩 표시 포함), Firebase SDK·앱 파일 미리 받기(modulepreload) |
 | `app.css` | 디자인 |
-| `app.js` | 화면과 동작(약 286KB). 하나의 ES 모듈 |
+| `app.js` | 화면과 동작(약 500KB). 하나의 ES 모듈 |
 | `core.js` | **순수 계산**(Firebase·화면 무관) → 자동 테스트 대상 |
+| `rest-core.js` | **읽기 도우미**(1101-2): Firestore REST 요청 만들기·응답 풀기·저장본 시간값 포장, `makeReader`(REST 먼저·늦으면 SDK도). 테스트 `tests/rest.test.mjs` 41개. `sw.js` SHELL에 포함 |
 | `ft-data.js` / `ft-core.js` / `ft.js` | **포백 테스트**: 문구 모음 / 순수 계산(테스트 `tests/ft.test.mjs`) / 화면·동작(app.js가 `ftInstall()`로 V·A·BACK에 합침) |
 | `firebase-config.js` | ⚠ **절대 덮어쓰지 말 것**(1029-1부터 `authDomain`은 `leeeh12101-stack.github.io` — 로그인 도우미 파일이 보조 저장소 `/__/auth/`에 있음, 되돌리면 아이폰 홈 화면 앱 로그인 실패)(App Check 키·개발자 이메일 포함, 저장소 것이 최신). 사진 AI 전용 프로젝트 설정 `aiConfig`·`aiCheckKey`는 사용자가 직접 붙여 넣음(1021-7) |
 | `firestore.rules` | 보안 규칙. `main`에 푸시하면 **자동 게시**(GitHub Actions `.github/workflows/firestore-rules.yml`, Secret `FIREBASE_SERVICE_ACCOUNT` = 규칙 게시 전용 서비스 계정 `github-rules-deploy`). 수동 재실행: Actions › Firestore rules deploy › Run workflow |
-| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v55`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
+| `sw.js` | 서비스 워커(`V` 버전, 지금 `cm-v57`): 네트워크 우선, 3초 응답 없으면 저장본. 같은 출처 요청은 `cache:'no-cache'`로 브라우저 저장분(Pages max-age 10분)을 건너뛰고 서버 확인(1014-2) → 배포 직후에도 새 파일 |
 | `icon.svg` | **앱 아이콘 원본**(CM 모노그램, C 안 공 실밥, 로고 1.15배(폭 약 51%, 1012-6), 숲색 `#174A43`·크림 `#F3EEE3`). PNG(`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`(실밥 굵게))는 이 SVG에서 Playwright로 렌더(1012-5) |
 | `manifest.webmanifest`, `privacy.html` | 스토어 대비 매니페스트, 개인정보처리방침(`#delete`에 계정 삭제 안내) |
-| `tests/core.test.mjs` | core.js 테스트 155개 |
+| `tests/core.test.mjs` | core.js 테스트 160개(포백 `ft.test.mjs` 59개, 읽기 `rest.test.mjs` 41개) |
 | `tests/check.py` | **점검 한 번에 돌리기**: 기본 = 코드 점검(약 5초), `--ui` 화면 점검 추가, `--draw` 대진 점검 추가, `--all` 전부(동시 실행, 약 20초). 통과하면 한 줄, 실패하면 자세히(`-v`는 늘 자세히) |
 | `tests/shot.py` | **360·390 캡처 한 장**: `python3 tests/shot.py 이름 "[data-a=club]" ".nav [data-k=stats]"` (누를 곳 순서대로, `js:코드`·`wait:ms`, `--init "JS"` 가짜 데이터 바꾸기, `--h`·`--full`·`--el 선택자`, **`--cmp` = 마지막 커밋과 바꾼 뒤를 위아래로**). 가로 넘침 자동 검사. 결과 `tests/out/이름.png`(git 제외) |
 | `tests/smoke/h.py` | 점검 공통: 앱 서버·가짜 Firebase 연결·`idle()`(고정 대기 대신 로딩 원 없고 화면 변화가 0.25초 멈추면 진행) |
@@ -57,8 +58,10 @@
 - 상태 `S`, 동작 `A`(data-a로 연결, 약 252개), 화면 `V`(go("화면")), 클럽 탭 `T`(today·games·stats·members·settings), 개인 탭 `P`(home·games·stats·settings), 뒤로가기 `BACK`.
 - 렌더: `render()`, 입력 유지 재렌더 `keepR()`/`rer()`, 클럽 데이터 `load()`, 개인 데이터 `pLoad()`.
 - 원래 프로젝트 App Check는 시작 때 켜지 않음(`acMain()`, 1029-1): Firestore·Auth는 App Check 적용 안 함 상태여야 함. 나중에 Firestore에 App Check를 적용하려면 시작 때 켜는 것으로 되돌려야 함(그러면 느린 폰에서 첫 로딩이 늦어짐).
-- 주차권 필요·배분(1029-1): `sessionParticipants.park/parkAt`, `clubs.parkRest`, `pkState()`. 자동 배분은 아직.
-- Firestore는 `initializeFirestore(…,{experimentalForceLongPolling:true})`(1027-3): 폰·앱 웹 화면에서 스트리밍 연결이 막혀 로딩이 몇 분 걸리던 문제(Play 심사에도 영향). 되돌리지 말 것.
+- 주차권 필요·배분(1029-1): `sessionParticipants.park/parkAt`, `clubs.parkRest`(first 선착순 가져가기·staff 운영진만), `pkState()`. 자동 나눠 주기 `pzAuto`(1101-4, 응답 빠른 순, `pzGo` 재사용). 사용자 결정: 선착순 가져가기도 유지.
+- 대진 의견(1101-4): `drawNotes`(회원→대진 담당, 모임당 1개, 대진 확정 전까지). 읽기는 보낸 사람·`can draw`·그날 `drawWriterId`, `load()` 오늘 탭에서 함께 받음(`S.dn` 목록·`S.dnMine` 내 것). 앱의 '개발자에게 의견 보내기'(`feedback`)와 다름.
+- **읽기는 `fq`/`fd`/`fdm`으로(1101-2)**: REST 먼저·3초 안에 안 오면 SDK도·먼저 오는 쪽. 새로 `getDocs`/`getDoc`을 쓸 때 시작·화면 열기 경로면 이 도우미로(쓰기·트랜잭션·`onSnapshot`은 SDK 그대로). 느린 로딩 기록의 '읽기' 줄(`label ms rest|sdk`)로 어느 쪽이 빨랐는지 확인. 줄줄이 `await` 말고 `Promise.all`로 동시에. 저장본 먼저는 `cacheGet/cacheSet`(1101-3). 사진 AI·App Check 모듈은 `aiReady()`로 필요할 때만 받음, 로그인 창 resolver는 로그인 호출 때만 넘김(1101-1)
+- Firestore는 `initializeFirestore(…,{experimentalForceLongPolling:true,experimentalLongPollingOptions:{timeoutSeconds:10}})`(1027-3, 1101-2): 폰·앱 웹 화면에서 스트리밍 연결이 막혀 로딩이 몇 분 걸리던 문제(Play 심사에도 영향). 되돌리지 말 것.
 - 쓰기 함수 `setDoc/updateDoc/deleteDoc/writeBatch`는 **감싼 버전**(회원 화면 미리보기 중 저장 차단 + 회원 명단 캐시 무효화).
 - 폰 저장소 `IDB`는 3초 안에 안 열리거나 읽기·쓰기가 4초 넘으면(iOS IndexedDB 멈춤 대비) 그 실행 동안 저장 없이 서버에서 바로 받음(1012-9·1026-2). 사파리·iOS는 로그인 저장도 localStorage만(`SAFARI`, 1026-2). 느린 로딩은 받은 의견에 '느린 로딩(자동)'으로 쌓임(단계별 초). 개인 설정 클럽 동기화 줄에 가져온 경기 수·꺼짐 표시.
 - 회원 명단 2분 캐시 `memQ()`, 경기·출석·개인 기록은 **폰 저장 + 바뀐 것만 받기** `syncQ()`(IndexedDB, 30일 전체 갱신을 키별로 분산).
@@ -76,7 +79,7 @@
 
 ## 5. 데이터 (Firestore)
 
-컬렉션: `personalNotes, photoDays, clubPhotos, users, clubs, clubMembers, clubPrivate, inviteCodes, clubApplications, sessions, sessionParticipants, games, personalGames, personalPeople, aiUsage, aiDrawUsage, queues, feedback`
+컬렉션: `drawNotes`(대진 의견, id `클럽_날짜_uid`, 1101-4), `personalNotes, photoDays, clubPhotos, users, clubs, clubMembers, clubPrivate, inviteCodes, clubApplications, sessions, sessionParticipants, games, personalGames, personalPeople, aiUsage, aiDrawUsage, queues, feedback`
 
 **clubs 주요 필드**: `rankShow`, `mode`(round/queue/record), `qrule`, `schedType`(weekly/monthly/none), `schedM{week,weeks[],dow}`(매월 여러 주 `weeks`, 예전 폰 호환용 `week`=첫 주, core `mWeeks`·`mWeeksLab`), `regularDays`, 시간·코트, `noPlayEnabled`, `monthly{on,week,dow}`(월례대회 자동, 매주 클럽만), `mdays{yyyymmdd:bool}`, **`sched{yyyymmdd:{start,end,courts,title,memo,deadline,off,closed,ended}}`**(추가 모임·날짜별 변경·취소·응답 마감·모임 종료), `mtgOverride`(예전 방식, 호환 유지), `genderMode`(m/f/mixed), `memberView{tier,pos,gender}`, `tierEnabled`, `tiers`, `permissions`, `notice`, `gOk`(게스트로 인정한 이름), `lastBackupAt`, `visibility`, `joinMethod`.
 **clubMembers**: `displayName, role, status, defaultPosition, tierId, gender, uid 또는 oid(미가입)`.
@@ -91,7 +94,7 @@
 
 - **App Check**: reCAPTCHA Enterprise 키는 **`court-manager-abcde` 프로젝트**에서 만든 것, 앱 등록·`firebase-config.js` 반영 완료. AI Logic **기준 보호 적용**, 재생 보호 **사용 안 함**, 토큰 TTL 1시간. 개발자 전용 `App Check 진단` 버튼 있음.
 - **AI 무료 한도(프로젝트 전체)**: 3.5 Flash 하루 약 20회, 3.5 Flash-Lite 약 500회(2026-09 기준 자료). 회원이 많아지면 종량제 검토.
-- **플레이 스토어 최신 .aab(2026-10-27)**: 버전 코드 **4**(버전 1.0.2, 2026-10-29 올림; 코드 2는 예전에 써서 불가 → **다음은 5**). **버전 5 출시 노트에 넣을 것**: 불참으로 바꿀 때 주차권 돌려놓기·운영진 돌려받기, 대진 확정할 때 주차권 나눠 주기 묻기, 참석자 추가에 주차권 필요, 모임 끝난 뒤 작은 카드에도 내 주차권 상태(1029-4·5), PWABuilder Start URL `/court_manager/?src=play`(플레이 앱 판별용), 10월 7일 키 Use mine. 프로덕션 신청 1차 거절(10-27: 테스터 앱 참여 부족·테스트 중 업데이트 없음) → 10-27부터 14일 다시, 테스트 중 .aab 2~3번 올리기.
+- **플레이 스토어 최신 .aab(2026-10-27)**: 버전 코드 **4**(버전 1.0.2, 2026-10-29 올림; 코드 2는 예전에 써서 불가 → **다음은 5, 버전 이름 1.0.3**; 만들기는 PWABuilder에서 사용자가 직접). **버전 5 출시 노트에 넣을 것**: 앱 시작·클럽 화면 로딩 속도 개선(1101-1~3), 주차권 자동 나눠 주기(응답 빠른 순), 대진 짜기 전 '대진 의견 보내기', '개발자에게 의견 보내기' 안내, 불참으로 바꿀 때 주차권 돌려놓기·운영진 돌려받기, 대진 확정할 때 주차권 나눠 주기 묻기, 참석자 추가에 주차권 필요, 모임 끝난 뒤 작은 카드에도 내 주차권 상태(1029-4·5), PWABuilder Start URL `/court_manager/?src=play`(플레이 앱 판별용), 10월 7일 키 Use mine. 프로덕션 신청 1차 거절(10-27: 테스터 앱 참여 부족·테스트 중 업데이트 없음) → 10-27부터 14일 다시, 테스트 중 .aab 2~3번 올리기.
 - **플레이 스토어(2026-10-08)**: 비공개 테스트 버전 1 (1.0.0.1) 심사 전송. **업로드 키 = 10월 7일 PWABuilder 키**(SHA-1 7A:1E:17…, SHA-256 FA:4B:AC…), 10월 4일 키(87:F8…)는 사용 안 함. Play 앱 서명 키 SHA-256 4F:BD:AA…. assetlinks.json에 세 지문 등록. 새 .aab는 10월 7일 키로 Use mine + Version code 올리기(Package ID io.github.leeeh12101_stack.courtmanager).
 - (이전 기록) **플레이 스토어**: 개발자 계정 승인 대기. 패키지 `io.github.leeeh12101_stack.courtmanager`, PWABuilder 서명 키 보관 완료, `assetlinks.json`에 시험 서명 지문 등록. **남은 일**: 콘솔에서 앱 생성 → `.aab` 업로드 → **Play 앱 서명 SHA-256을 assetlinks.json에 추가**(배열에 2개) → 비공개 테스트·스토어 정보·데이터 보안 양식. 개인정보처리방침 URL `…/court_manager/privacy.html`, 계정 삭제 URL `…/privacy.html#delete`.
 
@@ -118,6 +121,8 @@
 ## 9. 보류·다음 후보
 
 
+- **실기기 확인 필요(최우선)**: 1101-1~3 로딩 — Reviewer(처음 설치·느린 4G)에서 느린 로딩(자동) 기록이 사라지는지, 기록이 남으면 '읽기' 줄의 rest/sdk·ms 확인(rest가 늘 실패하면 오류 코드, 둘 다 느리면 망 문제). 두 번째 실행에서 저장본이 바로 보이는지. 사진 AI·로그인(안드로이드 팝업·아이폰 홈 화면 리디렉션·계정 삭제 재인증)이 여전히 되는지
+- **실기기 확인 필요**: 1101-4 주차권 자동 나눠 주기(대진 확정 때·주차권 창), 대진 의견(회원이 보냄→담당자가 보고 확인함, 대진 확정 뒤엔 못 보냄) — 규칙은 푸시하면 자동 게시되니 Actions 성공 확인
 - **실기기 확인 필요**: 1021-3 탭 밀기(사진 넘기기·가로 스크롤 칸과 안 겹치는지, 안드로이드 뒤로가기 제스처와 안 겹치는지), 대진표 인쇄(플레이 스토어 앱·크롬·아이폰에서 인쇄 창이 뜨는지, 용지 한 장에 맞는지)
 - **실기기 확인 필요**: 1021-1·2 사용법 투어(화면 들어갈 때만·본 단계 다시 안 뜸·'사용법 다시 보기'), 대진 미리보기 길게 누르기(글자 선택 메뉴 안 뜨는지·진동), 회원 탭 칸 모양 복구
 - **실기기 확인 필요**: 1015-5 주차권(새 규칙으로 올리기·가져가기·돌려놓기·메모·다시 읽기·삭제가 실제 Firebase에서 되는지, 저장한 QR이 기계에서 읽히는지) — 규칙은 에뮬레이터 없이 올렸으니 실패 시 Actions·오류 코드 확인

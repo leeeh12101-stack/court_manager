@@ -140,6 +140,25 @@ service cloud.firestore {
       allow create, update: if isActive(request.resource.data.clubId) && qd == request.resource.data.clubId + '_' + request.resource.data.date;
     }
 
+    // 대진 의견(1101-4): 문서 id = 클럽_날짜_uid. 보낸 사람 본인과 대진 권한자·그날 대진 작성자만 읽음.
+    // 보내기·고치기는 본인만, 대진이 확정되기 전(sessions 문서에 rounds 없음)까지. 담당자는 확인 표시(seen)만 바꿈.
+    function dnWriter(c, d) { return exists(/databases/$(db)/documents/sessions/$(c + '_' + d)) && get(/databases/$(db)/documents/sessions/$(c + '_' + d)).data.get('drawWriterId', '') == me(); }
+    function dnOpenDraw(c, d) { return !exists(/databases/$(db)/documents/sessions/$(c + '_' + d)) || !get(/databases/$(db)/documents/sessions/$(c + '_' + d)).data.keys().hasAny(['rounds']); }
+    match /drawNotes/{n} {
+      allow get: if isActive(n.split('_')[0]) && (n.split('_')[2] == me() || can(n.split('_')[0], 'draw', 'staff') || dnWriter(n.split('_')[0], n.split('_')[1]));
+      allow list: if isActive(resource.data.clubId) && (resource.data.uid == me() || can(resource.data.clubId, 'draw', 'staff') || dnWriter(resource.data.clubId, resource.data.date));
+      allow create: if isActive(request.resource.data.clubId) && request.resource.data.uid == me()
+        && n == request.resource.data.clubId + '_' + request.resource.data.date + '_' + me()
+        && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 200
+        && request.resource.data.seen == false && dnOpenDraw(request.resource.data.clubId, request.resource.data.date);
+      allow update: if isActive(resource.data.clubId) && (
+        (resource.data.uid == me() && request.resource.data.uid == me() && request.resource.data.clubId == resource.data.clubId && request.resource.data.date == resource.data.date
+          && request.resource.data.text is string && request.resource.data.text.size() <= 200 && request.resource.data.seen == false && dnOpenDraw(resource.data.clubId, resource.data.date))
+        || ((can(resource.data.clubId, 'draw', 'staff') || dnWriter(resource.data.clubId, resource.data.date))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen', 'seenBy', 'seenAt', 'updatedAt'])));
+      allow delete: if closedPrimary(resource.data.clubId);
+    }
+
     match /feedback/{f} {
       allow create: if authed() && request.resource.data.uid == me() && request.resource.data.text is string && request.resource.data.text.size() <= 2000 && request.resource.data.status == 'new';
       allow read: if authed() && (resource.data.uid == me() || isDev());
