@@ -204,7 +204,10 @@ const BGS = [BG("20260905", 1, 1, 6, 2, ["a", "b"], ["c", "d"]), BG("20260905", 
 let TB = C.pTable(BGS.filter(g => g.date === "20260905"));
 eq("성적표: a 2승1패, 득실 +3", [TB.P.a.w, TB.P.a.l, TB.P.a.df], [2, 1, 3]);
 eq("성적표: 게스트 제외·페어", [Object.keys(C.pTable(BGS).P).sort(), C.pTable(BGS).PR["a|b"].g], [["a", "b", "c", "d"], 1]);
-eq("1위: 동률이면 승→패→득실로", C.topK([{ k: "x", x: 3, w: 3, l: 1, df: 5 }, { k: "y", x: 3, w: 3, l: 1, df: 8 }]).map(r => r.k), ["y"]);
+eq("배지 1위: 동률이면 승→패→득실로", C.topK([{ k: "x", x: 3, w: 3, l: 1, df: 5 }, { k: "y", x: 3, w: 3, l: 1, df: 8 }]).map(r => r.k), ["y"]);
+eq("1위: 승이 다르면 공동 아님(100%라도 4승 vs 2승1무)", C.topK([{ k: "x", x: 100, w: 4, l: 0, df: 9 }, { k: "y", x: 100, w: 2, l: 0, df: 3 }]).map(r => r.k), ["x"]);
+eq("동률 판정: 값·승·패만 봄", [C.rankTie({ x: 75, w: 3, l: 1, df: 4 }, { x: 75, w: 3, l: 1, df: -2 }), C.rankTie({ x: 75, w: 3, l: 1 }, { x: 75, w: 3, l: 2 }), C.rankTie({ x: 2 }, { x: 2 })], [true, false, true]);
+eq("공동 3위가 세 명이면 세 명 모두 3위, 다음은 6위", (() => { const r = [{ x: 100, w: 4, l: 0, df: 8 }, { x: 100, w: 2, l: 0, df: 3 }, { x: 75, w: 3, l: 1, df: 6 }, { x: 75, w: 3, l: 1, df: 4 }, { x: 75, w: 3, l: 1, df: 1 }, { x: 50, w: 2, l: 2, df: 0 }].sort(C.rankCmp), a = []; r.forEach((q, i) => { a[i] = i && C.rankTie(q, r[i - 1]) ? a[i - 1] : i + 1 }); return a })(), [1, 2, 3, 3, 3, 6]);
 eq("1위: 완전 동률은 공동", C.topK([{ k: "x", x: 2 }, { k: "y", x: 2 }, { k: "z", x: 1 }]).map(r => r.k), ["x", "y"]);
 eq("1위: 0이면 없음", C.topK([{ k: "x", x: 0 }]), []);
 let BD = C.badges(BGS, [{ k: "a", date: "20260905" }, { k: "a", date: "20260912" }, { k: "b", date: "20260905" }], { isMon: d => d === "20260912" });

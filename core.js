@@ -94,9 +94,11 @@ export function pTable(gs){const P={},PR={};
    mem.forEach(p=>{const o=P[p.k]=P[p.k]||{k:p.k,n:p.n,g:0,w:0,d:0,l:0,df:0,cur:0,max:0};o.g++;o[res]++;o.df+=df;if(res==="w"){o.cur++;o.max=Math.max(o.max,o.cur)}else o.cur=0});
    if(mem.length===2){const s=[...mem].sort((a,b)=>a.k<b.k?-1:1),k=s.map(p=>p.k).join("|"),o=PR[k]=PR[k]||{key:k,ks:s.map(p=>p.k),ns:s.map(p=>p.n),g:0,w:0,d:0,l:0,df:0};o.g++;o[res]++;o.df+=df}})});
  return{P,PR}}
-// 순위 비교: 값(x) → 승 많은 → 패 적은 → 득실차
+// 순위 정렬: 값(x) → 승 많은 → 패 적은 → 득실차(득실차는 표시 순서만, 동률 판정은 rankTie)
 export const rankCmp=(a,b)=>(b.x-a.x)||((b.w||0)-(a.w||0))||((a.l||0)-(b.l||0))||((b.df||0)-(a.df||0));
-// 1위(동률이면 공동). 값이 0 이하면 없음
+// 동률(공동 순위): 화면에 보이는 값·승·패가 같으면 같은 순위. 득실차는 같은 순위 안의 표시 순서에만 씀
+export const rankTie=(a,b)=>b.x-a.x===0&&(b.w||0)-(a.w||0)===0&&(a.l||0)-(b.l||0)===0;
+// 배지용 1위(값→승→패→득실까지 완전 동률이면 공동). 값이 0 이하면 없음. 순위표의 공동 표시(rankTie)와는 기준이 다름
 export function topK(rows){const s=[...(rows||[])].sort(rankCmp);if(!s.length||!(s[0].x>0))return[];return s.filter(r=>rankCmp(r,s[0])===0)}
 export const rate=o=>o.w+o.l?o.w/(o.w+o.l):0;
 export const BMIN={win:{m:5,q:10,y:20},pr:{m:3,q:5,y:10}};
