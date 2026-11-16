@@ -13,7 +13,7 @@ Object.assign(__DB.clubs.c1,{regularStartTime:"12:00",regularEndTime:"15:00",rou
 __DB.sessionParticipants=Object.fromEntries(%s.map(([n,e],i)=>[`c1_${td}_x${i}`,{clubId:"c1",date:td,uid:"",guest:true,name:n,status:"in",start:"12:00",end:e,position:["fore","back","either"][i%%3],updatedAt:ts}]));__DB.sessions={};})();""" % json.dumps(N, ensure_ascii=False)
 FUZZ = """(T)=>{const {S,buildDraw,psIssues,psViol}=__cm,ks=S.parts.filter(p=>p.status==="in").map(p=>"g:"+p.name),R=4,rnd=n=>Math.random()*n|0;let pass=0,blocked=0;const bad=[];
 for(let t=0;t<T;t++){const ps={},pairs=[],pick=()=>ks[rnd(ks.length)];for(let i=0,nP=1+rnd(5);i<nP;i++){const k=pick(),r={};for(let n=1;n<=R;n++){const x=Math.random();if(x<.25)r[n]="in";else if(x<.4)r[n]="out"}ps[k]={r,n:Math.random()<.4?1+rnd(3):0}}
- for(let i=0,np=rnd(3);i<np;i++){const a=pick(),b=pick();if(a!==b&&!pairs.some(p=>p.includes(a)||p.includes(b)))pairs.push(Math.random()<.5?[a,b]:[a,b,1+rnd(2)])}
+ for(let i=0,np=rnd(3);i<np;i++){const a=pick(),b=pick();if(a!==b&&!pairs.some(p=>p.includes(a)&&p.includes(b)))pairs.push(Math.random()<.5?[a,b]:[a,b,1+rnd(2)])}
  const dr={mode:"pos",excl:{},pairs,ps,prio:["pair","pos","opp"]};if(psIssues(dr).length){blocked++;continue}
  let ok=false;for(let i=0;i<40&&!ok;i++){const pl=buildDraw(S.parts,S.cur,dr);if(!psViol(pl.rounds,dr).length)ok=true}if(ok)pass++;else bad.push(dr)}
 return{pass,blocked,bad:bad.slice(0,3)}}"""
@@ -80,7 +80,7 @@ with sync_playwright() as p:
     # 고정 페어 게임 수를 앞 회차에 다 써 버리던 경우(1021-7): 박하늘 4회차만·1게임, 타냐 3회차 출전·2게임, 둘이 같이 1게임 → 4회차에 같이
     PR = {"mode": "pos", "excl": {}, "pairs": [["g:타냐", "g:박하늘", 1]], "ps": {"g:김수정": {"r": {"1": "in", "2": "out", "4": "out"}, "n": 0}, "g:박하늘": {"r": {"2": "out", "4": "in"}, "n": 1}, "g:타냐": {"r": {"3": "in"}, "n": 2}, "g:윰이": {"r": {}, "n": 0}}, "prio": ["pair", "pos", "opp"]}
     # 같이 칠 게임을 '내 출전 확정 회차'에서 칠 수 있으면 중복으로 떼지 않음(수정 중 생긴 문제 2개)
-    PRS = [PR, {"mode": "pos", "excl": {}, "pairs": [["g:냥이", "g:김나리", 2], ["g:타냐", "g:이은현", 2]], "ps": {"g:냥이": {"r": {"2": "in", "3": "out"}, "n": 2}, "g:이은현": {"r": {"1": "in"}, "n": 0}, "g:윰이": {"r": {"3": "in"}, "n": 0}}, "prio": ["pair", "pos", "opp"]},
+    PRS = [PR, {"mode": "pos", "excl": {}, "pairs": [["g:이은현", "g:고은지", 2], ["g:이은현", "g:김가루", 2]], "ps": {}, "prio": ["pair", "pos", "opp"]}, {"mode": "pos", "excl": {}, "pairs": [["g:냥이", "g:김나리", 2], ["g:타냐", "g:이은현", 2]], "ps": {"g:냥이": {"r": {"2": "in", "3": "out"}, "n": 2}, "g:이은현": {"r": {"1": "in"}, "n": 0}, "g:윰이": {"r": {"3": "in"}, "n": 0}}, "prio": ["pair", "pos", "opp"]},
            {"mode": "pos", "excl": {}, "pairs": [["g:김나리", "g:강이", 2]], "ps": {"g:김수정": {"r": {"3": "out", "4": "in"}, "n": 1}, "g:정다온": {"r": {"2": "out", "4": "in"}, "n": 1}, "g:김나리": {"r": {"2": "out", "3": "in"}, "n": 2}, "g:이수빈": {"r": {"4": "in"}, "n": 1}}, "prio": ["pair", "pos", "opp"]}]
     for i, dr in enumerate(PRS):
         f = pg.evaluate("(dr)=>{const {S,buildDraw,psViol}=__cm;let f=0;for(let t=0;t<60;t++){let ok=false;for(let i=0;i<40&&!ok;i++){const pl=buildDraw(S.parts,S.cur,dr);if(!psViol(pl.rounds,dr).length)ok=true}if(!ok)f++}return f}", dr)
