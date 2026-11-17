@@ -33,7 +33,7 @@ const TESTB=1,TWA=(()=>{try{if(String(document.referrer).startsWith("android-app
  tpOn=()=>TESTB&&TWA&&!S.tpSeen&&S.user&&["mode","clubs","clubHome","personal"].includes(S.screen)&&!S.pv&&!S.pvU&&(()=>{try{return Date.now()>(+localStorage.getItem("cm_tp")||0)}catch(e){return true}})(),
  tpSheet=()=>`<div class="sh" data-a="tpClose"><div data-keep="1"><div class="row" style="align-items:center;margin-bottom:6px"><h3 style="margin:0">테스트에 참여해 주셔서 고마워요</h3><button class="link" data-a="tpClose" style="margin:0">닫기</button></div><div class="sub" style="margin-bottom:12px">지금은 비공개 테스트 기간이에요. 아직 안 써 본 기능이 있다면 한 번씩 눌러 봐 주세요.</div><div class="list">${[["오늘 탭","참석 체크 · 대진표 보기"],["경기 탭","결과 입력 · 기록 보기"],["통계 · 순위","전적과 배지 확인"],["주차권 · 공지","신청하고 확인하기"]].map(([a,b])=>`<div class="li"><span class="nm">${a}</span><span class="sub">${b}</span></div>`).join("")}</div><div class="sub" style="margin:12px 2px">불편하거나 바라는 점이 있으면 <b>의견 보내기</b>로 알려 주세요. 개발자가 확인해서 업데이트에 반영하고, 반영하면 답변으로 알려 드려요.</div><div class="bar"><button data-a="tpFb">의견 보내기</button></div></div></div>`,
  tsbSheet=()=>`<div class="sh" data-a="tsbClose"><div data-keep="1"><div class="row" style="align-items:center;margin-bottom:6px"><h3 style="margin:0">플레이 스토어 앱으로 옮기기</h3><button class="link" data-a="tsbClose" style="margin:0">닫기</button></div><div class="sub" style="margin-bottom:12px">클럽과 기록은 그대로예요. 앱에서 같은 구글 계정으로 로그인하면 돼요.</div><div class="list">${[["테스터 그룹 가입","플레이 스토어와 같은 구글 계정으로","https://groups.google.com/g/court-manager","가입"],["테스트 참여","\u2018테스터 되기\u2019를 눌러 주세요","https://play.google.com/apps/testing/io.github.leeeh12101_stack.courtmanager","참여"],["앱 설치","설치한 뒤 앱 아이콘으로 열어 주세요<br>홈 화면의 예전 바로가기는 지워 주세요","https://play.google.com/store/apps/details?id=io.github.leeeh12101_stack.courtmanager","설치"]].map(([t,s,u,b],i)=>`<div class="li noar tsr"><span class="tsn">${i+1}</span><span class="nm"><b>${t}</b><small>${s}</small></span><a class="tsl" href="${u}" target="_blank" rel="noopener">${b}</a></div>`).join("")}</div><div class="sub center" style="margin-top:10px;font-size:12px">이미 테스터라면 3번만 하면 돼요</div><span class="lnk" data-a="tsbApp" style="display:block;text-align:center;margin-top:12px;font-size:13px">이미 플레이 스토어 앱으로 쓰고 있어요</span></div></div>`;
-const APPV="v0.1",BUILD="1107-4",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
+const APPV="v0.1",BUILD="1107-5",FBT={ux:"불편해요",bug:"오류가 있어요",idea:"이런 기능이 있으면",etc:"기타"},FBS={new:"접수",seen:"확인함",done:"반영함"};
 let toastT=null;function toast(m,lb,fn){const t=$("#toast");t.innerHTML="";const sp=document.createElement("span");sp.textContent=m;t.appendChild(sp);if(lb){const b=document.createElement("button");b.textContent=lb;b.onclick=()=>{t.style.display="none";fn&&fn()};t.appendChild(b)}t.style.display="flex";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",lb?6000:2600)}
 const isDev=()=>!!(CFG.devEmail&&S.user&&S.user.email===CFG.devEmail);
 const NPP={psa:"psb",sa:"sb",qa:"qb"},NPS=["psb","sb","qb"];let npT=null;
@@ -279,10 +279,14 @@ const drawRes=(pl,dr,c,rnd)=>{const {iv,st,R}=rinfo(c),E0=eff(c),cq=q=>courtSlot
   av.filter(p=>p.c&&psR(dr,p.k,q)!=="in"&&rem[p.k]>0).sort((a,b)=>rem[b.k]-rem[a.k]||tb[a.k]-tb[b.k]||(a.k<b.k?-1:1)).forEach(p=>{if(got<need){(res[p.k]=res[p.k]||new Set).add(q);rem[p.k]--;got++}});
   tg[q]=Math.min(cq(q),Math.floor(got/4))}
  return{res,tg}};
+// 지난 모임 반영(1107-5): 오늘 이전 가장 가까운 모임의 경기 기록으로 파트너·상대 횟수를 세어 두고(S.hist), 같은 짝·상대는 오늘 반복의 절반 힘으로 피함
+const HW=.5;
+function histOf(c,dd,L){const g0=(L||[]).filter(g=>g.clubId===c.id&&g.date&&g.date<dd&&(g.t1||[]).length&&(g.t2||[]).length);if(!g0.length)return null;const d=g0.reduce((m,g)=>g.date>m?g.date:m,""),pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a;let n=0;g0.filter(g=>g.date===d).forEach(g=>{const t1=g.t1.map(p=>ck(p)),t2=g.t2.map(p=>ck(p));n++;[t1,t2].forEach(t=>{if(t.length===2){const k=K(t[0],t[1]);pc[k]=(pc[k]||0)+1}});t1.forEach(a=>t2.forEach(b=>{const k=K(a,b);oc[k]=(oc[k]||0)+1}))});return{date:d,n,pc,oc}}
+async function histLoad(){const c=S.cur,u=S.user&&S.user.uid;if(!c||!u||S.pv)return;const dd=(S.parts[0]||{}).date||ymd(new Date());try{const L=await syncQ(`${u}_cg_${c.id}`,"games",[["clubId","==",c.id]]);S.hist=histOf(c,dd,L);S.histFor=c.id+dd}catch(e){S.hist=null}if(S.screen==="draw")keepR()}
 function buildDraw(parts,c,dr){
  const {iv,st,R}=rinfo(c),E0=eff(c),cts=E0.courts,pl=parts.filter(p=>p.status==="in"&&!p.noPlay).map(p=>({k:key(p),n:dnp(p),p:p.position,s:tmin(p.start),e:tmin(p.end),g:0,c:psN(dr,key(p)),t:(()=>{const m=S.mem.find(x=>mkey(x)===key(p));return m&&m.tierId!=null&&m.tierId!==""?m.tierId:null})(),x:gOf(key(p),p)}));
  const {res}=drawRes(pl,dr,c,1),rIn=(p,q)=>psR(dr,p.k,q)==="in"||!!(res[p.k]&&res[p.k].has(q));
- const pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a,cnt=(m,a,b)=>m[K(a,b)]||0,inc=(m,a,b)=>m[K(a,b)]=cnt(m,a,b)+1,rounds=[],W=dr.W||dW(dr.prio),fpc={};let rp=new Set();
+ const hs=(dr.hist!==0&&S.hist&&S.histFor===c.id+((parts[0]||{}).date||ymd(new Date()))?S.hist:null),hp=hs?hs.pc:{},ho=hs?hs.oc:{},pc={},oc={},K=(a,b)=>a<b?a+"|"+b:b+"|"+a,cnt=(m,a,b)=>m[K(a,b)]||0,inc=(m,a,b)=>m[K(a,b)]=cnt(m,a,b)+1,rounds=[],W=dr.W||dW(dr.prio),fpc={};let rp=new Set();
  for(let r=0;r<R;r++){
   const t=st+r*iv,n=r+1,inT=(p,q)=>{const tq=st+(q-1)*iv;return p.s<=tq&&p.e>=tq+iv},futM=p=>{let m=0;for(let q=n+1;q<=R;q++)if(inT(p,q)&&rIn(p,q))m++;return m};
   const CS=courtSlots(E0.ct,cts,t,iv),nF=CS.full.length,
@@ -303,8 +307,8 @@ function buildDraw(parts,c,dr){
   while(tot%4){const fr=sel.map((u,i)=>[u,i]).filter(([u])=>!isM(u)),s1=fr.filter(([u])=>u.length===1),j=s1.length?s1[s1.length-1][1]:fr.length?fr[fr.length-1][1]:sel.length-1;tot-=sel[j].length;sel.splice(j,1)}
   if(!sel.length){rp=new Set(av.map(p=>p.k));const G=[];bonus(G,av);rounds.push({n:r+1,time:fmt(t),games:G});continue}
   const mk=()=>{const T=[],sg=[];shuf(sel).forEach(u=>u.length===2?T.push({m:[...u],f:1}):sg.push(u[0]));for(let i=0;i<sg.length;i+=2)T.push({m:[sg[i],sg[i+1]],f:0});return shuf(T)};
-  const sc=T=>{let x=0;T.forEach(q=>{if(!q.f)x+=cnt(pc,q.m[0].k,q.m[1].k)*W.pair;if(dr.mode==="pos"&&q.m[0].p===q.m[1].p&&q.m[0].p!=="either")x+=W.pos});
-   for(let i=0;i<T.length;i+=2)for(const a of T[i].m)for(const b of T[i+1].m)x+=cnt(oc,a.k,b.k)*W.opp;
+  const sc=T=>{let x=0;T.forEach(q=>{if(!q.f)x+=(cnt(pc,q.m[0].k,q.m[1].k)+HW*cnt(hp,q.m[0].k,q.m[1].k))*W.pair;if(dr.mode==="pos"&&q.m[0].p===q.m[1].p&&q.m[0].p!=="either")x+=W.pos});
+   for(let i=0;i<T.length;i+=2)for(const a of T[i].m)for(const b of T[i+1].m)x+=(cnt(oc,a.k,b.k)+HW*cnt(ho,a.k,b.k))*W.opp;
    if(dr.tier&&dr.tier!=="none"){const mid=((c.tiers||["A","B","C","D"]).length-1)/2,tv=p=>p.t==null?mid:p.t;for(let i=0;i<T.length;i+=2){const A=T[i].m,B=T[i+1].m,v=[...A,...B].map(tv);x+=dr.tier==="within"?(Math.max(...v)-Math.min(...v))*W.tier*1.2:Math.abs(tv(A[0])+tv(A[1])-tv(B[0])-tv(B[1]))*W.tier}}
    if(dr.gmode==="mixed")for(let i=0;i<T.length;i++){const q=T[i].m;if(q[0].x&&q[1].x&&q[0].x===q[1].x)x+=W.gen}
    if(dr.gmode==="same")for(let i=0;i<T.length;i+=2){const gs=[...T[i].m,...T[i+1].m].map(p=>p.x).filter(Boolean);if(new Set(gs).size>1)x+=W.gen}
@@ -1096,6 +1100,7 @@ draw:()=>{const R=rinfo(S.cur).R,d=S.dr,o=S.parts.filter(p=>p.status==="in"&&!p.
 ${(()=>{const st=dcSt(),o=st.on,av=dcAv(),ch=o.join()!==DCD.filter(k=>av.includes(k)).join()||st.man,gs=[...new Set(o.map(DGK))];
  return `<div class="dch-h"><span class="sub">대진 조건</span><span class="qm" data-a="help" data-h="dch">?</span><span style="flex:1"></span>${ch?'<span class="tap dcrst" data-a="dcRst">기본으로</span>':""}</div>
 ${DCG.map(([t,ks,h])=>{const v=ks.filter(k=>av.includes(k));return v.length?`<div class="dcr"><span class="dcl2">${t}${h?`<span class="qm" data-a="help" data-h="${h}">?</span>`:""}</span><div class="dcg2${v.length===1?" one":""}">${v.map(k=>`<span class="dcc${o.includes(k)?" on":""}" data-a="dcTap" data-v="${k}">${DC[k]}</span>`).join("")}</div></div>`:""}).join("")}
+${S.hist&&S.histFor===S.cur.id+((S.parts[0]||{}).date||ymd(new Date()))&&(o.includes("pair")||o.includes("opp"))?`<div class="sub" style="margin:2px 2px 8px">지난 모임(${S.hist.date.slice(4,6)}/${S.hist.date.slice(6)}) 경기 ${S.hist.n}개도 참고해서 같은 짝·상대를 피해요</div>`:""}
 <div class="dcr"><span class="dcl2">우선순위<span class="qm" data-a="help" data-h="hprio">?</span></span><div class="tgl"><span class="${st.man?"":"on"}" data-a="dpAuto">자동 최적화</span><span class="${st.man?"on":""}" data-a="dpMan">직접 설정</span></div></div>
 ${st.man?`<div class="dlv" id="dlvb">${gs.length?gs.map(g=>{const k=o.find(x=>DGK(x)===g);return `<div class="dlvr"><span class="dlvn">${DC[k]}</span><div class="seg xs" data-k="lv_${g}">${[3,2,1].map(l=>`<div data-v="${l}" class="${st.lv[g]===l?"on":""}">${DLN[l]}</div>`).join("")}</div></div>`}).join(""):'<div class="sub">켠 조건이 없어요</div>'}</div>`:""}`})()}
 ${addSec()}
@@ -1774,7 +1779,7 @@ async pick(el){const ref=el.dataset.s,rr=()=>{S.still=1;render();S.still=0},isR=
   const bef=new Set(cx(S.dr.plan.rounds).map(cxK)),aft=cx(rs),nw=new Set(aft.map(cxK).filter(k=>!bef.has(k)));
   if(nw.size){const L=[...aft.filter(x=>nw.has(cxK(x))),...aft.filter(x=>!nw.has(cxK(x)))];if(!await askH(`<b style="font-size:16px">${esc(va.n||"")} ↔ ${esc(vb.n||"")} 바꾸기</b><span class="sub" style="display:block;margin:2px 0 8px">바꾸면 새로 생기는 것은 진하게, 원래 있던 것은 흐리게 보여요</span>${cxHtml(L,nw)}`,"그래도 바꾸기","취소"))return rr()}
   S.dr.plan.rounds=rs;rr()},
-toDraw(){if(!S.dr)S.dr={mode:"pos",excl:{},pairs:[],plan:null};go("draw")},
+toDraw(){if(!S.dr)S.dr={mode:"pos",excl:{},pairs:[],plan:null};go("draw");histLoad()},
 accTog(el){const v=el.dataset.v,k="acc_"+v;S.form[k]=!S.form[k];keepR();if(S.form[k])showIn(`[data-acc="${v}"]`)},
 dpAuto(){S.form.dman=0;keepR()},
 dpMan(){S.form.dman=1;keepR();showIn("#dlvb")},

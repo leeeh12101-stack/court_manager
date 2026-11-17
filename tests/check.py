@@ -11,7 +11,7 @@ os.chdir(ROOT)
 ok = True
 _ARGS = set(sys.argv[1:]); _LOG = []; _bp = print
 _ps = [subprocess.Popen([sys.executable, os.path.join("tests", "smoke", _s)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-       for _f, _s in (("--ui", "smoke.py"), ("--draw", "draw.py")) if _f in _ARGS or "--all" in _ARGS]   # 코드 점검과 동시에 실행
+       for _f, _s in (("--ui", "smoke.py"), ("--draw", "draw.py"), ("--draw", "hist.py")) if _f in _ARGS or "--all" in _ARGS]   # 코드 점검과 동시에 실행
 def print(*a, **k): _LOG.append(" ".join(str(x) for x in a) if k.get("sep") is None else k["sep"].join(str(x) for x in a))
 
 def run(cmd):
