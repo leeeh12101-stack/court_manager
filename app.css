@@ -356,4 +356,3 @@ details.sd summary{list-style:none;cursor:pointer;display:flex;justify-content:s
 /* 오늘 탭 간격(1107-1): 카드·제목 사이를 좁혀 한 화면에 더 많이 보이게 */
 .tb-today .card{margin-bottom:8px}.tb-today .card.mac{margin-bottom:6px}.tb-today h2{margin:14px 2px 6px}.tb-today .list{margin-bottom:8px}
 
-.rest.ab{background:#fff;color:#B4B9B5}.rest.ab span[data-a]{background:none;border:1px dashed #D9DDD8;color:#A9AEAA}.rest.ab i{font-style:normal;font-size:11px;opacity:.8}.rest.t.ab span[data-a]{border:0}.rsm{padding:6px 12px;font-size:12.5px;color:#8A6D1F;background:#FFFAEC;border-bottom:1px solid #F3EAD0}
