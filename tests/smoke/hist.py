@@ -12,6 +12,9 @@ const prevP=new Set(["이은현|고은지","김가루|이수빈","최유리|정�
 const prevO=new Set();[["이은현","고은지","윰이","타냐"],["김가루","이수빈","김수정","박하늘"],["최유리","정다온","이은현","강이"]].forEach(([a,b,c,d])=>[a,b].forEach(x=>[c,d].forEach(y=>prevO.add(K("g:"+x,"g:"+y)))));
 const run=(on)=>{const h=S.hist;if(!on)S.hist=null;let pr=0,opp=0;for(let t=0;t<o.T;t++){const pl=buildDraw(S.parts,S.cur,{...base});pl.rounds.forEach(r=>r.games.forEach(g=>{[g.t1,g.t2].forEach(tm=>{if(prevP.has(K(tm[0].k,tm[1].k)))pr++});g.t1.forEach(a=>g.t2.forEach(b=>{if(prevO.has(K(a.k,b.k)))opp++}))}))}S.hist=h;return{pr:+(pr/o.T).toFixed(2),opp:+(opp/o.T).toFixed(2)}};
 return{hist:S.hist&&{d:S.hist.date,n:S.hist.n},on:run(true),off:run(false)}}"""
+EV2="""(o)=>{const {S,buildDraw,key}=__cm;const mkp=i=>({uid:"x"+i,name:"선수"+i,status:"in",start:"18:00",end:"22:00",position:"either",date:S.parts[0].date,noPlay:false});
+S.parts=Array.from({length:20},(_,i)=>mkp(i));S.cur.regularStartTime="18:00";S.cur.regularEndTime="22:00";S.cur.regularCourtCount=3;const ps={};S.parts.forEach((p,i)=>{ps[key(p)]={n:i%2?3:4}});
+const out=[];for(let t=0;t<30;t++){const pl=buildDraw(S.parts,S.cur,{mode:"pos",excl:{},pairs:[],ps,prio:["pair","pos","opp"]});out.push(pl.rounds.map(r=>r.games.length).join(","))}return[...new Set(out)]}"""
 with sync_playwright() as p:
     b=p.chromium.launch();pg=b.new_page(viewport={"width":390,"height":844})
     errs=[];pg.on("pageerror",lambda e:errs.append(str(e)))
@@ -26,6 +29,8 @@ with sync_playwright() as p:
     if r["on"]["pr"]>r["off"]["pr"]*0.5: bad.append("지난 짝 반복이 충분히 줄지 않았어요")
     if r["on"]["opp"]>=r["off"]["opp"]*0.8: bad.append("지난 상대 반복이 충분히 줄지 않았어요")
     if not note: bad.append("설정 화면에 안내 문구가 없어요")
+    r2=pg.evaluate(EV2,{})
+    if r2!=["3,3,3,3,3,2"]: bad.append(f"게임 수 제한이 빠듯할 때 첫 회차부터 코트를 채워야 하는데 {r2}")
     errs+=bad
     b.close()
 srv.shutdown()
